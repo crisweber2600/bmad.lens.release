@@ -1,10 +1,8 @@
-# store-github-pat.ps1 — Securely store GitHub PATs outside of LLM context
+# store-github-pat.ps1 — Securely store GitHub PATs as environment variables outside of LLM context
 # Run this script in a terminal window (NOT inside Copilot/Claude/LLM chat)
 
 $ErrorActionPreference = "Stop"
 
-$CredDir = "_bmad-output/lens-work/personal"
-$CredFile = "$CredDir/github-credentials.yaml"
 $InventoryFile = "_bmad-output/lens-work/repo-inventory.yaml"
 
 Write-Host ""
@@ -39,17 +37,7 @@ foreach ($d in $domains) {
 }
 Write-Host ""
 
-# Create output directory
-New-Item -ItemType Directory -Path $CredDir -Force | Out-Null
-
-# Build credentials YAML
-$timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-$yaml = @"
-# GitHub credentials for lens-work
-# Generated: $timestamp
-# ⚠️  This file is gitignored — never commit it
-
-"@
+$storedCount = 0
 
 foreach ($domain in $domains) {
     Write-Host ""
@@ -59,10 +47,13 @@ foreach ($domain in $domains) {
 
     if ($domain -eq "github.com") {
         Write-Host "  Generate a token at: https://github.com/settings/tokens"
+        $envVar = "GITHUB_PAT"
     } else {
         Write-Host "  Generate a token at: https://$domain/settings/tokens"
+        $envVar = "GH_ENTERPRISE_TOKEN"
     }
     Write-Host "  Required scopes: repo, read:org"
+    Write-Host "  Will be stored as: `$$envVar"
     Write-Host ""
 
     $secPat = Read-Host "  Enter PAT for $domain (input hidden)" -AsSecureString
@@ -75,28 +66,49 @@ foreach ($domain in $domains) {
         continue
     }
 
-    $patType = if ($domain -eq "github.com") { "github.com" } else { "github_enterprise" }
+    # Persist as a user-level environment variable (survives reboots)
+    [System.Environment]::SetEnvironmentVariable($envVar, $pat, "User")
 
-    $yaml += @"
-${domain}:
-  token: $pat
-  created_at: $timestamp
-  type: $patType
+    # Also set in the current session immediately
+    Set-Item -Path "Env:$envVar" -Value $pat
 
-"@
-
-    Write-Host "  ✅ Stored PAT for $domain" -ForegroundColor Green
+    Write-Host "  ✅ Stored `$$envVar in environment" -ForegroundColor Green
+    $storedCount++
 }
-
-$yaml | Out-File -FilePath $CredFile -Encoding utf8 -NoNewline
 
 Write-Host ""
 Write-Host "========================================"
-Write-Host "✅ Credentials saved to: $CredFile" -ForegroundColor Green
 Write-Host ""
+Write-Host "✅ PATs stored as environment variables" -ForegroundColor Green
+Write-Host ""
+Write-Host "Verifying stored variables:"
 
-# Try to open in VS Code
-if (Get-Command code -ErrorAction SilentlyContinue) {
-    code $CredFile
-    Write-Host "📂 Opened in VS Code"
+foreach ($domain in $domains) {
+    if ($domain -eq "github.com") {
+        $envVar = "GITHUB_PAT"
+    } else {
+        $envVar = "GH_ENTERPRISE_TOKEN"
+    }
+
+    $val = [System.Environment]::GetEnvironmentVariable($envVar, "User")
+    if (-not [string]::IsNullOrWhiteSpace($val)) {
+        if ($val.Length -ge 8) {
+            $masked = $val.Substring(0, 4) + "****" + $val.Substring($val.Length - 4)
+        } else {
+            $masked = "****"
+        }
+        Write-Host "  ✅ `$$envVar = $masked" -ForegroundColor Green
+    } else {
+        Write-Host "  ❌ `$$envVar not set" -ForegroundColor Red
+    }
+}
+
+Write-Host ""
+if ($storedCount -gt 0) {
+    Write-Host "✅ $storedCount PAT(s) verified." -ForegroundColor Green
+    Write-Host ""
+    Write-Host "📌 Stored as User-level environment variables."
+    Write-Host "   New terminal sessions will have these variables available automatically."
+} else {
+    Write-Host "⚠️  No PATs were stored." -ForegroundColor Yellow
 }

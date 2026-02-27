@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# store-github-pat.sh — Securely store GitHub PATs outside of LLM context
+# store-github-pat.sh — Securely store GitHub PATs as environment variables outside of LLM context
 # Run this script in a terminal window (NOT inside Copilot/Claude/LLM chat)
 set -euo pipefail
 
-CRED_DIR="_bmad-output/lens-work/personal"
-CRED_FILE="${CRED_DIR}/github-credentials.yaml"
 INVENTORY_FILE="_bmad-output/lens-work/repo-inventory.yaml"
 
 echo ""
@@ -37,14 +35,18 @@ for d in "${domains[@]}"; do
 done
 echo ""
 
-# Create output directory
-mkdir -p "$CRED_DIR"
+# Determine shell profile file to persist env vars
+detect_profile() {
+  if [[ -n "${ZSH_VERSION:-}" ]] || [[ "$SHELL" == */zsh ]]; then
+    echo "${HOME}/.zshrc"
+  elif [[ -f "${HOME}/.bash_profile" ]]; then
+    echo "${HOME}/.bash_profile"
+  else
+    echo "${HOME}/.bashrc"
+  fi
+}
 
-# Build credentials YAML
-echo "# GitHub credentials for lens-work" > "$CRED_FILE"
-echo "# Generated: $(date -u +%FT%TZ)" >> "$CRED_FILE"
-echo "# ⚠️  This file is gitignored — never commit it" >> "$CRED_FILE"
-echo "" >> "$CRED_FILE"
+PROFILE_FILE="$(detect_profile)"
 
 for domain in "${domains[@]}"; do
   echo ""
@@ -54,10 +56,13 @@ for domain in "${domains[@]}"; do
 
   if [[ "$domain" == "github.com" ]]; then
     echo "  Generate a token at: https://github.com/settings/tokens"
+    env_var="GITHUB_PAT"
   else
     echo "  Generate a token at: https://${domain}/settings/tokens"
+    env_var="GH_ENTERPRISE_TOKEN"
   fi
   echo "  Required scopes: repo, read:org"
+  echo "  Will be stored as: \$${env_var}"
   echo ""
 
   read -rsp "  Enter PAT for ${domain} (input hidden): " pat
@@ -68,31 +73,54 @@ for domain in "${domains[@]}"; do
     continue
   fi
 
-  # Determine type
-  if [[ "$domain" == "github.com" ]]; then
-    pat_type="github.com"
-  else
-    pat_type="github_enterprise"
+  # Remove any existing export for this variable from profile
+  if [[ -f "$PROFILE_FILE" ]]; then
+    grep -v "^export ${env_var}=" "$PROFILE_FILE" > "${PROFILE_FILE}.tmp" || true
+    mv "${PROFILE_FILE}.tmp" "$PROFILE_FILE"
   fi
 
-  cat >> "$CRED_FILE" <<EOF
-${domain}:
-  token: ${pat}
-  created_at: $(date -u +%FT%TZ)
-  type: ${pat_type}
+  # Append export to shell profile for persistence
+  echo "export ${env_var}=\"${pat}\"" >> "$PROFILE_FILE"
 
-EOF
+  # Set in current session immediately
+  export "${env_var}=${pat}"
 
-  echo "  ✅ Stored PAT for ${domain}"
+  echo "  ✅ Stored \$${env_var} in environment"
 done
 
 echo ""
 echo "========================================"
-echo "✅ Credentials saved to: ${CRED_FILE}"
 echo ""
+echo "✅ PATs stored as environment variables"
+echo ""
+echo "Verifying stored variables:"
+stored_count=0
+for domain in "${domains[@]}"; do
+  if [[ "$domain" == "github.com" ]]; then
+    env_var="GITHUB_PAT"
+  else
+    env_var="GH_ENTERPRISE_TOKEN"
+  fi
+  val="${!env_var:-}"
+  if [[ -n "$val" ]]; then
+    if [[ ${#val} -ge 8 ]]; then
+      masked="${val:0:4}****${val: -4}"
+    else
+      masked="****"
+    fi
+    echo "  ✅ \$${env_var} = ${masked}"
+    stored_count=$((stored_count + 1))
+  else
+    echo "  ❌ \$${env_var} not set"
+  fi
+done
 
-# Try to open in VS Code
-if command -v code &>/dev/null; then
-  code "$CRED_FILE"
-  echo "📂 Opened in VS Code"
+echo ""
+if [[ $stored_count -gt 0 ]]; then
+  echo "✅ ${stored_count} PAT(s) verified."
+  echo ""
+  echo "📌 Persisted to: ${PROFILE_FILE}"
+  echo "   Reload your shell or run: source ${PROFILE_FILE}"
+else
+  echo "⚠️  No PATs were stored."
 fi

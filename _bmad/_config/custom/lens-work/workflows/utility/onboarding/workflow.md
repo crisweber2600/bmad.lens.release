@@ -127,18 +127,20 @@ if pat_choice.lower() in ["y", "yes"]:
     ⏸️  The script will:
     - Run outside of LLM context for security
     - Prompt for PAT for each domain
-    - Store securely in gitignored file
-    - Open the credentials file in VS Code when complete
+    - Store securely as environment variables (GITHUB_PAT / GH_ENTERPRISE_TOKEN)
+    - Verify environment variables are set when complete
     
     **Send "Continue" when ready...**
   
   wait_for_user = prompt_user()
   
-  # Check if credentials were created
-  if file_exists("_bmad-output/lens-work/personal/github-credentials.yaml"):
-    output: "✅ GitHub credentials detected! Continuing with onboarding..."
+  # Check if credentials were stored as environment variables
+  github_pat = env_var("GITHUB_PAT") or env_var("GH_TOKEN")
+  enterprise_token = env_var("GH_ENTERPRISE_TOKEN") or env_var("GH_TOKEN")
+  if github_pat or enterprise_token:
+    output: "✅ GitHub credentials detected in environment! Continuing with onboarding..."
   else:
-    output: "⏭️  No credentials found. You can add them later by running the script."
+    output: "⏭️  No credentials found in environment. You can run the script anytime to set them."
 else:
   output: |
     
@@ -294,89 +296,4 @@ Next steps:
 └── Run @compass H for help
 
 Welcome to the team! 🚀
-```
-
----
-
-## Storage Locations
-
-### Personal Profile (Gitignored)
-Your personal profile is stored locally in `_bmad-output/lens-work/personal/profile.yaml`:
-
-```yaml
-# _bmad-output/lens-work/personal/profile.yaml
-name: Jane Smith
-email: jane.smith@example.com
-role: Developer
-scope: payment-service
-created_at: 2026-02-03T10:00:00Z
-preferences:
-  communication_style: professional
-  auto_fetch: true
-```
-
-### GitHub Credentials (Gitignored)
-Your GitHub Personal Access Tokens are stored securely in `_bmad-output/lens-work/personal/github-credentials.yaml`:
-
-```yaml
-# _bmad-output/lens-work/personal/github-credentials.yaml
-github.com:
-  token: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-  created_at: 2026-02-03T10:00:00Z
-  type: github.com
-
-github.foo.com:
-  token: ghp_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-  created_at: 2026-02-03T10:00:00Z
-  type: github_enterprise
-```
-
-**Security Notes:**
-- This file is gitignored and never committed
-- Used for GitHub API access (PRs, issues, CI status)
-- Separate tokens for each GitHub domain (SaaS and Enterprise)
-- Can be regenerated anytime from GitHub settings
-- Optional but recommended for full lens-work features
-
-**Generate Tokens:**
-- GitHub.com (SaaS): https://github.com/settings/tokens
-- GitHub Enterprise: https://{your-domain}/settings/tokens
-- Required scopes: `repo`, `read:org`
-
-### Roster Entry (Team Stats)
-Your roster entry is stored in `_bmad-output/lens-work/roster/jane-smith.yaml`:
-
-```yaml
-# _bmad-output/lens-work/roster/jane-smith.yaml
-name: Jane Smith
-email: jane.smith@example.com
-role: Developer
-onboarded_at: 2026-02-03T10:00:00Z
-repos_initiated: ["payment-service", "auth-service"]
-stats:
-  initiatives_started: 5
-  initiatives_completed: 3
-  last_active: 2026-02-10T15:30:00Z
-```
-
-### Personal Repo Inventory
-Your machine-specific repo state is tracked in `_bmad-output/lens-work/personal/personal-repo-inventory.yaml`:
-
-```yaml
-# _bmad-output/lens-work/personal/personal-repo-inventory.yaml
-scanned_at: "2026-02-10T15:00:00Z"
-workstation: "DESKTOP-ABC123"
-
-repos:
-  - name: payment-service
-    local_path: "D:/Projects/payment-service"
-    current_branch: "feature/new-payment-api"
-    has_uncommitted: true
-    last_pull: "2026-02-10T09:00:00Z"
-    
-  - name: auth-service
-    local_path: "D:/Projects/auth-service"
-    current_branch: "main"
-    has_uncommitted: false
-    last_pull: "2026-02-09T16:30:00Z"
 ```
