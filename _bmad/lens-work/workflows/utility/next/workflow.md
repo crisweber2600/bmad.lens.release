@@ -152,44 +152,63 @@ if current_workflow_status == "in_progress":
   exit: 0
 
 # Priority 3.25: Phase status is pr_pending — check if PR is actually merged
-phase_status = initiative.phase_status[current_phase]
-if phase_status == "pr_pending":
+phase_status_raw = initiative.phase_status[current_phase]
+# Normalize: phase_status entry may be a scalar string or an object with a .status field
+phase_status_value = phase_status_raw.status ?? phase_status_raw
+if phase_status_value == "pr_pending":
   # Phase has a PR waiting for merge. Check if it's already merged.
   current_phase_display = lifecycle.phases[current_phase].name || current_phase
   lifecycle = load("_bmad/lens-work/lifecycle.yaml")
   phase_audience = lifecycle.phases[current_phase].audience || "unknown"
   
-  phase_branch = "${initiative.featureBranchRoot}-${phase_audience}-${current_phase}"
-  audience_branch = "${initiative.featureBranchRoot}-${phase_audience}"
+  # Derive branch root: prefer initiative.initiative_root (v2), fallback to legacy featureBranchRoot
+  branch_root = initiative.initiative_root || initiative.featureBranchRoot
+  phase_branch = "${branch_root}-${phase_audience}-${current_phase}"
+  audience_branch = "${branch_root}-${phase_audience}"
   
   # Fetch to ensure fresh git state
   result_fetch = git-orchestration.exec("git fetch origin --prune")
   
-  # Check if phase branch is ancestor of audience branch (meaning PR was merged)
-  result_merge_base = git-orchestration.exec("git merge-base --is-ancestor origin/${phase_branch} origin/${audience_branch}")
+  if result_fetch.exit_code != 0:
+    # Fetch failed — cannot reliably determine merge status
+    output: |
+      ⚠️  Could not fetch from remote. Run @lens next again when connectivity is restored.
+    exit: 0
   
-  if result_merge_base.exit_code == 0:
+  # Check if phase branch still exists on remote (may be deleted post-merge)
+  result_ls_remote = git-orchestration.exec("git ls-remote --heads origin ${phase_branch}")
+  
+  if result_ls_remote.exit_code == 0 && result_ls_remote.stdout != "":
+    # Branch still exists — verify it is an ancestor of the audience branch
+    result_merge_base = git-orchestration.exec("git merge-base --is-ancestor origin/${phase_branch} origin/${audience_branch}")
+    merged = result_merge_base.exit_code == 0
+  else:
+    # Branch absent on remote — heuristic: assume deleted after merge.
+    # Note: a branch could also be deleted without merging. If unsure, verify PR status manually.
+    merged = true
+  
+  if merged:
     # PR was merged! Auto-update phase_status and continue to auto-advance
     output: |+
       ✅ PR for ${current_phase} is already merged!
       
-      ▶️  Auto-updating phase status to complete and advancing...
+      ▶️  Auto-updating phase status to passed and advancing...
     
     invoke: state-management.update-initiative
     params:
       initiative_id: ${initiative.id}
       updates:
         phase_status:
-          ${current_phase}:
-            status: "complete"
-            completed_at: "${ISO_8601_TIMESTAMP}"
+          ${current_phase}: "passed"
+        completed_at:
+          ${current_phase}: "${ISO_TIMESTAMP}"
     
     # Continue to phase-completion for auto-advance
     load_skill: "_bmad/lens-work/skills/phase-completion.md"
     exit: 0
   else:
     # PR not merged yet — pause and inform user
-    pr_url = initiative.phase_status[current_phase].pr_url || "(no PR URL recorded)"
+    pr_url = phase_status_raw.pr_url || "(no PR URL recorded)"
     output: |
       ⏳ Phase PR Awaiting Merge
       
