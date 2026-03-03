@@ -161,7 +161,7 @@ For each sub_workflow defined in lifecycle.yaml:
 
 - **PR creation failed (no PAT):** Still update state to `pr_pending`, inform user to create PR manually, but proceed with auto-advance since artifacts are pushed
 - **Phase already `passed`:** Skip Parts 1-2, go directly to auto-advance
-- **Phase already `pr_pending`:** Check if PR is merged. If merged, update to `passed` and proceed to auto-advance. If not merged, inform user and wait.
+- **Phase already `pr_pending`:** The `/next` workflow detects this and checks if PR is merged using `git merge-base --is-ancestor`. If merged, it auto-updates status to `complete` and loads this skill. If not merged, `/next` pauses with merge instructions (this skill is not called). This ensures merged PRs advance automatically without requiring manual intervention.
 - **No `auto_advance_to` defined:** Phase is terminal — just inform user "Phase complete. Use /next to continue."
 
 ---

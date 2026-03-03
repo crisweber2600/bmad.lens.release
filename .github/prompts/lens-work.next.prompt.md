@@ -49,12 +49,25 @@ User: @lens next
 [all small phases complete]
 → Executes @lens promote (small→medium)
 
+[PR has been merged, auto-advance]
+→ Auto-updates phase status and executes next phase
+
 [base approved, ready for dev]
 → Executes /dev
 ```
 
+**Auto-Detect Merged PRs:**
+
+When a phase is waiting for PR merge (`pr_pending`), @lens next automatically:
+1. Checks if the PR is already merged using git ancestry detection
+2. **If merged:** Auto-updates phase status to complete and advances to the next phase
+3. **If not merged:** Pauses and shows merge instructions
+
+This eliminates the need to manually ask "is it merged yet?" — the workflow detects it automatically.
+
 **Benefits:**
 - Single command to continue work
 - No context switching to check status
+- Automatic PR merge detection (no manual refresh needed)
 - Reduces prompt overhead
 - Maintains flow state

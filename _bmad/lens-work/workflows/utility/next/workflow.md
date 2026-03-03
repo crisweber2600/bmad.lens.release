@@ -151,6 +151,60 @@ if current_workflow_status == "in_progress":
   # Don't auto-continue — user is mid-workflow
   exit: 0
 
+# Priority 3.25: Phase status is pr_pending — check if PR is actually merged
+phase_status = initiative.phase_status[current_phase]
+if phase_status == "pr_pending":
+  # Phase has a PR waiting for merge. Check if it's already merged.
+  current_phase_display = lifecycle.phases[current_phase].name || current_phase
+  lifecycle = load("_bmad/lens-work/lifecycle.yaml")
+  phase_audience = lifecycle.phases[current_phase].audience || "unknown"
+  
+  phase_branch = "${initiative.featureBranchRoot}-${phase_audience}-${current_phase}"
+  audience_branch = "${initiative.featureBranchRoot}-${phase_audience}"
+  
+  # Fetch to ensure fresh git state
+  result_fetch = git-orchestration.exec("git fetch origin --prune")
+  
+  # Check if phase branch is ancestor of audience branch (meaning PR was merged)
+  result_merge_base = git-orchestration.exec("git merge-base --is-ancestor origin/${phase_branch} origin/${audience_branch}")
+  
+  if result_merge_base.exit_code == 0:
+    # PR was merged! Auto-update phase_status and continue to auto-advance
+    output: |+
+      ✅ PR for ${current_phase} is already merged!
+      
+      ▶️  Auto-updating phase status to complete and advancing...
+    
+    invoke: state-management.update-initiative
+    params:
+      initiative_id: ${initiative.id}
+      updates:
+        phase_status:
+          ${current_phase}:
+            status: "complete"
+            completed_at: "${ISO_8601_TIMESTAMP}"
+    
+    # Continue to phase-completion for auto-advance
+    load_skill: "_bmad/lens-work/skills/phase-completion.md"
+    exit: 0
+  else:
+    # PR not merged yet — pause and inform user
+    pr_url = initiative.phase_status[current_phase].pr_url || "(no PR URL recorded)"
+    output: |
+      ⏳ Phase PR Awaiting Merge
+      
+      Phase: ${current_phase}
+      Branch: ${phase_branch}
+      Target: ${audience_branch}
+      PR: ${pr_url}
+      
+      📋 Next steps:
+      ├── Review and merge the PR in GitHub
+      ├── Or run @lens sync to refresh state
+      └── Then run @lens next again to auto-advance
+    
+    exit: 0
+
 # Priority 3.5: All sub-workflows complete but phase not yet finalized
 lifecycle = load("_bmad/lens-work/lifecycle.yaml")
 sub_workflow_defs = lifecycle.phases[current_phase].sub_workflows || []
@@ -161,7 +215,6 @@ for sw in sub_workflow_defs:
     all_required_done = false
     break
 
-phase_status = initiative.phase_status[current_phase]
 if all_required_done && phase_status not in ["pr_pending", "passed", "complete"]:
   output: |
     ✅ All required sub-workflows for ${current_phase} are complete!
