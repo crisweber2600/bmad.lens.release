@@ -254,9 +254,8 @@ You're starting the Planning phase. Workflows:
 
 **[1] PRD** (required) — Product Requirements Document
 **[2] UX Design** (if UI involved) — User experience design
-**[3] Architecture** (required) — Technical architecture design
 
-Select workflow(s): [1] [2] [3] [A]ll
+Select workflow(s): [1] [2] [A]ll
 ```
 
 ### 4. Execute Workflows
@@ -314,29 +313,6 @@ params:
 # ALWAYS halt at menus and wait for user input before proceeding
 agent_persona: "_bmad/bmm/agents/ux-designer.md"
 read_and_follow: "_bmad/bmm/workflows/2-plan-workflows/create-ux-design/workflow.md"
-params:
-  prd: "${docs_path}/prd.md"
-  product_brief: "${docs_path}/product-brief.md"
-  output_path: "${docs_path}/"
-  constitutional_context: ${constitutional_context}
-
-invoke: git-orchestration.finish-workflow
-```
-
-#### Architecture — Technical Spec Generation:
-```yaml
-invoke: git-orchestration.start-workflow
-params:
-  workflow_name: architecture
-
-# RESOLVED: bmm.create-architecture → Read fully and follow this workflow file:
-#   _bmad/bmm/workflows/3-solutioning/create-architecture/workflow.md
-# Agent persona: Switch to Winston (Architect) — load and adopt _bmad/bmm/agents/architect.md
-# Uses step-file architecture with steps/ folder
-# Load steps one at a time (JIT) — NEVER load multiple step files simultaneously
-# ALWAYS halt at menus and wait for user input before proceeding
-agent_persona: "_bmad/bmm/agents/architect.md"
-read_and_follow: "_bmad/bmm/workflows/3-solutioning/create-architecture/workflow.md"
 params:
   prd: "${docs_path}/prd.md"
   product_brief: "${docs_path}/product-brief.md"
@@ -453,7 +429,6 @@ params:
 |----------|----------|
 | PRD | `${docs_path}/prd.md` |
 | UX Design | `${docs_path}/ux-design.md` |
-| Architecture | `${docs_path}/architecture.md` |
 | Initiative State | `_bmad-output/lens-work/initiatives/${id}.yaml` |
 
 ---
@@ -467,7 +442,6 @@ params:
 | Dirty working directory | Prompt to stash or commit changes first |
 | Branch creation failed | Check remote connectivity, retry with backoff |
 | PrePlan ancestry check failed | Prompt to merge preplan PR before continuing |
-| Architecture workflow failed | Retry or skip with warning |
 | State file write failed | Retry (max 3 attempts), then fail with save instructions |
 
 ---
