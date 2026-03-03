@@ -2,7 +2,7 @@
 
 Status: ready-for-dev
 Tracker: {{tracker || ""}}
-Work Item ID: {{ado_work_item_id || jira_ticket || ""}}
+Work Item ID: {{ado_work_item_id || tracker_id || ""}}
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

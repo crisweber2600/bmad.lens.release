@@ -279,16 +279,18 @@ if tracker_input.strip() == "1":
     Press Enter to skip.
   jira_url_input = prompt_user()
   jira_base_url = jira_url_input.strip() if jira_url_input.strip() else null
+  ado_organization = null
+  ado_project = null
 elif tracker_input.strip() == "2":
   tracker = "azure-devops"
   jira_base_url = null
   output: |
-    Azure DevOps organization name (required for MCP sync):
+    Azure DevOps organization name (leave blank to skip ADO MCP sync):
     Example: my-org
   ado_org_input = prompt_user()
   ado_organization = ado_org_input.strip() if ado_org_input.strip() else null
   output: |
-    Azure DevOps project name (required for MCP sync):
+    Azure DevOps project name (leave blank to skip ADO MCP sync):
     Example: my-project
   ado_proj_input = prompt_user()
   ado_project = ado_proj_input.strip() if ado_proj_input.strip() else null

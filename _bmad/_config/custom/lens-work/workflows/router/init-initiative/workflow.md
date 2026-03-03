@@ -451,7 +451,7 @@ if [ "${layer}" == "feature" ] && [ "${tracker}" != "none" ]; then
   if [ "${tracker}" == "jira" ]; then
     ask: "Jira ticket ID (e.g., BMAD-123):"
   elif [ "${tracker}" == "azure-devops" ]; then
-    ask: "Azure DevOps work item ID (e.g., 12345 or AB#12345):"
+    ask: "Azure DevOps work item ID (e.g., 12345):"
   else
     ask: "Work item ID from your tracker:"
   fi
@@ -475,7 +475,8 @@ elif [ "${layer}" == "feature" ]; then
   sanitized_name=$(echo "${initiative_name}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9-]//g' | sed 's/-\+/-/g' | sed 's/^-//;s/-$//')
   # REQ-1, REQ-3: Prepend work-item ID if provided (from any tracker)
   if [ -n "${tracker_id}" ]; then
-    initiative_id="${tracker_id}-${sanitized_name}"  # e.g., BMAD-123-onboarding-enhancements or 12345-onboarding-enhancements
+    sanitized_tracker_id=$(echo "${tracker_id}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]//g' | sed 's/-\+/-/g' | sed 's/^-//;s/-$//')
+    initiative_id="${sanitized_tracker_id}-${sanitized_name}"  # e.g., bmad-123-onboarding-enhancements or 12345-onboarding-enhancements
   else
     initiative_id="${sanitized_name}"
   fi

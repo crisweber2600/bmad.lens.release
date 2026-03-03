@@ -221,12 +221,13 @@
     </check>
 
     <!-- ADO MCP Sync: Update work item to Active when starting development -->
+    <action>Load "_bmad-output/lens-work/personal/profile.yaml" if it exists; set tracker = profile.preferences.tracker, ado_organization = profile.preferences.ado_organization, ado_project = profile.preferences.ado_project; if profile not found or fields missing, set tracker = "none"</action>
     <action>Check story front matter for "Work Item ID" field and extract {{ado_work_item_id}}</action>
     <check if="tracker == 'azure-devops' AND {{ado_work_item_id}} is not empty">
       <action>Attempt ADO status sync via MCP (non-blocking):
         mcp_microsoft_azu_wit_update_work_item(
-          organization: profile.ado_organization,
-          project: profile.ado_project,
+          organization: ado_organization,
+          project: ado_project,
           id: {{ado_work_item_id}},
           state: "Active"
         )

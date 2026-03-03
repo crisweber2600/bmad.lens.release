@@ -64,7 +64,7 @@ header metadata for bi-directional linkage:
 # Story {{epic_num}}.{{story_num}}: {{story_title}}
 
 Status: ready-for-dev
-ADO Work Item: {{ado_work_item_id}}
+Work Item ID: {{ado_work_item_id}}
 ```
 
 This ID enables:
@@ -152,6 +152,8 @@ if tracker == "azure-devops" AND ado_work_item_id is not empty:
 ```
 
 ### 4. PR Linking
+
+> **Note:** PR linking via ADO MCP is not yet implemented in the `dev-story` workflow. The pattern below is provided for reference and future implementation.
 
 When `dev-story` creates a PR, optionally link it to the ADO work item:
 
