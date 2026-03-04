@@ -57,7 +57,6 @@ workflow: "{initiative_root}-{audience}-{phase_name}-{workflow}"
 ## Target Project Branch Management
 
 Target project repos follow the GitFlow branching model defined in `lifecycle.yaml → target_projects`.
-Full details in the source skill: `_bmad/lens-work/skills/git-orchestration.md`.
 
 ### Branch Naming Contract
 
