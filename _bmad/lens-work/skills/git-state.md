@@ -65,8 +65,8 @@ if [[ "$BRANCH" =~ ^.+-(small|medium|large|base)-.+$ ]]; then
 else
     PHASE=""
 fi
-# If branch is {root}-{audience} with no phase suffix, or not an initiative branch,
-# PHASE is empty
+# If branch is {root}-{audience} with no phase suffix, PHASE is empty.
+# Prerequisite: only run `current-phase` after `current-initiative` confirms an initiative branch.
 ```
 
 **Output:**
@@ -89,7 +89,18 @@ Parse audience token from branch name.
 
 **Algorithm:**
 ```bash
-AUDIENCE=$(echo "$BRANCH" | sed -nE 's/^.*-(small|medium|large|base)(-.*)?$/\1/p')
+# Derive initiative root (same pattern as `current-initiative`)
+INITIATIVE_ROOT=$(echo "$BRANCH" | sed -E 's/-(small|medium|large|base)(-.*)?$//')
+
+# Compute expected initiative config path (e.g., foo-bar-auth → foo/bar/auth.yaml)
+INITIATIVE_CONFIG_PATH="_bmad-output/lens-work/initiatives/${INITIATIVE_ROOT//-//}.yaml"
+
+# Only extract audience if this is a valid initiative branch (config present)
+if git show "HEAD:${INITIATIVE_CONFIG_PATH}" >/dev/null 2>&1; then
+    AUDIENCE=$(echo "$BRANCH" | sed -nE 's/^.*-(small|medium|large|base)(-.*)?$/\1/p')
+else
+    AUDIENCE=""
+fi
 ```
 
 **Output:**
@@ -212,7 +223,7 @@ List files in a specific phase directory on the current or specified branch.
 **Algorithm:**
 ```bash
 # List artifacts for a phase on a specified branch
-git ls-tree --name-only "${BRANCH}" -- "_bmad-output/lens-work/initiatives/${DOMAIN}/${SERVICE}/phases/${PHASE}/" 2>/dev/null
+git ls-tree --name-only "${BRANCH}:_bmad-output/lens-work/initiatives/${DOMAIN}/${SERVICE}/phases/${PHASE}" 2>/dev/null
 # Or on current branch (working tree):
 ls _bmad-output/lens-work/initiatives/${DOMAIN}/${SERVICE}/phases/${PHASE}/
 ```
