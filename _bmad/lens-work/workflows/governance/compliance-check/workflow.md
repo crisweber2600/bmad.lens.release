@@ -1,344 +1,86 @@
----
-name: compliance-check
-description: Validate artifacts against resolved constitutional rules
-agent: "@lens/constitution"
-trigger: /compliance command
-category: governance
-phase: N/A
-imports: lifecycle.yaml
----
+# Compliance Check Workflow
 
-# Compliance Check Workflow — Governance
+**Phase:** Governance
+**Purpose:** Run constitution compliance checks at PR gates.
+**Trigger:** Invoked by phase-lifecycle (before phase PR) and audience-promotion (before promotion PR).
 
-Evaluate an artifact against accumulated constitutional rules from the LENS inheritance chain.
+## Overview
 
-## Role
+This workflow resolves the constitutional requirements for an initiative and evaluates compliance against current artifacts. Results are formatted for embedding in PR descriptions.
 
-You are the **constitution skill**, the Constitutional Guardian, evaluating artifact compliance.
+## Steps
 
----
+### Step 1: Resolve Constitution
 
-## Step 0: Git Discipline — Verify Clean State
+Invoke the constitution skill `resolve-constitution` with the current initiative's domain, service, and repo context.
 
-Invoke git-orchestration skill to verify clean git state.
+**Input:**
+- Domain and service from initiative config
+- Repo from governance repo structure (if Level 4 exists)
 
-```
-git-orchestration.verify-clean-state
-```
+**Output:** Resolved constitution with all merged requirements
 
----
+### Step 2: Evaluate Compliance
 
-## Step 1: Get Artifact
+Invoke the constitution skill `check-compliance` with:
+- Resolved constitution
+- Current phase
+- Artifacts path for this initiative
 
-Support two invocation modes:
+### Step 3: Process Results
 
-1. **Interactive mode** (default for `/compliance`):
-   Ask user for the artifact to evaluate.
-2. **Non-interactive mode** (workflow-to-workflow call):
-   If `artifact_path` is provided in params, skip prompting and use the supplied artifact directly.
+For each compliance check result:
 
-```yaml
-# Non-interactive mode (used by /review gate)
-if params.artifact_path:
-  artifact_path = params.artifact_path
-  artifact_type = params.artifact_type or infer_artifact_type(artifact_path)
-else:
-  # Interactive mode prompt
-  prompt_user_for_artifact()
-```
+| Status | Action |
+|--------|--------|
+| PASS | Include as ✅ in report |
+| FAIL (hard gate) | **BLOCK** — do not create PR, report error |
+| FAIL (informational) | Include as ⚠️ warning in report |
+| NOT-APPLICABLE | Include as ⬜ N/A in report |
 
-Interactive prompt:
+### Step 4: Format for PR Body
 
-```
-📜 Constitutional Compliance Check
+Generate the compliance section for the PR description:
 
-Which artifact should I evaluate?
+```markdown
+### Constitution Compliance
 
-1. Enter a file path (e.g., _bmad-output/planning-artifacts/archive-migration/prd.md)
-2. Select artifact type:
-   - [P] PRD
-   - [A] Architecture document
-   - [S] Story/Epic
-   - [C] Code file
+| Requirement | Status | Details |
+|-------------|--------|---------|
+| PRD required | ✅ PASS | prd.md exists and is non-empty |
+| UX design required | ✅ PASS | ux-design.md exists and is non-empty |
+| Architecture required | ⬜ N/A | Not required for this phase |
 
-[Enter path or type]
+**Overall:** ✅ PASS — All requirements satisfied
 ```
 
-Validate artifact exists and is readable. Load its content.
+### Hard Gate Failure
 
----
-
-## Step 2: Resolve Constitution
-
-Call resolve-constitution logic to get accumulated rules for current context:
-
-1. Determine hierarchy from active initiative
-2. Walk chain parent-first: Org → Domain → Service → Repo (per lifecycle.yaml resolution_order)
-3. Collect all applicable articles
-4. Collect track permissions, required gates, and additional review participants
+If any hard-gate requirement fails, the PR is BLOCKED:
 
 ```
-Resolving constitution for current context...
+❌ Constitution Compliance FAILED — PR Cannot Be Created
 
-Found {constitution_count} constitution(s):
-{list constitutions with layers}
+## Hard Gate Failures
+- **PRD required:** prd.md is missing from phases/businessplan/
+- **UX design required:** ux-design.md is empty
 
-Total articles to check: {article_count}
-Track governance: {permitted_tracks_count} track rules, {required_gates_count} gate rules
+Fix these issues and try again. Hard gate failures must be resolved
+before the PR can be created.
 ```
 
-**If no constitutions found:**
-```
-📜 No rules defined. Compliance check not applicable.
+## Integration Points
 
-There are no constitutions governing this context.
-This is expected if governance has not been configured for this scope.
-```
+### Phase-Lifecycle (Story 4.1)
 
-Exit gracefully — this is not an error.
+Compliance check runs BEFORE phase PR creation:
+1. Run compliance check
+2. If hard gate failure → block with error, do NOT create PR
+3. If all pass or informational-only → create PR with compliance section in body
 
----
+### Audience-Promotion (Story 7.1)
 
-If invoked non-interactively and no constitutions exist, return:
-
-```yaml
-compliance_result:
-  artifact_path: {artifact_path}
-  artifact_type: {artifact_type}
-  verdict: NO_RULES
-  pass_count: 0
-  warn_count: 0
-  fail_count: 0
-  constitution_count: 0
-  article_count: 0
-  track_permitted: true
-  gate_violations: []
-```
-
----
-
-## Step 2a: Track & Gate Validation
-
-Before evaluating articles, validate initiative track and gate compliance:
-
-```yaml
-# Load initiative context
-initiative = load("_bmad-output/lens-work/initiatives/{active_id}.yaml")
-track = initiative.track  # e.g., "full", "feature", "tech-change"
-
-# Track permission check (intersection of all permitted_tracks in chain)
-if permitted_tracks and track not in permitted_tracks:
-  track_violation = {
-    severity: "FAIL",
-    rule: "Track '${track}' not permitted by constitution chain",
-    restricting_layers: [layers that excluded this track],
-    permitted: list(permitted_tracks)
-  }
-
-# Required gate check (union of all required_gates in chain)
-# Compare against track's default gates from lifecycle.yaml
-track_config = lifecycle.tracks[track]
-track_default_gates = derive_gates_from_track(track_config)
-
-missing_gates = required_gates - track_default_gates
-if missing_gates:
-  gate_violations = [{
-    severity: "WARN",
-    rule: "Constitution requires gate '${gate}' but track '${track}' skips it",
-    gate: gate,
-    required_by: [layers that require this gate]
-  } for gate in missing_gates]
-```
-
-Track violations produce FAIL (blocking). Gate violations produce WARN (advisory — the gate will be enforced at promotion time regardless).
-
----
-## Step 3: Evaluate Each Article
-
-For each article in the resolved constitution, evaluate the artifact:
-
-1. Read the article's rule and evidence requirements
-
-2. **Determine enforcement level** by parsing the article header:
-   - Match header against regex: `^###\s+Article\s+\w+:.*\(ADVISORY\)`
-   - If `(ADVISORY)` marker is present → enforcement = **ADVISORY** (max severity: WARN)
-   - If `(ADVISORY)` marker is absent → enforcement = **MANDATORY** (default; max severity: FAIL)
-   - Note: `(NON-NEGOTIABLE)` marker is valid for documentation clarity but has **no behavioral effect** — all non-ADVISORY articles already default to FAIL enforcement
-
-3. Search the artifact for:
-   - Direct mention of the requirement
-   - Section addressing the topic
-   - Evidence matching the required evidence type
-   - Implicit compliance through design/content
-
-4. Classify each article (enforcement-aware):
-   - **PASS** — Clear evidence of compliance found in artifact
-   - **WARN** — Topic not addressed or only partially addressed (not verified). Also the maximum severity for `(ADVISORY)` articles — even explicit non-compliance produces WARN, never FAIL.
-   - **FAIL** — Direct contradiction or explicit non-compliance found. **Only applies to MANDATORY articles.** If the article is `(ADVISORY)`, cap the result at WARN instead.
-
-```
-Evaluating Article {id}: {title} [{MANDATORY|ADVISORY}]...
-```
-
----
-
-## Step 4: Generate Report
-
-### Report Header
-
-```
-📜 Constitutional Compliance Review
-
-Artifact: {artifact_path}
-Type: {artifact_type}
-Context: {layer} — {name}
-Track: {track}
-
-Checking against: {constitution_count} constitution(s), {article_count} articles
-Resolution chain: {chain_layers} (per lifecycle.yaml)
-Date: {today_date}
-
-{if track_violation:}
-❌ TRACK VIOLATION: Track '{track}' not permitted by {restricting_layers}
-   Permitted tracks: {permitted_tracks}
-{endif}
-
-{if gate_violations:}
-⚠️ GATE ADVISORIES:
-{for each gate_violation:}
-  - Gate '{gate}' required by {required_by} but skipped by track '{track}'
-{endfor}
-{endif}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-### Verdict
-
-Determine overall verdict (enforcement-aware):
-- Track violation (track not permitted) → **NON-COMPLIANT** (always blocking)
-- Any FAIL from a **MANDATORY** article → **NON-COMPLIANT**
-- All PASS → **COMPLIANT**
-- Mix of PASS and WARN (including ADVISORY-capped WARNs and gate advisories) → **CONDITIONAL PASS**
-
-Note: `(ADVISORY)` article violations are capped at WARN and **never** trigger NON-COMPLIANT.
-Note: Gate violations are WARN-level — they advise but don't block (gates are enforced at promotion time).
-
-```
-{if COMPLIANT:}
-✅ VERDICT: COMPLIANT
-All {article_count} articles satisfied ({mandatory_count} mandatory, {advisory_count} advisory).
-
-{if CONDITIONAL PASS:}
-⚠️ VERDICT: CONDITIONAL PASS
-{pass_count} satisfied, {warn_count} not verified (includes {advisory_warn_count} advisory), 0 mandatory violations.
-
-{if NON-COMPLIANT:}
-❌ VERDICT: NON-COMPLIANT
-{fail_count} mandatory violation(s) detected.
-{if advisory_warn_count > 0:}
-Additionally: {advisory_warn_count} advisory warning(s) (non-blocking).
-```
-
-### Detailed Results
-
-```
-## Results by Article
-
-{for each article:}
-
-{PASS|WARN|FAIL} [{MANDATORY|ADVISORY}] Article {id}: {title} — {status}
-
-  {if PASS:}
-  Enforcement: {MANDATORY|ADVISORY}
-  Evidence: {evidence_quote_or_section}
-  Location: {section_reference}
-
-  {if WARN:}
-  Enforcement: {MANDATORY|ADVISORY}
-  Expected: {expected_evidence}
-  Found: No mention of {topic}
-  {if ADVISORY:} ℹ️ Advisory article — this warning is non-blocking
-  Recommendation: Add section addressing {requirement}
-
-  {if FAIL:}
-  Enforcement: MANDATORY
-  Issue: {violation_description}
-  Location: {section_reference}
-  Required Action: {remediation}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-### Summary
-
-```
-## Summary
-
-N/total PASS | N/total WARN | N/total FAIL
-
-Articles: {mandatory_count} mandatory, {advisory_count} advisory
-
-{if recommendations:}
-## Recommendations
-{numbered list of items to address}
-```
-
----
-
-## Step 5: Event Logging
-
-Log compliance evaluation event:
-
-```yaml
-type: compliance-evaluated
-timestamp: {now}
-artifact_path: {artifact_path}
-artifact_type: {artifact_type}
-constitution_resolved: {list of constitutions checked}
-pass_count: {pass_count}
-warn_count: {warn_count}
-fail_count: {fail_count}
-initiative_id: {active_initiative_id}  # REQUIRED for compliance events
-```
-
-Note: `initiative_id` is **required** for compliance events (compliance always runs in initiative context).
-
----
-
-## Step 6: Return Machine-Readable Result
-
-When invoked by another workflow, return a structured summary:
-
-```yaml
-compliance_result:
-  artifact_path: {artifact_path}
-  artifact_type: {artifact_type}
-  verdict: {COMPLIANT|CONDITIONAL_PASS|NON_COMPLIANT|NO_RULES}
-  pass_count: {pass_count}
-  warn_count: {warn_count}
-  fail_count: {fail_count}
-  constitution_count: {constitution_count}
-  article_count: {article_count}
-  track_permitted: {true|false}
-  gate_violations: [{gate_name, required_by}]
-  resolution_chain: [{layer, name}]
-```
-
-`NO_RULES` is returned when no constitutions exist for the context.
-
----
-
-## Completion
-
-```
-Compliance check complete.
-
-{if violations:}
-- Fix violations and re-check → /compliance
-{endif}
-- View full constitution → /resolve
-- Show ancestry → /ancestry
-- Return to @lens → exit
-```
-
+Compliance check runs as part of pre-promotion gate checks:
+1. Run compliance check for ALL phases in current audience
+2. Results embedded in promotion PR body
+3. Hard gate failures block promotion

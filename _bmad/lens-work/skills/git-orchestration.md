@@ -8,376 +8,451 @@
 
 ## Purpose
 
-Manages all git branch operations for the lens-work lifecycle. Handles branch creation, targeted commits, pushes, and topology validation. Formalizes the git-orchestration skill's API contract.
+Encapsulates all git write operations for the lens-work lifecycle. Handles branch creation, commits, pushes, branch cleanup, and dirty working directory management. This is the WRITE counterpart to the read-only `git-state` skill.
 
-## Responsibilities
+## Read Operations
 
-1. **Repository cloning** — Clone repos and auto-checkout to last-committed branch
-2. **Branch creation** — Create initiative root, audience, and phase branches
-3. **Branch validation** — Verify topology matches expected patterns
-4. **Targeted commits** — Commit only relevant files per workflow
-5. **Push management** — Push branches at workflow boundaries
-6. **PR preparation** — Set up pull request metadata
+**NONE for state queries.** Use `git-state` skill for all read/query operations. This skill performs reads only as preconditions for writes (e.g., validating branch name before creation).
 
-## Branch Patterns (v2 — Lifecycle Contract)
+## Operations
 
+### `create-branch`
+
+Create a new branch following lifecycle.yaml naming conventions.
+
+**Variants:**
+
+| Branch Type | Pattern | Created From |
+|-------------|---------|-------------|
+| Initiative root | `{initiative-root}` | Control repo default branch |
+| Audience | `{initiative-root}-{audience}` | Previous audience or initiative root |
+| Phase | `{initiative-root}-{audience}-{phase}` | Audience branch |
+
+**Algorithm:**
+```bash
+# 1. Validate branch name against lifecycle.yaml patterns
+# 2. Check branch doesn't already exist
+# 3. Create from appropriate parent
+git checkout "${PARENT_BRANCH}"
+git checkout -b "${NEW_BRANCH}"
+git push -u origin "${NEW_BRANCH}"
+```
+
+**Validation rules:**
+- Branch name MUST match lifecycle.yaml `branch_patterns`
+- Audience token MUST be one of: `small`, `medium`, `large`, `base`
+- Phase name MUST be defined in lifecycle.yaml `phases`
+- Initiative root MUST be slug-safe (lowercase alphanumeric + hyphens)
+- Reject invalid names with clear error message
+
+**Audience branch creation policy: LAZY**
+- At init: create `{root}` and `{root}-small` ONLY
+- Additional audience branches created on-demand at promotion time
+- Branch existence becomes meaningful signal (if `{root}-medium` exists, promotion was attempted)
+
+---
+
+### `commit-artifacts`
+
+Commit files to the current branch with structured commit messages.
+
+**Commit message format:**
+```
+[{PHASE}] {initiative} — {description}
+```
+
+Examples:
+```
+[PREPLAN] foo-bar-auth — product brief draft
+[TECHPLAN] foo-bar-auth — architecture document complete
+[PROMOTE] foo-bar-auth — small→medium promotion artifacts
+```
+
+**Algorithm:**
+```bash
+# 1. Stage relevant files
+git add "${FILE_PATHS}"
+# 2. Commit with structured message
+git commit -m "[${PHASE}] ${INITIATIVE} — ${DESCRIPTION}"
+```
+
+**Push convention:**
+- **Reviewable checkpoint:** commit + push (phase bundle complete or user requests)
+- **Draft save:** commit only, no push (incremental work)
+- Every commit that is pushed MUST be immediately followed by `git push`
+
+---
+
+### `push`
+
+Push the current branch to the configured remote.
+
+**Algorithm:**
+```bash
+git push origin "${CURRENT_BRANCH}"
+```
+
+**Rules:**
+- Push at reviewable checkpoints, not every draft write
+- Never force-push without explicit user confirmation
+- Use configured remote (from git config)
+
+---
+
+### `delete-branch`
+
+Delete a phase branch after its PR has been merged.
+
+**Algorithm:**
+```bash
+# 1. VERIFY PR is merged before allowing deletion
+provider-adapter query-pr-status \
+  --head "${PHASE_BRANCH}" \
+  --base "${AUDIENCE_BRANCH}" \
+  --state merged
+
+# 2. Only if merged PR found:
+git branch -d "${PHASE_BRANCH}"          # Delete local
+git push origin --delete "${PHASE_BRANCH}"  # Delete remote
+```
+
+**Safety rules:**
+- **NEVER** delete a branch without verifying its PR is merged
+- Verify PR merge status via provider adapter before any deletion
+- Log deletion in commit message of the target branch
+
+---
+
+### `validate-branch-name`
+
+Validate a proposed branch name against lifecycle.yaml patterns.
+
+**Algorithm:**
+```bash
+# Parse proposed name against patterns
+# Check: slug-safe characters only (lowercase, digits, hyphens)
+# Check: audience token is valid
+# Check: phase name is defined in lifecycle.yaml
+# Return: valid/invalid with reason
+```
+
+**Output:**
 ```yaml
-domain: "{domain_prefix}"
-service: "{domain_prefix}-{service_prefix}"
-root: "{initiative_root}"
-audience: "{initiative_root}-{audience}"
-phase: "{initiative_root}-{audience}-{phase_name}"
-workflow: "{initiative_root}-{audience}-{phase_name}-{workflow}"
-
-# Branch patterns use named phases only (v2.0.0)
+name: foo-bar-auth-small-techplan
+valid: true
+parsed:
+  initiative_root: foo-bar-auth
+  audience: small
+  phase: techplan
 ```
 
-> Named phases: preplan, businessplan, techplan, devproposal, sprintplan
-> Audiences: small (IC creation), medium (lead review), large (stakeholder), base (initiative root)
-
-## Trigger Conditions
-
-- Repository cloning — clone with auto-checkout to last-committed branch (repos, governance, control)
-- Initiative creation (`/new-*`) — create root + audience branches (track-aware)
-- Phase start — create named phase branch from audience
-- Workflow start — create workflow branch from phase
-- Workflow end — commit, push
-- Phase end — PR into audience branch, delete phase branch
-- Audience promotion — PR from one audience to next (with gate validation)
-
-## Clone Pattern (Hard Enforcement)
-
-**Rule:** Every repository clone MUST be immediately followed by a branch checkout that switches to the default/last-committed branch.
-
-**Standard Pattern:**
-```bash
-git clone {remote_url} {local_path}
-cd {local_path}
-git checkout $(git symbolic-ref refs/remotes/origin/HEAD | cut -d'/' -f4)
+Invalid example:
+```yaml
+name: Foo Bar Auth
+valid: false
+reason: "Branch name must be slug-safe (lowercase alphanumeric and hyphens only)"
 ```
 
-**Rationale:**
-- After `git clone`, the working directory is in detached HEAD state (pointing to the commit but not a branch)
-- Without checking out a branch, the repo is not in a trackable state and git operations may fail
-- The last-committed branch is the remote default branch (determined via `symbolic-ref`) and represents the current development state
-- Users expect to be on the main/current development branch immediately after cloning
+---
 
-**Fallback (if symbolic-ref fails):**
+### `check-dirty`
+
+Detect uncommitted changes in the working directory.
+
+**Algorithm:**
 ```bash
-# Try expected_branch from config (e.g., "main")
-git checkout {expected_branch} || git checkout -b {expected_branch} origin/{expected_branch}
-
-# If that fails, checkout first available branch
-git checkout $(git branch -r | grep -v HEAD | head -1 | cut -d'/' -f2)
-```
-
-**Post-Clone Verification:**
-```bash
-# Verify we're on a branch (not in detached HEAD state)
-if git -C {local_path} symbolic-ref HEAD > /dev/null 2>&1; then
-  BRANCH=$(git -C {local_path} symbolic-ref --short HEAD)
-  echo "✅ Checked out to branch: $BRANCH"
+# Check for uncommitted changes
+DIRTY=$(git status --porcelain)
+if [ -n "$DIRTY" ]; then
+  echo "dirty"
 else
-  echo "❌ Still in detached HEAD state after clone. Check remote HEAD references."
-  exit 1
+  echo "clean"
 fi
 ```
 
-**Validation:** Any workflow file containing `git clone` must have a matching `git checkout` or branch verification in the same step or bash block.
+**Output:**
+```yaml
+status: dirty    # dirty | clean
+files_changed: 3
+files:
+  - _bmad-output/lens-work/initiatives/foo/bar/phases/techplan/architecture.md
+  - _bmad-output/lens-work/initiatives/foo/bar/auth.yaml
+```
+
+**When dirty directory detected, present options:**
+1. **Commit** — commit current changes before proceeding
+2. **Stash** — `git stash` to save work temporarily
+3. **Abort** — cancel the operation
+
+**NEVER silently discard uncommitted work.**
+
+---
 
 ## Git Discipline Rules
 
 1. Clean working directory before any branch operation
-2. Targeted commits (only files relevant to current workflow)
-3. **Auto-push: EVERY commit MUST be immediately followed by `git push`** (bmadconfig.yaml: git_discipline.auto_push)
-4. Push branches at workflow end, not mid-workflow (use auto-push after each commit instead)
-5. Never force-push without explicit user confirmation
-6. Use `{default_git_remote}` from config for all remote operations
-
-### Auto-Push Convention (Hard Enforcement)
-
-**Rule:** Every `git commit` command in any workflow step MUST be immediately followed by a `git push` command.
-
-**Pattern:**
-```bash
-git commit -m "workflow(action): description"
-git push origin "${branch_name}"
-```
-
-**Rationale:** Lens-work coordinates distributed teams. Local-only commits break collaboration, prevent PR creation, and violate gate check assumptions.
-
-**Exceptions:** Only transient branches used within a single step and immediately discarded (must be documented inline).
-
-**Validation:** Any workflow file containing `git commit` must have a matching `git push` in the same step or bash block.
-
-## Error Handling
-
-| Error | Recovery |
-|-------|----------|
-| Clone fails (auth, network) | Check credentials, SSH keys, network connectivity; suggest manual clone with `git clone` |
-| Detached HEAD after clone | Run `git checkout` to the default branch (derived from symbolic-ref or expected_branch) |
-| symbolic-ref lookup fails | Fall back to expected_branch from config (usually "main") |
-| Branch checkout fails | Fall back to first available remote branch; if no branches exist, report corrupted remote |
-| Branch exists | Check if it's the expected branch, use it or error |
-| Dirty working directory | Prompt user to commit or stash |
-| Push rejected | Suggest pull + merge or /sync |
-| Branch topology drift | Report mismatch, suggest /fix |
-
-## Target Project Branch Management
-
-Target project repos (code repos, not lens-work control repo) follow the GitFlow branching
-model defined in `lifecycle.yaml → target_projects`. This section formalizes the automation
-for epic branches, story branches, task auto-commits, and story-completion PRs.
-
-### Branch Naming Contract
-
-```yaml
-# Epic branch:  feature/{epic-key}
-# Story branch: feature/{epic-key}-{story-key}
-#
-# Examples:
-#   Epic:   feature/epic-1
-#   Story:  feature/epic-1-1-1-user-authentication
-#
-# {epic-key}  — from sprint-status.yaml (e.g., "epic-1", "epic-2")
-# {story-key} — from sprint-status.yaml (e.g., "1-1-user-authentication")
-```
-
-### Epic Branch Creation (Trigger: dev-story-start or sprint-plan-start)
-
-**Rule:** Before creating a story branch, the parent epic branch MUST exist.
-
-```bash
-# Resolve epic-key from story-key (e.g., story "1-2-user-auth" → epic "epic-1")
-epic_num=$(echo "${story_key}" | cut -d'-' -f1)
-epic_key="epic-${epic_num}"
-epic_branch="feature/${epic_key}"
-
-# Create epic branch from integration branch if it doesn't exist
-cd "${target_repo_path}"
-git fetch origin
-if ! git rev-parse --verify "origin/${epic_branch}" > /dev/null 2>&1; then
-  # Epic branch does not exist — create from develop (integration branch)
-  integration_branch="develop"
-  # Fallback: if develop doesn't exist, use main
-  if ! git rev-parse --verify "origin/${integration_branch}" > /dev/null 2>&1; then
-    integration_branch="main"
-  fi
-  git checkout "${integration_branch}"
-  git pull origin "${integration_branch}"
-  git checkout -b "${epic_branch}"
-  git push origin "${epic_branch}"
-  echo "✅ Created epic branch: ${epic_branch} from ${integration_branch}"
-else
-  echo "✅ Epic branch exists: ${epic_branch}"
-fi
-```
-
-### Story Branch Creation (Trigger: dev-story-start)
-
-**Rule:** Story branches are created from their parent epic branch.
-
-```bash
-story_branch="feature/${epic_key}-${story_key}"
-
-cd "${target_repo_path}"
-git fetch origin
-
-if ! git rev-parse --verify "origin/${story_branch}" > /dev/null 2>&1; then
-  # Story branch does not exist — create from epic branch
-  git checkout "${epic_branch}"
-  git pull origin "${epic_branch}"
-  git checkout -b "${story_branch}"
-  git push origin "${story_branch}"
-  echo "✅ Created story branch: ${story_branch} from ${epic_branch}"
-else
-  # Story branch already exists — checkout and pull latest
-  git checkout "${story_branch}"
-  git pull origin "${story_branch}"
-  echo "✅ Resumed story branch: ${story_branch}"
-fi
-```
-
-### Task Auto-Commit (Trigger: task-completion in dev-story Step 8)
-
-**Rule:** Every completed task MUST be committed and pushed immediately.
-
-```bash
-# After each task is marked [x] in the story file:
-cd "${target_repo_path}"
-git add -A
-git commit -m "feat(${story_key}): ${task_description}
-
-Story: ${story_key}
-Task: ${task_number}/${total_tasks}
-Epic: ${epic_key}"
-git push origin "${story_branch}"
-echo "✅ Task ${task_number}/${total_tasks} committed and pushed to ${story_branch}"
-```
-
-**Commit message convention:**
-- Prefix: `feat(` + story-key + `): ` + task summary
-- Body: Story key, task number, epic key
-- Auto-push: ALWAYS (per git_discipline.auto_push convention)
-
-### Story Completion PR (Trigger: story-completion in dev-story Step 9)
-
-**Rule:** When ALL tasks in a story are complete, auto-create a PR from story branch to epic branch.
-
-```bash
-# Create PR from story branch to epic branch
-cd "${target_repo_path}"
-
-# Ensure all changes are committed and pushed
-git add -A
-if ! git diff --cached --quiet; then
-  git commit -m "feat(${story_key}): story complete — all tasks done"
-  git push origin "${story_branch}"
-fi
-
-# Create PR via gh CLI (GitHub) or az repos (Azure DevOps)
-# GitHub:
-gh pr create \
-  --base "${epic_branch}" \
-  --head "${story_branch}" \
-  --title "feat(${epic_key}): ${story_title} [${story_key}]" \
-  --body "## Story Complete: ${story_key}
-
-### ${story_title}
-
-All tasks completed. Ready for code review.
-
-**Epic:** ${epic_key}
-**Story Branch:** ${story_branch}
-**Target Branch:** ${epic_branch}
-
-### Acceptance Criteria
-${acceptance_criteria_summary}
-
-### Tasks Completed
-${completed_tasks_list}
-
-### Files Changed
-${file_list}" \
-  2>/dev/null
-
-pr_url=$(gh pr view "${story_branch}" --json url -q '.url' 2>/dev/null)
-echo "✅ PR created: ${story_branch} → ${epic_branch}"
-echo "   URL: ${pr_url}"
-```
-
-**PR Naming Convention:**
-- Title: `feat({epic-key}): {story-title} [{story-key}]`
-- Body: Story summary, acceptance criteria, completed tasks, files changed
-
-### Epic Completion PR (Trigger: all stories in epic complete)
-
-When all stories in an epic are complete and merged to the epic branch:
-
-```bash
-# Create PR from epic branch to integration branch
-epic_branch="feature/${epic_key}"
-integration_branch="develop"  # or main if develop doesn't exist
-
-gh pr create \
-  --base "${integration_branch}" \
-  --head "${epic_branch}" \
-  --title "feat(${epic_key}): Epic complete — ${epic_title}" \
-  --body "## Epic Complete: ${epic_key}
-
-### ${epic_title}
-
-All stories completed and merged.
-
-### Stories Included
-${completed_stories_list}" \
-  2>/dev/null
-
-echo "✅ Epic PR created: ${epic_branch} → ${integration_branch}"
-```
-
-## Multi-Developer Parallel Development
-
-When multiple developers (human or AI agents) work on the same initiative simultaneously,
-the epic-branch topology provides structural isolation. This section documents the coordination
-patterns for safe parallel development.
-
-### Branch Isolation Model
-
-```
-develop (integration)
-├── feature/epic-1   ← Dev A
-│   ├── feature/epic-1-1-1-api-camelcase
-│   └── feature/epic-1-1-5-benchmark-selector
-├── feature/epic-2   ← Dev B
-│   ├── feature/epic-2-2-1-dataentry-autosave
-│   └── feature/epic-2-2-5-closeout-routes
-├── feature/epic-3   ← Dev C
-│   └── feature/epic-3-3-1-linegraph-recharts
-└── feature/epic-4   ← Dev D
-    ├── feature/epic-4-4-1-scoring-tests
-    └── feature/epic-4-4-5-interventiontoolkit
-```
-
-**Key principle:** Each developer works on their own epic branch. Story branches are children
-of the epic branch. Two developers on different epics have **zero branch overlap**.
-
-### Coordination Rules
-
-1. **One developer per epic** — Each epic should be assigned to a single developer at a time.
-   Multiple stories within the *same* epic should still be developed sequentially to avoid
-   merge conflicts within the epic branch.
-
-2. **Pull control repo before claiming** — Always `git pull` the control repo (where sprint-status.yaml lives)
-   before claiming a story. This ensures you see the latest assignments.
-
-3. **Commit and push sprint-status immediately** — After claiming a story (via `@lens next --claim`
-   or `create-story`), commit and push sprint-status.yaml so other developers see the claim.
-
-4. **Route-removal stories must merge sequentially** — Stories that remove routes from shared files
-   (e.g., `wwwroot/app/app.js`, `routes.tsx`) across multiple epics will cause merge conflicts if
-   merged simultaneously. These stories should be the LAST stories in each epic, and their epic-completion
-   PRs should be merged one at a time into the integration branch.
-
-5. **Shared file conflict zones** — When two epics both modify the same file (e.g., `print.css`),
-   add explicit Dev Notes to both stories documenting which sections/selectors each touches.
-   This helps developers avoid overlapping changes and simplifies merge conflict resolution.
-
-### Pull-Before-Work Convention
-
-```bash
-# Before starting any new story:
-cd "${control_repo_path}"
-git pull origin "$(git symbolic-ref --short HEAD)"
-
-# Check sprint-status for current assignments:
-cat _bmad-output/implementation-artifacts/sprint-status.yaml | grep -E "assigned_to|in-progress"
-
-# Then claim your story:
-# @lens next --claim
-```
-
-### Epic Branch Lifecycle for Parallel Dev
-
-```
-1. Sprint planning creates sprint-status.yaml with all stories (backlog)
-2. Dev A claims story in epic-1 → sprint-status updated, pushed
-3. Dev B claims story in epic-3 → sprint-status updated, pushed
-4. Each dev creates epic+story branches in target repo independently
-5. Story PRs merge into their respective epic branches (no cross-epic conflict)
-6. Epic completion PRs merge into develop one at a time
-7. Route-removal stories (last in each epic) are merged sequentially
-```
-
-## State Fields Touched
-
-- `state.current_phase` (v2: named phase — preplan|businessplan|techplan|devproposal|sprintplan)
-- `state.phase_status` (v2: named phase keys)
-- `state.audience_status` (v2: promotion tracking — small_to_medium|medium_to_large|large_to_base)
-- `initiative.initiative_root` (v2: replaces featureBranchRoot)
-- `initiative.active_phases` (v2: derived from track)
-- `initiative.audiences` (v2: derived from track)
+2. Targeted commits — only files relevant to current workflow
+3. Push at reviewable checkpoints (not every draft write)
+4. Never force-push without explicit user confirmation
+5. Structured commit messages: `[PHASE] {initiative} — {description}`
+6. Branch names derived from lifecycle.yaml, never hardcoded
 
 ---
 
-_Skill spec backported from lens module on 2026-02-17_
+## Provider Operations
+
+Git-orchestration includes provider adapter operations that abstract PR management behind a common interface. MVP implements GitHub via the `promote-branch` script + GitHub REST API with PAT-based authentication. The `gh` CLI is NOT required — all PR operations use direct REST API calls. Azure DevOps support is post-MVP.
+
+### Scripts
+
+The module includes cross-platform scripts in `scripts/` that handle PR creation and PAT management without requiring any provider CLI:
+
+| Script | Purpose |
+|--------|--------|
+| `promote-branch.ps1` / `promote-branch.sh` | Branch promotion, PR creation via REST API, branch cleanup |
+| `store-github-pat.ps1` / `store-github-pat.sh` | Secure PAT collection into environment variables (run outside AI context) |
+
+### PAT Resolution Order
+
+PR operations require a GitHub PAT. The resolution order is:
+
+1. **Environment variable (host-specific):**
+   - `github.com` → `GITHUB_PAT` → `GH_TOKEN`
+   - Enterprise → `GH_ENTERPRISE_TOKEN` → `GH_TOKEN`
+2. **Profile file:** `_bmad-output/lens-work/personal/profile.yaml` → `git_credentials[].pat`
+3. **Fallback:** URL-only mode (prints PR comparison URL for manual creation)
+
+**CRITICAL (NFR4):** PATs are stored ONLY in environment variables or OS-level persistence. They are NEVER written to any git-tracked file. The `store-github-pat` scripts handle secure collection outside of any AI/LLM context.
+
+---
+
+### `detect-provider`
+
+Detect the configured PR provider from the git remote URL.
+
+**Algorithm:**
+```bash
+REMOTE_URL=$(git remote get-url origin)
+
+# GitHub detection (including GitHub Enterprise)
+if echo "$REMOTE_URL" | grep -qi "github"; then
+  PROVIDER="github"
+# Azure DevOps detection (post-MVP)
+elif echo "$REMOTE_URL" | grep -qiE "dev.azure.com|visualstudio.com"; then
+  PROVIDER="azure-devops"
+# GitLab detection
+elif echo "$REMOTE_URL" | grep -qi "gitlab"; then
+  PROVIDER="gitlab"
+else
+  PROVIDER="unknown"
+fi
+```
+
+**Output:**
+```yaml
+provider: github
+remote_url: https://github.com/user/repo.git
+host: github.com
+org: user
+repo: repo
+```
+
+The `promote-branch` scripts include full URL parsing for GitHub, GitLab, and Azure DevOps (HTTPS and SSH formats).
+
+---
+
+### `validate-auth`
+
+Validate that the user has a PAT configured for the detected provider.
+
+**Algorithm:**
+```bash
+# Check environment variables for PAT
+if [[ "$HOST" == "github.com" ]]; then
+  PAT="${GITHUB_PAT:-${GH_TOKEN:-}}"
+else
+  PAT="${GH_ENTERPRISE_TOKEN:-${GH_TOKEN:-}}"
+fi
+
+# Validate PAT works via REST API
+if [[ -n "$PAT" ]]; then
+  curl -s -H "Authorization: token $PAT" "$API_BASE/user" | jq -r .login
+fi
+```
+
+**If auth fails:** Guide user to set up PAT:
+```
+No PAT found. Run the store-github-pat script outside of this chat:
+  Windows: .\_bmad\lens-work\scripts\store-github-pat.ps1
+  macOS/Linux: ./_bmad/lens-work/scripts/store-github-pat.sh
+Then restart your terminal and try again.
+```
+
+**CRITICAL (NFR4):** Never write PATs, tokens, or credentials to any git-tracked file. PATs are stored exclusively in environment variables (session or user-scoped). The `store-github-pat` script collects PATs in a dedicated terminal session — never within an AI chat context.
+
+**Input:** none
+**Output:** `{ authenticated: boolean, user: string?, pat_source: string?, error: string? }`
+
+---
+
+### `create-pr`
+
+Create a pull request via the `promote-branch` script or direct REST API call.
+
+**Preferred method — promote-branch script:**
+```bash
+# The script handles PAT resolution, branch push, PR creation, and cleanup
+./_bmad/lens-work/scripts/promote-branch.sh \
+  -s "${SOURCE_BRANCH}" \
+  -t "${TARGET_BRANCH}"
+```
+
+**Direct REST API method (used by the script internally):**
+```bash
+curl -s -X POST "${API_BASE}/repos/${ORG}/${REPO}/pulls" \
+  -H "Authorization: token ${PAT}" \
+  -H "Content-Type: application/json" \
+  -d '{"head": "'${SOURCE_BRANCH}'", "base": "'${TARGET_BRANCH}'", "title": "'${TITLE}'", "body": "'${BODY}'"}'
+```
+
+**Input:**
+```yaml
+title: "[TECHPLAN] foo-bar-auth — Architecture Review"
+body: |
+  ## Phase Completion: TechPlan
+  ### Artifacts
+  - architecture.md
+source_branch: foo-bar-auth-small-techplan
+target_branch: foo-bar-auth-small
+```
+
+**Output:** `{ pr_url: string, pr_number: integer }`
+
+**Fallback:** If no PAT is available, the script prints the PR comparison URL for manual creation in the browser.
+
+---
+
+### `query-pr-status`
+
+Query the status of a pull request by branch names.
+
+**GitHub REST API implementation:**
+```bash
+curl -s -H "Authorization: token ${PAT}" \
+  "${API_BASE}/repos/${ORG}/${REPO}/pulls?head=${ORG}:${SOURCE_BRANCH}&base=${TARGET_BRANCH}&state=all"
+```
+
+**Output:**
+```yaml
+state: merged      # open | merged | closed
+review_decision: approved   # approved | changes_requested | review_required | null
+merged_at: "2026-03-08T15:30:00Z"   # null if not merged
+```
+
+---
+
+### `list-prs`
+
+List pull requests filtered by branch pattern and state.
+
+**GitHub REST API implementation:**
+```bash
+curl -s -H "Authorization: token ${PAT}" \
+  "${API_BASE}/repos/${ORG}/${REPO}/pulls?base=${TARGET_BRANCH}&state=closed" \
+  | jq '[.[] | select(.merged_at != null)]'
+```
+
+**Output:**
+```yaml
+prs:
+  - number: 42
+    title: "[TECHPLAN] foo-bar-auth — Architecture Review"
+    state: merged
+    source: foo-bar-auth-small-techplan
+    target: foo-bar-auth-small
+```
+
+---
+
+### `get-pr-body`
+
+Retrieve the body/description of a specific PR.
+
+**GitHub REST API implementation:**
+```bash
+curl -s -H "Authorization: token ${PAT}" \
+  "${API_BASE}/repos/${ORG}/${REPO}/pulls/${PR_NUMBER}" \
+  | jq -r '.body'
+```
+
+**Input:** `{ pr_number: integer }`
+**Output:** `{ body: string }`
+
+---
+
+### Azure DevOps Adapter (Post-MVP Reference)
+
+| Operation | Azure DevOps Equivalent |
+|-----------|------------------------|
+| `detect-provider` | Parse `dev.azure.com` or `visualstudio.com` from remote URL |
+| `validate-auth` | Check `AZURE_DEVOPS_PAT` env var or `az account show` |
+| `create-pr` | `az repos pr create --title --description --source-branch --target-branch` or REST API |
+| `query-pr-status` | `az repos pr show --id {id} --query "{status, reviewers}"` or REST API |
+| `list-prs` | `az repos pr list --target-branch --source-branch --status` or REST API |
+| `get-pr-body` | `az repos pr show --id {id} --query "description"` or REST API |
+
+### Credential Security (NFR4)
+
+- PATs stored EXCLUSIVELY in environment variables (session or user-scoped)
+- **NEVER** write PATs, tokens, or credentials to any git-tracked file
+- Auth validation checks environment variables and validates via REST API
+- PAT setup uses `store-github-pat` scripts run OUTSIDE of AI chat context
+- If auth fails, guide user to run the `store-github-pat` script in a separate terminal
+
+**Dependencies:**
+- `curl` + `jq` — used by promote-branch scripts for REST API calls (widely available)
+- `git` — required for all operations
+- No `gh` CLI required — all GitHub operations use REST API with PAT
+- `az` CLI — optional for Azure DevOps operations (post-MVP)
+
+---
+
+## Authority Domain Enforcement
+
+**Design Axiom A3:** Authority domains must be explicit. Cross-authority writes are **HARD ERRORS**.
+
+Before ANY write operation (commit, file creation, file modification), validate the target path against authority rules:
+
+### Enforcement Rules
+
+| Target Path | Rule | Error Message |
+|-------------|------|---------------|
+| `bmad.lens.release/` | ALWAYS blocked for initiative writes | `❌ BLOCK — release repo is read-only at runtime. Write to _bmad-output/lens-work/initiatives/ instead.` |
+| Governance repo path | Blocked except governance PR proposals | `❌ BLOCK — governance lives in its own repo. Propose changes via governance PR.` |
+| `.github/` | Not modified during initiative work | `❌ BLOCK — adapter layer is not modified during initiative work.` |
+| Outside `_bmad-output/lens-work/initiatives/` | Blocked for initiative workflow writes | `❌ BLOCK — initiative artifacts must be written to _bmad-output/lens-work/initiatives/{path}/` |
+
+### Validation Algorithm
+
+```
+function validate_write_target(path, context):
+  if path starts with "bmad.lens.release/":
+    HARD ERROR — release repo is read-only at runtime
+  if path is within governance repo:
+    if context != "governance-pr-proposal":
+      HARD ERROR — governance lives in its own repo
+  if context == "initiative-workflow":
+    if path not within "_bmad-output/lens-work/initiatives/":
+      HARD ERROR — initiative artifacts must be in initiative directory
+  return ALLOWED
+```
+
+### Exception: Governance PR Proposals
+
+@lens MAY propose a governance PR (submit PR to governance repo) but cannot directly write files there. The proposal flow creates a PR in the governance repo for human review.
+
+## Dependencies
+
+- `lifecycle.yaml` — for branch naming patterns, valid phases, valid audiences
+- Provider adapter — for PR merge state verification before branch cleanup
+- `git-state` skill — for reading current state before write operations

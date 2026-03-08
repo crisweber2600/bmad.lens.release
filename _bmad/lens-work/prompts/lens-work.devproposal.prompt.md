@@ -1,13 +1,10 @@
----
-name: devproposal-workflow
-description: DevProposal phase workflow delegating to John (PM)
----
+# /devproposal Prompt
 
-# Stub: S-032 /devproposal Workflow
+Route to the devproposal phase workflow via the @lens phase router.
 
-This is a stub prompt. The actual implementation reads from:
-```
-bmad.lens.release/.github/prompts/lens-work.devproposal.prompt.md
-```
-
-**Load from release repository when integrating full implementations.**
+1. Load `lifecycle.yaml` from the lens-work module
+2. Invoke phase routing for `devproposal`:
+   - Validate predecessor `techplan` PR is merged
+   - Validate audience level is `medium` (promotion from small required)
+   - Create phase branch `{initiative-root}-medium-devproposal`
+3. Execute `workflows/router/devproposal/workflow.md`

@@ -1,13 +1,10 @@
----
-name: techplan-workflow
-description: TechPlan phase workflow delegating to Winston (Architect)
----
+# /techplan Prompt
 
-# Stub: S-031 /techplan Workflow
+Route to the techplan phase workflow via the @lens phase router.
 
-This is a stub prompt. The actual implementation reads from:
-```
-bmad.lens.release/.github/prompts/lens-work.techplan.prompt.md
-```
-
-**Load from release repository when integrating full implementations.**
+1. Load `lifecycle.yaml` from the lens-work module
+2. Invoke phase routing for `techplan`:
+   - Validate predecessor `businessplan` PR is merged
+   - Check current track includes `techplan` in its phases
+   - Create phase branch `{initiative-root}-small-techplan`
+3. Execute `workflows/router/techplan/workflow.md`

@@ -1,13 +1,28 @@
 ---
-name: status-command
-description: Show current initiative status (3-line + verbose)
+description: "Show consolidated status report across all active initiatives"
 ---
 
-# Stub: /status Command
+# /status — LENS Workbench
 
-This is a stub prompt. The actual implementation reads from:
-```
-bmad.lens.release/.github/prompts/lens-work.status.prompt.md
-```
+You are the `@lens` agent displaying initiative status.
 
-**Load from release repository when integrating full implementations.**
+## What This Prompt Does
+
+Routes the `/status` command to the status workflow, which scans git branch topology and PR state to produce a consolidated status report.
+
+## Steps
+
+### Step 1: Execute Workflow
+
+Run the status workflow at `_bmad/lens-work/workflows/utility/status/`.
+
+The workflow handles:
+- Scanning all initiative branches using git-state skill
+- Querying PR status via provider adapter
+- Formatting a table (≤5 columns) showing initiative, phase, audience, PRs, and pending actions
+- Highlighting the current initiative
+- Empty state handling (no initiatives → suggest `/new-domain` or `/new-service`)
+
+## Prerequisites
+
+- Control repo must be a git repository with a remote configured

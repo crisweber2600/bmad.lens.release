@@ -1,104 +1,123 @@
----
-name: status
-description: Display current state, blocks, topology, next steps
-agent: "@lens/state-management"
-trigger: "@lens ST"
-category: utility
----
+# /status — Initiative Status Report Workflow
 
-# Status Workflow
+**Phase:** Utility
+**Purpose:** Produce a consolidated status report across all active initiatives by scanning git branch topology and PR states.
 
-**Purpose:** Display comprehensive status report for current initiative.
+## Pre-conditions
 
----
+- Control repo is a git repository with a remote configured
 
-## Execution Sequence
+## Steps
 
-### 1. Load State
+### Step 1: Scan Initiative Branches
 
-```yaml
-# Load personal state + initiative config (two-file architecture with legacy fallback)
-# Post-conditions: state, initiative, legacy_warning populated; exits cleanly if no state
-invoke: shared.load-state
-# Fragment: _bmad/lens-work/workflows/shared/load-state.fragment.md
-```
-
-### 2. Load Recent Events
-
-```yaml
-events = load_last_n("_bmad-output/lens-work/event-log.jsonl", 5)
-```
-
-### 3. Check Git State
+Use the git-state skill to list all initiative roots:
 
 ```bash
-current_branch=$(git branch --show-current)
-uncommitted=$(git status --porcelain | wc -l)
+git branch -a | sed -E 's/-(small|medium|large|base)(-.*)?$//' | sort -u
 ```
 
-### 4. Generate Report
+Filter out non-initiative branches (main, develop, feature/, etc.).
 
+**If no initiatives found:** Display empty state and exit:
 ```
-📍 lens-work Status Report
-═══════════════════════════════════════════════════
-${if legacy_warning}
-⚠️  Legacy state format detected. Run @lens migrate to upgrade.
-${endif}
+ℹ️ No active initiatives.
 
-Initiative: ${initiative.id}
-Name: ${initiative.name}
-Layer: ${initiative.layer}
-${if initiative.domain}Domain: ${initiative.domain}${endif}
-Target Repos: ${initiative.target_repos || [initiative.target_repo]}
-Created: ${initiative.created_at}
-${if initiative.created_by}Created By: ${initiative.created_by}${endif}
-
-Current Position (from personal state)
-├── Phase: ${state.current.phase} (${state.current.phase_name})
-├── Workflow: ${state.current.workflow} (${state.current.workflow_status})
-├── Size: ${initiative.size}
-└── Branch: ${initiative.branches.active}
-
-Git State
-├── Current branch: ${current_branch}
-├── Uncommitted changes: ${uncommitted}
-└── Remote sync: ${sync_status}
-
-Merge Gates (from initiative config)
-${for gate in initiative.gates}
-├── ${gate_icon(gate.status)} ${gate.name} — ${gate.status}
-${endfor}
-${if initiative.gates.length == 0}
-├── No gates configured
-${endif}
-
-Blocks: ${initiative.blocks.length > 0 ? initiative.blocks : "None"}
-
-Recent Events
-${for event in events}
-├── ${event.ts}: ${event.event}
-${endfor}
-
-Next Steps
-├── ${next_step_1}
-├── ${next_step_2}
-└── ${next_step_3}
-
-State Architecture
-├── Personal: _bmad-output/lens-work/state.yaml (git-ignored)
-└── Initiative: _bmad-output/lens-work/initiatives/${initiative.id}.yaml (committed)
-
-═══════════════════════════════════════════════════
+Get started:
+  `/new-domain {name}`  — Create a domain-level initiative
+  `/new-service {domain}/{service}` — Create a service-level initiative
 ```
 
----
+### Step 2: Derive State Per Initiative
 
-## Status Icons
+For each initiative root, use the git-state skill to derive:
 
-| Status | Icon |
-|--------|------|
-| completed | ✅ |
-| in_progress | 🔄 |
-| pending | ⏳ |
-| blocked | 🚫 |
-| overridden | ⚠️ |
+1. **Current audience:** Parse highest audience branch that exists.
+   ```bash
+   git branch --list '{root}-base' '{root}-large' '{root}-medium' '{root}-small'
+   ```
+
+2. **Current phase:** Find the active phase branch (most recent, or with open PR).
+   ```bash
+   git branch --list '{root}-{audience}-*'
+   ```
+
+3. **Open PRs:** Use provider adapter to query PRs:
+   - Phase PRs: `{root}-{audience}-{phase}` → `{root}-{audience}`
+   - Promotion PRs: `{root}-{audience}` → `{root}-{next-audience}`
+
+4. **Pending action:** Apply lifecycle rules:
+   - Phase branch exists, no PR → "Complete phase"
+   - PR open, not reviewed → "Awaiting review"
+   - PR merged, next phase exists → "Start next phase"
+   - All phases done → "Ready to promote"
+
+### Step 3: Load Initiative Configs
+
+For each initiative, read its config to get domain, service, and track:
+
+```bash
+git show {root}:_bmad-output/lens-work/initiatives/{domain}/[{service}/]{feature}.yaml
+```
+
+Use cross-branch reads (no checkout required).
+
+### Step 4: Determine Current Initiative
+
+Check what branch the user is currently on:
+
+```bash
+git symbolic-ref --short HEAD
+```
+
+Parse to extract current initiative root (if on an initiative branch).
+
+### Step 5: Format Status Table
+
+Render a table with ≤5 columns for narrow chat panel compatibility:
+
+```
+📊 Initiative Status Report
+
+| Initiative | Phase | Audience | PRs | Action |
+|------------|-------|----------|-----|--------|
+| ► foo-auth | techplan | small | 0 | Continue phase |
+| bar-api | businessplan | small | 1 ⏳ | Awaiting review |
+| baz-widget | — | medium | 0 | Start devproposal |
+
+► = current initiative
+```
+
+**Status indicators:**
+- ✅ Phase complete (PR merged)
+- ⏳ PR open / in review
+- ❌ Blocked (prerequisite not met)
+- ⚠️ Needs attention (stale PR, conflict)
+
+### Step 6: Display Detailed View (Optional)
+
+If user requests detail (or only one initiative exists), show expanded view:
+
+```
+📂 Initiative: foo-bar-auth
+🏷️ Track: full
+👥 Audience: small
+📋 Completed Phases: preplan ✅, businessplan ✅
+⏳ Current Phase: techplan (in progress)
+📝 Open PRs: none
+🔄 Pending: Complete techplan artifacts
+
+▶️ Continue working on `/techplan`
+```
+
+## Response Format
+
+Follow the UX spec Direction B (Structured Report Style):
+- Summary table by default
+- Detail on request or single-initiative context
+- ≤5 table columns
+- Status emoji supplements text labels (not sole indicator)
+
+## NFR Compliance
+
+- **NFR1:** All state derived from git — no secondary state stores queried

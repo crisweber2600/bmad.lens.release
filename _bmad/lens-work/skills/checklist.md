@@ -8,96 +8,132 @@
 
 ## Purpose
 
-Progressive phase gate checklists with artifact auto-detection. Tracks what's needed to pass each gate, automatically detects when artifacts are created, and updates checklist status. Formalizes the checklist skill's API contract.
+Provide phase gate checklists with progressive validation. Used by phase-lifecycle and audience-promotion workflows to verify that all required artifacts and conditions are met before phase completion or audience promotion.
 
-## Responsibilities
+## Write Operations
 
-1. **Phase gate tracking** — Maintain required items per gate
-2. **Artifact auto-detection** — Scan for required artifacts and mark items complete
-3. **Progressive disclosure** — Show only relevant items for current phase
-4. **Gate readiness** — Report when all items satisfied for gate progression
-5. **Manual override** — Allow marking items via explicit commands
+**NONE.** This skill is strictly read-only. It evaluates checklists against current state and produces pass/fail results.
 
-## Checklist Items Per Gate
+## Operations
 
-### preplan → businessplan
-- [ ] Vision document exists
-- [ ] Stakeholder map defined
-- [ ] Initial scope outlined
-- [ ] Constitution mode selected
+### `evaluate-phase-gate`
 
-### businessplan → techplan
-- [ ] PRD/requirements complete
-- [ ] User stories drafted
-- [ ] Acceptance criteria defined
+Evaluate a phase gate checklist for the current phase.
 
-### techplan → [small→medium promotion]
-- [ ] Architecture document complete
-- [ ] Technology stack defined
-- [ ] Data model specified
-- [ ] Integration points documented
-
-### [small→medium promotion] → devproposal
-- [ ] Adversarial review (party mode) completed
-- [ ] All small-audience phase PRs merged
-
-### devproposal → [medium→large promotion]
-- [ ] All stories generated
-- [ ] Story acceptance criteria defined
-- [ ] Dependencies mapped
-- [ ] Estimation complete
-- [ ] Readiness checklist passed
-
-### [medium→large promotion] → sprintplan
-- [ ] Stakeholder approval recorded
-- [ ] Implementation priority set
-
-### sprintplan → [large→base promotion]
-- [ ] Sprint plan approved
-- [ ] Story assignments confirmed
-- [ ] Dev branch strategy confirmed
-
-### [large→base promotion] → dev
-- [ ] Constitution gate passed (compliance check)
-- [ ] All large-audience phase PRs merged
-
-## Auto-Detection Logic
-
-```
-For each checklist item:
-  1. Check if corresponding artifact file exists
-  2. Check if artifact has required content markers
-  3. IF both → mark item complete, log to event-log
-  4. IF missing → keep item pending
-  5. Report gate readiness percentage
-```
-
-## State Integration
-
-Checklist state persisted in `state.yaml` under `checklist:` key:
-
+**Input:**
 ```yaml
-checklist:
-  current_gate: businessplan_to_techplan
-  items:
-    - id: prd_complete
-      status: complete
-      detected_at: "2026-02-17T10:00:00Z"
-    - id: user_stories
-      status: pending
-  gate_ready: false
-  gate_ready_pct: 50
+phase: preplan
+track: full
+initiative_root: foo-bar-auth
+artifacts_path: _bmad-output/lens-work/initiatives/foo/bar/phases/preplan/
 ```
+
+**Algorithm:**
+
+1. Look up required artifacts for this phase from `lifecycle.yaml` → `phases[phase].artifacts`
+2. Check each required artifact exists at the artifacts path
+3. Verify artifact is non-empty (not just a placeholder)
+4. Return checklist result with pass/fail per item
+
+**Output:**
+```yaml
+checklist_result:
+  phase: preplan
+  status: PASS | FAIL
+  items:
+    - artifact: product-brief
+      status: PASS
+      details: "product-brief.md exists (2.4KB)"
+    - artifact: research
+      status: PASS
+      details: "research.md exists (1.8KB)"
+    - artifact: brainstorm
+      status: FAIL
+      details: "brainstorm.md not found"
+  passed: 2
+  failed: 1
+  total: 3
+```
+
+### `evaluate-promotion-gate`
+
+Evaluate a promotion gate checklist for audience promotion.
+
+**Input:**
+```yaml
+current_audience: small
+next_audience: medium
+initiative_root: foo-bar-auth
+track: full
+```
+
+**Algorithm:**
+
+1. Check all required phase PRs for current audience are merged
+2. Check required artifacts exist for all completed phases
+3. Run constitution compliance check (delegates to constitution skill)
+4. Run sensing check (delegates to sensing skill)
+5. Check entry gate requirements for the target audience from `lifecycle.yaml`
+
+**Output:**
+```yaml
+promotion_checklist:
+  promotion: small → medium
+  status: PASS | FAIL
+  gates:
+    - gate: phase-prs-merged
+      status: PASS
+      details: "3/3 phase PRs merged (preplan, businessplan, techplan)"
+    - gate: artifacts-complete
+      status: PASS
+      details: "All required artifacts present"
+    - gate: constitution-compliance
+      status: PASS
+      details: "All constitutional requirements met"
+    - gate: sensing
+      status: PASS
+      mode: informational
+      details: "No overlapping initiatives detected"
+    - gate: entry-gate
+      type: adversarial-review
+      status: PENDING
+      details: "Medium audience requires adversarial review — evaluated during PR review"
+```
+
+### `format-checklist`
+
+Format a checklist result for display in chat or PR body.
+
+**Output format:**
+```
+Phase Gate: preplan
+━━━━━━━━━━━━━━━━━━
+✅ product-brief — exists (2.4KB)
+✅ research — exists (1.8KB)
+❌ brainstorm — not found
+
+Result: 2/3 passed — BLOCKED
+```
+
+## Progressive Validation
+
+Checklists support progressive validation — items can be checked incrementally during a phase:
+
+1. **During phase work:** User can check progress with `/status` (shows partial checklist)
+2. **At phase end:** Full checklist evaluated before PR creation
+3. **At promotion:** Cumulative checklist across all phases for the current audience
 
 ## Error Handling
 
-| Error | Action |
-|-------|--------|
-| Artifact file missing | Keep item pending, no error |
-| Artifact exists but empty | Keep item pending, warn |
-| State write failure | Log error, retry once |
-| Unknown checklist item | Ignore, log warning |
+| Error | Response |
+|-------|----------|
+| Phase not found in lifecycle | `❌ Phase '{phase}' not defined in lifecycle.yaml` |
+| Artifacts path not accessible | `⚠️ Cannot access artifacts path. Verify initiative structure.` |
+| Track unknown | Default to full track checklist |
 
----
+## Dependencies
 
-_Skill spec backported from lens module on 2026-02-17_
+- `lifecycle.yaml` — for phase definitions and required artifacts
+- `git-state` skill — for checking PR merge status
+- `constitution` skill — for compliance evaluation
+- `sensing` skill — for cross-initiative checks

@@ -1,13 +1,10 @@
----
-name: preplan-workflow
-description: PrePlan phase workflow delegating to Mary (Analyst)
----
+# /preplan Prompt
 
-# Stub: /preplan Workflow
+Route to the preplan phase workflow via the @lens phase router.
 
-This is a stub prompt. The actual implementation reads from:
-```
-bmad.lens.release/.github/prompts/lens-work.preplan.prompt.md
-```
-
-**Load from release repository when integrating full implementations.**
+1. Load `lifecycle.yaml` from the lens-work module
+2. Invoke phase routing for `preplan`:
+   - Validate no predecessor phase required (preplan is the first phase)
+   - Check current track includes `preplan` in its phases
+   - Create phase branch `{initiative-root}-small-preplan`
+3. Execute `workflows/router/preplan/workflow.md`

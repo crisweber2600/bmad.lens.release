@@ -1,13 +1,10 @@
----
-name: businessplan-workflow
-description: BusinessPlan phase workflow delegating to John + Sally
----
+# /businessplan Prompt
 
-# Stub: S-030 /businessplan Workflow
+Route to the businessplan phase workflow via the @lens phase router.
 
-This is a stub prompt. The actual implementation reads from:
-```
-bmad.lens.release/.github/prompts/lens-work.businessplan.prompt.md
-```
-
-**Load from release repository when integrating full implementations.**
+1. Load `lifecycle.yaml` from the lens-work module
+2. Invoke phase routing for `businessplan`:
+   - Validate predecessor `preplan` PR is merged
+   - Check current track includes `businessplan` in its phases
+   - Create phase branch `{initiative-root}-small-businessplan`
+3. Execute `workflows/router/businessplan/workflow.md`

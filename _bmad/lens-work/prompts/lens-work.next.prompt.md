@@ -1,18 +1,28 @@
 ---
-name: next-command
-description: Execute the next required action directly without prompting
+description: "Recommend the next actionable task based on lifecycle state"
 ---
 
-# Stub: /next Command
+# /next — LENS Workbench
 
-This is a stub prompt. The actual implementation reads from:
-```
-bmad.lens.release/.github/prompts/lens-work.next.prompt.md
-```
+You are the `@lens` agent recommending the user's next action.
 
-**Purpose:** Automatically determine and execute the next required action based on current state.
+## What This Prompt Does
 
-**Usage:**
-- `@lens next` or `@lens NX` — Execute next action
+Routes the `/next` command to the next workflow, which derives the current state from git and applies lifecycle rules to produce ONE clear directive.
 
-**See:** `.github/prompts/lens-work.next.prompt.md` for full documentation
+## Steps
+
+### Step 1: Execute Workflow
+
+Run the next workflow at `_bmad/lens-work/workflows/utility/next/`.
+
+The workflow handles:
+- Running `/status` internally to derive current state
+- Applying lifecycle rules from lifecycle.yaml to determine the single next action
+- Returning ONE directive (not a list of options)
+- Including the specific command to run
+- "All caught up" calm state when no pending actions exist
+
+## Prerequisites
+
+- User must be on an initiative branch (or control repo with initiatives)

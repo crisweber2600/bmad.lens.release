@@ -1,324 +1,161 @@
----
-name: audience-promotion
-description: Promote initiative from one audience level to the next with gate validation
-agent: "@lens"
-trigger: audience promotion boundary (small→medium, medium→large, large→base)
-category: core
-imports: lifecycle.yaml
----
+# Workflow: Audience Promotion
 
-# Audience Promotion Workflow
-
-**Purpose:** Handle promotion between audience levels. Each promotion is a review gate that validates all phases in the source audience are complete, runs the appropriate gate check, and merges artifacts forward.
-
-**Lifecycle:** Audience promotions are the primary progression axis in lens-work v2. Phases happen WITHIN audiences; promotions happen BETWEEN audiences.
+**Module:** lens-work
+**Type:** Core workflow
+**Trigger:** `/promote` command via `lens-work.promote.prompt.md`
 
 ---
 
-## Promotion Chain
+## Purpose
+
+Promote an initiative from the current audience tier to the next audience in the chain (small → medium → large → base) with comprehensive pre-promotion gate checks.
+
+**Design Axiom A2:** Phase work and promotion are strictly separate operations. Promotion is NEVER automatic — always requires a reviewed and merged PR.
+
+## Prerequisites
+
+- User is on an initiative branch
+- Current audience is determined from branch name
+- Next audience exists in the audience chain
+
+## Workflow Steps
+
+### Step 1: Determine Current and Next Audience
+
+1. Use `git-state` skill → `current-audience` to parse audience from branch name
+2. Look up audience chain in `lifecycle.yaml`: small → medium → large → base
+3. Determine next audience
+4. If no next audience: report `✅ Initiative at final audience — no promotion available`
+
+### Step 2: Pre-Promotion Gate Checks
+
+Run ALL gate checks before creating the promotion PR:
+
+#### 2a: Phase PR Verification
+
+Use `git-state` skill to verify all required phase PRs for the current audience are merged:
+
+| Current Audience | Required Merged Phase PRs |
+|------------------|--------------------------|
+| small | preplan, businessplan, techplan (per track) |
+| medium | devproposal |
+| large | sprintplan |
+
+- Query provider adapter for PR status: `{root}-{audience}-{phase}` → `{root}-{audience}`
+- If any required phase PR is NOT merged: **HARD GATE FAILURE**
+
+#### 2b: Artifact Validation
+
+Check required artifacts per the track's phase list:
+
+1. Read committed artifacts on the current audience branch
+2. Compare against lifecycle.yaml `phases[].artifacts` for each completed phase
+3. If required artifacts are missing: **HARD GATE FAILURE**
+
+#### 2c: Constitution Compliance Check
+
+1. Invoke `constitution` skill → `resolve-constitution` for this initiative
+2. Invoke `constitution` skill → `check-compliance` against resolved constitution
+3. If hard gate failures exist: **HARD GATE FAILURE**
+4. Informational failures: include as warnings in PR body
+
+#### 2d: Cross-Initiative Sensing
+
+1. Invoke `sensing` skill → `scan-initiatives` for this initiative's domain/service
+2. Produce sensing report
+3. Check if constitution upgrades sensing to hard gate for this domain
+4. If hard gate + overlaps found: **HARD GATE FAILURE**
+5. If informational (default): include results in PR body
+
+### Step 3: Gate Check Result Processing
+
+If ANY hard gate failed:
 
 ```
-small → medium    (gate: adversarial-review, mode: party)
-medium → large    (gate: stakeholder-approval)
-large → base      (gate: constitution-gate, enforcer: constitution skill)
+❌ Promotion blocked — gate check failures:
+
+1. [HARD] Missing merged PR: {root}-{audience}-techplan → {root}-{audience}
+2. [HARD] Required artifact missing: architecture.md for techplan phase
+
+Resolve these issues and re-run /promote.
 ```
 
----
+If all gates pass (with possible informational warnings): proceed to Step 4.
 
-## Input Parameters
+### Step 4: Create Next Audience Branch (Lazy)
 
-```yaml
-params:
-  initiative_id: string      # Required — initiative to promote
-  source_audience: string    # Required — "small", "medium", or "large"
-  target_audience: string    # Required — "medium", "large", or "base"
-  # Derived from lifecycle.yaml:
-  #   small→medium: adversarial-review (party mode)
-  #   medium→large: stakeholder-approval
-  #   large→base: constitution-gate
+1. Check if `{root}-{next-audience}` branch exists
+2. If not: use `git-orchestration` skill → `create-branch` to create `{root}-{next-audience}` from `{root}-{current-audience}`
+3. If already exists: proceed (promotion was previously attempted or branch was pre-created)
+
+### Step 5: Create Promotion PR
+
+Use provider adapter to create PR:
+
+- **From:** `{root}-{current-audience}`
+- **To:** `{root}-{next-audience}`
+- **Title:** `[PROMOTE] {initiative} {current}→{next} — Adversarial Review Gate`
+- **Body:** Assembled from sections below
+
+### Step 6: Assemble PR Body
+
+Include the following sections in the promotion PR body:
+
+```markdown
+## Promotion Summary
+
+**Initiative:** {initiative_root}
+**Promotion:** {current_audience} → {next_audience}
+**Track:** {track_type}
+
+## Gate Check Results
+
+{gate_check_summary — all passed}
+
+## Compliance Status
+
+{compliance_result from constitution check}
+
+## Cross-Initiative Sensing
+
+{sensing_report from sensing skill — see includes/sensing-report.md}
+
+## Artifacts Summary
+
+{list of committed artifacts by phase}
+
+## Review Requirements
+
+{gate requirements from lifecycle.yaml for the target audience}
+- {entry_gate description}
+- This PR requires review before merge
 ```
 
----
-
-## Execution Sequence
-
-### 0. Pre-Flight
-
-```yaml
-# Load state and initiative
-state = load("_bmad-output/lens-work/state.yaml")
-initiative = load("_bmad-output/lens-work/initiatives/${initiative_id}.yaml")
-lifecycle = load("lifecycle.yaml")
-
-# Verify working directory is clean
-invoke: git-orchestration.verify-clean-state
-
-# Derive promotion details from lifecycle contract
-initiative_root = initiative.initiative_root
-source_branch = "${initiative_root}-${source_audience}"
-target_branch = "${initiative_root}-${target_audience}"
-
-# Determine gate type from lifecycle.yaml
-gate_type = lifecycle.audiences[target_audience].entry_gate
-gate_mode = lifecycle.audiences[target_audience].entry_gate_mode || null
-
-# Validate promotion is valid
-valid_promotions = ["small→medium", "medium→large", "large→base"]
-promotion_key = "${source_audience}→${target_audience}"
-if promotion_key not in valid_promotions:
-  FAIL("❌ Invalid promotion: ${promotion_key}. Valid promotions: ${valid_promotions}")
-
-# Validate track allows this promotion
-track = initiative.track
-track_audiences = lifecycle.tracks[track].audiences
-if target_audience not in track_audiences:
-  FAIL("❌ Track '${track}' does not include audience '${target_audience}'. Audiences: ${track_audiences}")
-
-output: |
-  🔄 Audience Promotion: ${source_audience} → ${target_audience}
-  ├── Initiative: ${initiative.name} (${initiative_id})
-  ├── Track: ${track}
-  ├── Gate: ${gate_type}
-  ├── Source: ${source_branch}
-  └── Target: ${target_branch}
-```
-
-### 1. Validate Source Audience Phases Complete
-
-```yaml
-# All phases in the source audience must be complete before promotion
-source_phases = lifecycle.audiences[source_audience].phases
-track_phases = lifecycle.tracks[track].phases
-
-# Only check phases that are in BOTH the audience and the track
-required_phases = intersection(source_phases, track_phases)
-
-incomplete_phases = []
-for phase_name in required_phases:
-  phase_status = initiative.phase_status[phase_name]
-  if phase_status == null or phase_status.status not in ["complete", "pr_pending"]:
-    incomplete_phases.append(phase_name)
-
-  # For pr_pending phases, verify the PR was actually merged
-  if phase_status != null and phase_status.status == "pr_pending":
-    phase_branch = "${initiative_root}-${source_audience}-${phase_name}"
-    result = git-orchestration.exec("git merge-base --is-ancestor origin/${phase_branch} origin/${source_branch}")
-    if result.exit_code != 0:
-      incomplete_phases.append("${phase_name} (PR not merged)")
-
-if incomplete_phases.length > 0:
-  output: |
-    ❌ Cannot promote ${source_audience} → ${target_audience}
-    ├── Incomplete phases in ${source_audience}:
-    ${incomplete_phases.map(p => "│   - " + p).join("\n")}
-    └── Complete all ${source_audience} phases before promoting
-  exit: 1
-
-output: "✅ All ${source_audience} phases complete: ${required_phases.join(', ')}"
-```
-
-### 2. Run Promotion Gate
-
-```yaml
-# Each promotion has a specific gate type from lifecycle.yaml
-
-if gate_type == "adversarial-review":
-  # === Small → Medium: Adversarial Review (Party Mode) ===
-  output: |
-    🎭 Running adversarial review (party mode)
-    ├── This is the lead review gate
-    └── Multi-agent group discussion will challenge all artifacts
-
-  # Collect all artifacts from small-audience phases
-  artifacts_to_review = []
-  for phase_name in required_phases:
-    phase_artifacts = lifecycle.phases[phase_name].artifacts
-    for artifact_name in phase_artifacts:
-      artifact_path = "${docs_path}/${artifact_name}.md"
-      if file_exists(artifact_path):
-        artifacts_to_review.append(artifact_path)
-
-  # Run party mode review for each major artifact
-  for artifact_path in artifacts_to_review:
-    invoke: core.party-mode
-    params:
-      input_file: ${artifact_path}
-      artifacts_path: ${docs_path}
-      output_file: "${docs_path}/reviews/promotion-${source_audience}-to-${target_audience}-${artifact_name}-review.md"
-      constitutional_context: ${constitutional_context}
-
-    if party_mode.status not in ["pass", "complete"]:
-      output: |
-        ❌ Adversarial review failed for ${artifact_path}
-        └── Address findings in review file and re-run promotion
-      exit: 1
-
-  output: "✅ Adversarial review gate passed"
-
-elif gate_type == "stakeholder-approval":
-  # === Medium → Large: Stakeholder Approval ===
-  output: |
-    👥 Stakeholder approval required
-    ├── Review the implementation proposal (epics, stories)
-    └── Confirm stakeholder sign-off
-
-  # Present summary for stakeholder review
-  epics = load_if_exists("${docs_path}/epics.md")
-  stories = load_if_exists("${docs_path}/stories.md")
-  readiness = load_if_exists("${docs_path}/readiness-checklist.md")
-
-  output: |
-    📋 Stakeholder Review Package:
-    ├── Epics: ${docs_path}/epics.md
-    ├── Stories: ${docs_path}/stories.md
-    └── Readiness: ${docs_path}/readiness-checklist.md
-
-  ask: "Has stakeholder approved? [Y]es / [N]o"
-  if no:
-    output: "⏸️ Promotion paused — awaiting stakeholder approval"
-    exit: 0
-
-  output: "✅ Stakeholder approval gate passed"
-
-elif gate_type == "constitution-gate":
-  # === Large → Base: Constitution Gate ===
-  output: |
-    📜 Constitution gate — constitution skill validates compliance
-    ├── All planning artifacts checked against constitutional rules
-    └── 4-level inheritance: org → domain → service → repo
-
-  # Resolve constitutional context
-  constitutional_context = invoke("constitution.resolve-context")
-
-  # Run full compliance check
-  compliance_result = invoke("constitution.full-compliance-check")
-  params:
-    initiative_id: ${initiative_id}
-    docs_path: ${docs_path}
-    constitutional_context: ${constitutional_context}
-
-  if compliance_result.fail_count > 0:
-    output: |
-      ❌ Constitution gate FAILED
-      ├── Failures: ${compliance_result.fail_count}
-      ├── Warnings: ${compliance_result.warn_count}
-      └── Resolve constitutional violations before promoting to base
-    exit: 1
-
-  output: "✅ Constitution gate passed (${compliance_result.warn_count} warnings)"
-```
-
-### 3. Create Promotion PR
-
-```yaml
-# Merge source audience branch into target audience branch via PR
-invoke: git-orchestration.create-pr
-params:
-  head: ${source_branch}
-  base: ${target_branch}
-  title: "[promotion] ${source_audience} → ${target_audience}: ${initiative.name}"
-  body: |
-    Audience promotion for ${initiative_id}.
-
-    **Source:** ${source_branch} (${source_audience})
-    **Target:** ${target_branch} (${target_audience})
-    **Gate:** ${gate_type} — PASSED
-
-    **Phases included:**
-    ${required_phases.map(p => "- " + p).join("\n")}
-
-    **Artifacts:**
-    ${artifacts_to_review.map(a => "- " + a).join("\n")}
-capture: pr_result
-```
-
-### 4. Update State
-
-```yaml
-# Update audience_status in initiative config
-promotion_key = "${source_audience}_to_${target_audience}"
-
-invoke: state-management.update-initiative
-params:
-  initiative_id: ${initiative_id}
-  updates:
-    audience_status:
-      ${promotion_key}: "pr_pending"
-      ${promotion_key}_pr_url: "${pr_result.url}"
-      ${promotion_key}_pr_number: ${pr_result.number}
-      ${promotion_key}_gate: "${gate_type}"
-      ${promotion_key}_gate_status: "passed"
-      ${promotion_key}_gate_at: "${ISO_TIMESTAMP}"
-
-# Update state.yaml
-invoke: state-management.update-state
-params:
-  updates:
-    last_promotion: "${promotion_key}"
-    workflow_status: "promotion_pr_pending"
-```
-
-### 5. Log Event
-
-```yaml
-events:
-  - {"ts":"${ISO_TIMESTAMP}","event":"audience_promotion","id":"${initiative_id}","source":"${source_audience}","target":"${target_audience}","gate":"${gate_type}","gate_status":"passed"}
-  - {"ts":"${ISO_TIMESTAMP}","event":"promotion_pr_created","id":"${initiative_id}","pr_url":"${pr_result.url}","source":"${source_branch}","target":"${target_branch}"}
-
-invoke: state-management.append-events
-params:
-  events: ${events}
-```
-
-### 6. Output
+### Step 7: Report to User
 
 ```
-✅ Audience Promotion: ${source_audience} → ${target_audience}
+✅ Promotion PR created: {pr_url}
 
-**Initiative:** ${initiative.name} (${initiative_id})
-**Gate:** ${gate_type} — PASSED
-**PR:** ${pr_result.url}
-**Status:** pr_pending (awaiting merge)
+[PROMOTE] {initiative} {current}→{next} — Adversarial Review Gate
 
-**Files included:**
-├── Source: ${source_branch}
-├── Target: ${target_branch}
-└── Phases: ${required_phases.join(', ')}
-
-**Next steps:**
-${if target_audience == "medium"}
-  1. Merge promotion PR
-  2. Run /devproposal to create implementation proposal
-${elif target_audience == "large"}
-  1. Merge promotion PR
-  2. Run /sprintplan for sprint planning and dev handoff
-${elif target_audience == "base"}
-  1. Merge promotion PR
-  2. Initiative is ready for execution — run /dev
-${endif}
+The PR requires review and merge to complete promotion.
+Sensing: {overlap_count} overlapping initiative(s) detected — see PR body.
 ```
-
----
 
 ## Error Handling
 
-| Error | Recovery |
+| Error | Response |
 |-------|----------|
-| Incomplete phases in source audience | List incomplete phases, block promotion |
-| Adversarial review failed | Show findings, require resolution |
-| Stakeholder declined | Pause promotion, allow later resume |
-| Constitution gate failed | Show violations, require resolution |
-| PR creation failed | Output manual PR instructions |
-| Track doesn't include target audience | Error with track info |
-| Invalid promotion direction | Error with valid promotions list |
+| Not on initiative branch | `❌ Not on an initiative branch. Use /switch first.` |
+| No next audience | `✅ Initiative is at final audience — no promotion needed.` |
+| Hard gate failure | List all failures with actionable resolution steps |
+| PR creation fails | `❌ Failed to create promotion PR. Check provider adapter config.` |
+| Branch creation fails | `❌ Failed to create {next-audience} branch. Check git permissions.` |
 
----
+## Key Constraints
 
-## Post-Conditions
-
-- [ ] All source audience phases verified complete
-- [ ] Promotion gate passed (adversarial-review / stakeholder-approval / constitution-gate)
-- [ ] PR created: source audience branch → target audience branch
-- [ ] audience_status updated with promotion status
-- [ ] Event logged to event-log.jsonl
-- [ ] User informed of next steps
+- Promotion is NEVER automatic — always a reviewed PR
+- Promotion PRs are merge PRs (not rebase or squash)
+- Gate checks are cumulative — higher audiences have stricter gates
+- Sensing report is always included, even when no overlaps found
+- Constitution can upgrade any check from informational to hard gate

@@ -5,28 +5,28 @@
 # The @lens agent (with 5 skills) and all workflows import
 # this contract. No lifecycle semantics should be hardcoded elsewhere.
 #
-# Derived from architectural brainstorming session 2026-02-23.
-# Extended with language-specific constitutions on 2026-03-01.
+# v2 redesign: Git-derived state replaces state.yaml entirely.
+# Branch existence + PR metadata + committed artifacts = state.
 # =============================================================================
 
 schema_version: 2
 
 # Supported Programming Languages for Language-Specific Constitutions
 supported_languages:
-  - typescript   # TypeScript / JavaScript (web, Node.js)
-  - python       # Python (data science, backend, scripts)
-  - go           # Go (systems, microservices)
-  - java         # Java (enterprise, backend)
-  - csharp       # C# / .NET (enterprise, web)
-  - rust         # Rust (systems, performance-critical)
-  - php          # PHP (web)
-  - kotlin       # Kotlin (Android, JVM)
-  - swift        # Swift (iOS, macOS)
-  - cpp          # C++ (systems, performance)
+  - typescript
+  - python
+  - go
+  - java
+  - csharp
+  - rust
+  - php
+  - kotlin
+  - swift
+  - cpp
 
-# Language auto-detection order (for compliance checks):
+# Language auto-detection order:
 # 1. Explicit {language} field in initiative config
-# 2. .bmad/language file in target repository (override)
+# 2. .bmad/language file in target repository
 # 3. Build files (package.json → typescript, pyproject.toml → python, etc.)
 # 4. Source code analysis (file extension distribution)
 # 5. GitHub primary language (when available)
@@ -35,58 +35,34 @@ supported_languages:
 # -----------------------------------------------------------------------------
 # FUNDAMENTAL TRUTHS (non-negotiable design axioms)
 # -----------------------------------------------------------------------------
-# Every mechanism in lens-work must trace to at least one of these truths.
-# If a mechanism doesn't serve any truth, it is accidental complexity.
 fundamental_truths:
   ft1: "Planning artifacts must exist and be reviewed before code is written"
   ft2: "AI agents must work within disciplined constraints, not freestyle"
   ft3: "Multi-service initiatives must have coordinated lifecycle governance"
 
-# Design principle: Enforce constraints through structure (branches, gates,
-# required files) rather than instructions (prompts, documentation, conventions).
+# -----------------------------------------------------------------------------
+# DESIGN AXIOMS (derived from v1 lessons)
+# -----------------------------------------------------------------------------
+design_axioms:
+  A1: "Git is the only source of truth for shared workflow state. No git-ignored runtime state."
+  A2: "PRs are the only gating mechanism. No side-channel approval."
+  A3: "Authority domains must be explicit. Every file belongs to exactly one authority."
+  A4: "Sensing must be automatic at lifecycle gates, not manual discovery."
+  A5: "The control repo is an operational workspace, not a code repo."
 
 # -----------------------------------------------------------------------------
 # LENS HIERARCHY
 # -----------------------------------------------------------------------------
-# LENS HIERARCHY
-# The core governance structure with language-specific constitution support
 lens_hierarchy:
   levels: [org, domain, service, repo]
-  constitution_inheritance: additive  # Lower levels can only ADD, never remove
-  # Resolution: merge all levels, union of all requirements
-  
-  # Language-Specific Constitutions
-  # Each LENS level can have universal (applies to all languages) and
-  # language-specific constitutions (applies only to repos using that language).
-  # Path structure:
-  #   - Universal: {level}/constitution.md
-  #   - Language-specific: {level}/{language}/constitution.md
-  # Load order: org-universal, org-{lang}, domain-universal, domain-{lang}, ...
+  constitution_inheritance: additive
   language_constitution_support: enabled
   language_scope_enforcement: "Language-specific constitutions apply ONLY to repos matching the declared language"
 
 # -----------------------------------------------------------------------------
 # AUDIENCES (promotion backbone)
 # -----------------------------------------------------------------------------
-# Audiences are the primary progression axis. Phases happen WITHIN audiences.
-# Promotion between audiences IS the review gate.
 audiences:
-  # NOTE ON AUDIENCE ASSIGNMENT CONVENTION:
-  # The `phases` list here defines which phases were *created during* this audience scope.
-  # However, the prompts for devproposal and sprintplan branch from medium and large
-  # respectively (post-promotion). This is intentional:
-  #   - preplan, businessplan, techplan → branch from small (created in small scope)
-  #   - devproposal → branches from medium (requires small→medium promotion first)
-  #   - sprintplan → branches from large (requires medium→large promotion first)
-  #   - dev → branches from base (requires large→base promotion first)
-  # The `audience` field on each phase indicates the IC work context (always small).
-  # The `branching_audience` field (when present) indicates the actual audience branch
-  # the phase branches FROM — this determines the real branch topology.
-  # When `branching_audience` is absent, the phase branches from its `audience` value.
-  #
-  # Gate chain (full track):
-  #   preplan(small) → businessplan(small) → techplan(small) → [small→medium]
-  #   → devproposal(medium) → [medium→large] → sprintplan(large) → [large→base] → dev(base)
   small:
     role: "IC creation work"
     description: "Where early planning phases happen — individual contributor generates artifacts"
@@ -104,15 +80,13 @@ audiences:
     entry_gate: stakeholder-approval
   base:
     role: "Ready for execution"
-    description: "Constitution-gated — dev execution happens outside this planning lifecycle; promotion to base hands off to implementation"
+    description: "Constitution-gated — dev execution happens outside this planning lifecycle"
     phases: []
     entry_gate: constitution-gate
 
 # -----------------------------------------------------------------------------
 # PHASES
 # -----------------------------------------------------------------------------
-# Named phases replace numbered phases (p1-p4). Each phase is owned by a
-# specific BMM agent who is responsible for artifact generation.
 phases:
   preplan:
     display_name: "PrePlan"
@@ -126,20 +100,7 @@ phases:
       - brainstorm
     audience: small
     auto_advance_to: /businessplan
-    auto_advance_promote: false  # same audience — no promote needed
-    sub_workflows:
-      - name: brainstorming
-        required: false
-        workflow_ref: "_bmad/core/workflows/brainstorming/workflow.md"
-      - name: research
-        required: false
-        workflow_ref: "_bmad/bmm/workflows/1-analysis/research/"
-      - name: product_brief
-        required: true
-        workflow_ref: "_bmad/bmm/workflows/1-analysis/create-product-brief/workflow.md"
-    # Legacy mapping (for adapter during migration)
-    legacy_phase_number: 1
-    legacy_gate_key: pre_plan
+    auto_advance_promote: false
 
   businessplan:
     display_name: "BusinessPlan"
@@ -152,19 +113,7 @@ phases:
       - ux-design
     audience: small
     auto_advance_to: /techplan
-    auto_advance_promote: false  # same audience (small) — no promotion needed
-    sub_workflows:
-      - name: prd_creation
-        required: true
-        workflow_ref: "_bmad/bmm/workflows/2-plan-workflows/create-prd/workflow-create-prd.md"
-      - name: prd_validation
-        required: true
-        workflow_ref: "_bmad/bmm/workflows/2-plan-workflows/create-prd/workflow-validate-prd.md"
-      - name: ux_design
-        required: false
-        workflow_ref: "_bmad/bmm/workflows/2-plan-workflows/create-ux-design/workflow.md"
-    legacy_phase_number: 2
-    legacy_gate_key: plan
+    auto_advance_promote: false
 
   techplan:
     display_name: "TechPlan"
@@ -176,16 +125,7 @@ phases:
       - architecture
     audience: small
     auto_advance_to: /devproposal
-    auto_advance_promote: true   # small → medium promotion before /devproposal (devproposal branches from medium)
-    sub_workflows:
-      - name: architecture_design
-        required: true
-        workflow_ref: "_bmad/bmm/workflows/3-solutioning/create-architecture/workflow.md"
-      - name: architecture_validation
-        required: true
-        workflow_ref: "_bmad/core/workflows/party-mode/workflow.md"
-    legacy_phase_number: 3
-    legacy_gate_key: tech_plan
+    auto_advance_promote: true
 
   devproposal:
     display_name: "DevProposal"
@@ -198,24 +138,9 @@ phases:
       - stories
       - implementation-readiness
     audience: small
-    branching_audience: medium  # devproposal branches from medium (post small→medium promotion)
+    branching_audience: medium
     auto_advance_to: /sprintplan
-    auto_advance_promote: true   # medium → large promotion before /sprintplan (sprintplan branches from large)
-    sub_workflows:
-      - name: epic_generation
-        required: true
-        workflow_ref: "_bmad/bmm/workflows/3-solutioning/create-epics-and-stories/workflow.md"
-      - name: epic_stress_gate
-        required: true
-        workflow_ref: "_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md"
-      - name: story_generation
-        required: true
-        workflow_ref: "_bmad/bmm/workflows/3-solutioning/create-epics-and-stories/workflow.md"
-      - name: readiness_checklist
-        required: true
-        workflow_ref: "_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md"
-    legacy_phase_number: 4
-    legacy_gate_key: story_gen
+    auto_advance_promote: true
 
   sprintplan:
     display_name: "SprintPlan"
@@ -227,34 +152,19 @@ phases:
       - sprint-status
       - story-files
     audience: small
-    branching_audience: large   # sprintplan branches from large (post medium→large promotion)
+    branching_audience: large
     auto_advance_to: /dev
-    auto_advance_promote: true   # large → base promotion before /dev (dev branches from base)
-    sub_workflows:
-      - name: readiness_recheck
-        required: true
-        workflow_ref: "_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md"
-      - name: constitutional_compliance
-        required: true
-        workflow_ref: null  # inline constitution skill check
-      - name: sprint_planning
-        required: true
-        workflow_ref: "_bmad/bmm/workflows/4-implementation/sprint-planning/workflow.yaml"
-      - name: dev_story_creation
-        required: true
-        workflow_ref: "_bmad/bmm/workflows/4-implementation/create-story/workflow.yaml"
-    legacy_phase_number: 5
-    legacy_gate_key: review
+    auto_advance_promote: true
 
 # Phase ordering (canonical sequence for full track)
+# NOTE: 'dev' is NOT a lifecycle phase — it is a delegation command that hands off
+# to implementation agents in target projects. It exists as a router workflow but
+# is not part of the phase ordering or audience promotion chain.
 phase_order: [preplan, businessplan, techplan, devproposal, sprintplan]
 
 # -----------------------------------------------------------------------------
 # TRACKS (predefined lifecycle profiles)
 # -----------------------------------------------------------------------------
-# The canonical lifecycle defines all possible phases.
-# Each initiative selects a track that determines which phases are active.
-# Constitution enforcement controls which tracks are permitted per LENS layer.
 tracks:
   full:
     description: "Complete lifecycle — all phases, all audiences"
@@ -289,7 +199,7 @@ tracks:
     start_phase: preplan
 
   quickdev:
-    description: "Rapid execution — delegates to target-project agents for implementation with parity verification"
+    description: "Rapid execution — delegates to target-project agents"
     phases: [devproposal]
     audiences: [small, base]
     constitution_controlled_gates: [adversarial-review]
@@ -298,9 +208,6 @@ tracks:
 # -----------------------------------------------------------------------------
 # ADVERSARIAL REVIEW (party mode)
 # -----------------------------------------------------------------------------
-# All adversarial reviews invoke party mode — multi-agent group discussion.
-# Lead reviewer drives; participants challenge from their expertise.
-# Constitution can ADD participants per domain/service (additive inheritance).
 adversarial_review:
   mode: party
   reviews:
@@ -326,24 +233,18 @@ adversarial_review:
       focus: "Buildable? Right-sized? Implementable?"
 
 # -----------------------------------------------------------------------------
-# BRANCH TOPOLOGY — LENS-WORK REPO (planning artifacts)
+# BRANCH TOPOLOGY — PLANNING REPO (control repo)
 # -----------------------------------------------------------------------------
-# Rich branch topology for human-speed review gates.
-# All planning artifacts live here, never in target code repos.
-# Avoids false positive security scans in code repos.
 planning_repo:
   artifacts_location: central-only
   branch_patterns:
     initiative_root: "{initiative-root}"
     audience: "{initiative-root}-{audience}"
     phase: "{initiative-root}-{audience}-{phase}"
-    workflow: "{initiative-root}-{audience}-{phase}-{workflow}"
   merge_chain:
-    # Within an audience: phase branches merge into audience branch
     - source: "{initiative-root}-{audience}-{phase}"
       target: "{initiative-root}-{audience}"
       type: phase-completion
-    # Audience promotions: audience branches merge into next audience
     - source: "{initiative-root}-small"
       target: "{initiative-root}-medium"
       type: audience-promotion
@@ -356,32 +257,27 @@ planning_repo:
       target: base
       type: audience-promotion
       gate: constitution-gate
+  # v2: Lazy audience branch creation
+  audience_branch_creation: lazy
+  # Audience branches created on-demand at promotion time, not at init
 
 # -----------------------------------------------------------------------------
-# BRANCH TOPOLOGY — TARGET PROJECTS (code execution)
+# BRANCH TOPOLOGY — TARGET PROJECTS (code repos)
 # -----------------------------------------------------------------------------
-# GitFlow with Jira-linked branch names.
-# AI-speed execution (sprints in hours, not weeks).
 target_projects:
   branching_model: gitflow
   branch_patterns:
-    # Epic branch: feature/{epic-key}  e.g., feature/epic-1
     epic: "feature/{epic-key}"
-    # Story branch: feature/{epic-key}-{story-key}  e.g., feature/epic-1-1-1-user-auth
     story: "feature/{epic-key}-{story-key}"
     integration: develop
     release: "release/{version}"
     production: main
-  # Pattern variables:
-  #   {epic-key}  — extracted from sprint-status epic key (e.g., "epic-1")
-  #   {story-key} — extracted from sprint-status story key (e.g., "1-1-user-auth")
-  #   Full story branch example: feature/epic-1-1-1-user-authentication
   merge_chain:
     - source: "feature/{epic-key}-{story-key}"
       target: "feature/{epic-key}"
       type: story-completion
       gate: code-review
-      auto_pr: true   # PR auto-created when all story tasks are complete
+      auto_pr: true
     - source: "feature/{epic-key}"
       target: develop
       type: epic-completion
@@ -394,38 +290,16 @@ target_projects:
       target: main
       type: production-deploy
       gate: production-gate
-  # Planning audience levels mirror code merge gates
-  merge_gate_isomorphism:
-    "phase → audience":    "story → epic"
-    "small → medium":      "epic → develop"
-    "medium → large":      "develop → release"
-    "large → base":        "release → main"
-  # Automation rules for target project branch management
-  auto_branch_management:
-    create_epic_branch_on: sprint-plan-start   # Create epic branches when sprint planning begins
-    create_story_branch_on: dev-story-start    # Create story branch from epic when dev starts
-    auto_commit_on: task-completion             # Commit + push after each task is marked complete
-    auto_pr_on: story-completion               # Create PR from story → epic when all tasks done
-    epic_branch_parent: develop                # Epic branches created from integration branch
 
 # -----------------------------------------------------------------------------
 # INITIATIVE CONFIGURATION
 # -----------------------------------------------------------------------------
 initiative:
   scope_levels: [repo, service, domain, org]
-  scope_behavior:
-    repo:
-      coupling: none
-      description: "Single-repo initiative, no coupling question"
-    service:
-      coupling: initiator-decides
-      description: "Multi-repo within one service, initiator chooses repo coupling"
-    domain:
-      coupling: initiator-decides
-      description: "Multi-service, initiator chooses service coupling"
-    org:
-      coupling: initiator-decides
-      description: "Cross-domain, initiator chooses domain + service coupling"
+  config_schema:
+    required_fields: [initiative, domain, track, created, initiative_root]
+    optional_fields: [service, language]
+    path_pattern: "_bmad-output/lens-work/initiatives/{domain}/{service}/{feature}.yaml"
 
 # -----------------------------------------------------------------------------
 # CONSTITUTION SCHEMA
@@ -441,130 +315,57 @@ constitution:
     - enforce_stories
 
 # -----------------------------------------------------------------------------
-# DATA ZONES
+# GIT STATE MODEL (v2 — replaces state.yaml)
 # -----------------------------------------------------------------------------
-# Authoritative classification of every data artifact produced by lens-work.
-# Each zone has a dedicated write location and branch strategy so that changes
-# to one zone can never be accidentally captured on another zone's branch.
+# State is derived from three durable sources:
+# 1. Branch existence — what branches exist tells you what's been started
+# 2. PR provider metadata — open/merged/closed PRs tell you what's been reviewed
+# 3. Committed artifacts — what files exist on what branches tells you what's been produced
 #
-# ENFORCEMENT: Agents MUST refuse to write governance-zone data into the
-# initiatives/ tree of the control repo, and vice versa.
+# NO state.yaml. NO event-log.jsonl. NO git-ignored runtime state.
+git_state:
+  sources:
+    - git_symbolic_ref: "Current branch → initiative, audience, phase"
+    - git_branch_list: "Branch existence → phase started, audience created"
+    - provider_adapter_pr: "PR state → phase complete, promotion complete"
+    - git_show: "Cross-branch config reads without checkout"
+    - committed_artifacts: "File existence → artifact inventory"
+  skill: git-state
+  write_skill: git-orchestration
+
+# -----------------------------------------------------------------------------
+# DATA ZONES
 # -----------------------------------------------------------------------------
 data_zones:
   governance:
-    description: >
-      Universal artifacts shared across all initiatives and all control repos that
-      clone bmad.lens.release.  Lives in a standalone governance repo so it has
-      no coupling to any initiative branch.
-    # Governance repo coordinates are loaded at runtime from:
-    #   _bmad-output/lens-work/governance-setup.yaml
-    # See governance-setup.example.yaml for the template.
+    description: "Universal artifacts shared across all initiatives"
     setup_file: "_bmad-output/lens-work/governance-setup.yaml"
-    # Defaults (overridden by setup_file at runtime):
-    repo: bmad.lens.governance
-    remote_url: https://github.com/crisweber2600/bmad.lens.governance
-    local_path: TargetProjects/lens/lens-governance
     artifacts:
-      - constitutions/         # 4-level hierarchy: org / domain / service / repo
-      - roster/                # Team member records
-      - policies/              # Org-wide process and coding policies
-      - repo-inventory.yaml    # Canonical discovered-repo inventory
-    branch_strategy:
-      pattern: "universal/{slug}"
-      merge_target: main
-      description: >-
-        Changes to governance artifacts MUST be made on a universal/* branch in
-        the governance repo, never on a branch in the control repo.
+      - constitutions/
+      - roster/
+      - policies/
+      - repo-inventory.yaml
     write_roles: [Tech Lead, Architect]
     pr_required: true
-    codeowners: true
-    prerequisite: >
-      @lens MUST verify that the governance repo is cloned at the path specified
-      in governance-setup.yaml before executing any governance workflow.
-      If missing, run check-repos first.
 
   initiative:
-    description: >
-      Initiative-scoped planning artifacts.  Lives in the control repo under
-      _bmad-output/lens-work/initiatives/.  Each initiative has its own branch
-      subtree and never overlaps with governance or personal zones.
-    repo: bmad.lens.release   # this control repo
+    description: "Initiative-scoped planning artifacts in control repo"
     local_path: _bmad-output/lens-work/initiatives/
-    artifacts:
-      - "initiatives/{domain}/"
-      - "initiatives/{domain}/{service}/"
-      - "initiatives/{domain}/{service}/{feature}.yaml"
-      - "initiatives/{domain}/{service}/phases/"
     branch_strategy:
       pattern: "{initiative_root}-{audience}-{phase}"
       merge_target: "{initiative_root}"
-      description: >-
-        Full 5-level branch topology per lifecycle.yaml#planning_repo.
 
   personal:
-    description: >
-      Machine-local, git-ignored user data.  Never committed to any repo.
-      Contains credentials and user preferences.
-    local_path: _bmad-output/lens-work/personal/
-    git_ignored: true
+    description: "User profile and preferences"
+    local_path: _bmad-output/lens-work/
     artifacts:
-      - personal/profile.yaml
-      - personal/personal-repo-inventory.yaml
-    branch_strategy: none   # local only, never pushed
+      - profile.yaml
+      - governance-setup.yaml
 
 # -----------------------------------------------------------------------------
-# AGENT ROLES
+# CREDENTIAL POLICY (NFR4)
 # -----------------------------------------------------------------------------
-agents:
-  # Phase-facing agents (own lifecycle phases)
-  mary:
-    role: Analyst
-    owns_phases: [preplan]
-    capabilities: [brainstorm, research, create-brief, document-project]
-  john:
-    role: PM
-    owns_phases: [businessplan, devproposal]
-    capabilities: [create-prd, validate-prd, edit-prd, create-epics-and-stories, implementation-readiness, correct-course]
-  winston:
-    role: Architect
-    owns_phases: [techplan]
-    capabilities: [create-architecture, implementation-readiness]
-  sally:
-    role: UX Designer
-    supports_phases: [businessplan]
-    capabilities: [create-ux-design]
-  bob:
-    role: Scrum Master
-    owns_phases: [sprintplan]
-    capabilities: [sprint-planning, create-story, retrospective, correct-course]
-  amelia:
-    role: Developer
-    execution_context: target-projects
-    capabilities: [dev-story, code-review]
-  quinn:
-    role: QA
-    execution_context: target-projects
-    capabilities: [test-automation, test-review]
-
-  # @lens unified agent skills (cross-cutting)
-  # In v2, all infrastructure roles are skills of the single @lens agent
-  lens:
-    role: Router
-    skill: "@lens (core)"
-    description: "User-facing lifecycle router — decides what workflow/agent to invoke"
-  git-orchestration:
-    role: Git Discipline
-    skill: "@lens/git-orchestration"
-    description: "Branch topology, PR creation, merge gate validation"
-  state-management:
-    role: State Management
-    skill: "@lens/state-management"
-    description: "Personal state, event log, resume/sync"
-  discovery:
-    role: Discovery
-    skill: "@lens/discovery"
-    description: "Repo inventory, doc generation, impact analysis"
-  constitution:
-    role: Governance
-    skill: "@lens/constitution"
-    description: "Constitution validation, compliance checks, promotion gates"
+credentials:
+  storage: "OS credential store or provider CLI login state ONLY"
+  git_tracked: never
+  enforcement: "Scanning all git-tracked files for credential patterns must find nothing"

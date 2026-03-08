@@ -1,129 +1,135 @@
----
-name: help
-description: "Display full command reference with context-sensitive next steps and quick-start guidance"
-agent: "@lens"
-trigger: "/help or H via @lens"
-category: utility
-version: "2.0.0"
----
+# /help — Command Reference Workflow
 
-# Help Display Workflow
+**Phase:** Utility
+**Purpose:** Display all available @lens commands grouped by category with descriptions, usage examples, and first-time user guidance.
 
-**Purpose:** Display a structured command reference for lens-work, organised by category, with context-sensitive highlighting of the next recommended commands for the current initiative state.
+## Pre-conditions
 
----
-
-## Input Parameters
-
-None required — optionally reads `_bmad-output/lens-work/state.yaml` for context-aware highlighting.
-
----
+- lens-work module is installed
 
 ## Steps
 
-### Step 1 — Check Current Context (Optional)
+### Step 1: Detect User Context
 
-Attempt to read `_bmad-output/lens-work/state.yaml`. If available, note the current phase and audience for Step 3 highlighting. If unavailable, show the full reference without highlighting.
+Check if the user is a first-time user (no `profile.yaml`):
 
-### Step 2 — Display Command Reference
-
-Display the full command reference grouped by category:
-
----
-
-#### 🚀 Initiative Setup
-| Code | Name | Description |
-|---|---|---|
-| `ND` | New Domain | Create a domain-level initiative with organisational branch |
-| `NS` | New Service | Create a service-level initiative |
-| `NF` | New Feature | Create a feature-level initiative with full branch topology |
-| `OB` | Onboard | Full onboarding (profile, credentials, repo reconciliation) |
-| `BS` | Bootstrap | Bootstrap repository discovery and documentation |
-
-#### 📋 Phase Commands (sequential)
-| Code | Name | Phase | Description |
-|---|---|---|---|
-| `PP` | Pre-Plan | preplan | Brainstorm, research, product brief (Mary/Analyst) |
-| `BP` | Business Plan | businessplan | PRD, UX (John/PM + Sally/UX) |
-| `TP` | Tech Plan | techplan | Architecture, tech decisions, API contracts (Winston/Architect) |
-| `SG` | Story Generation | devproposal | Generate stories with estimates and dependencies |
-| `DP` | Dev Proposal | devproposal | Epics, stories, readiness (John/PM) |
-| `SP` | Sprint Plan | sprintplan | Readiness gate, sprint planning (Bob/SM) |
-| `DV` | Dev Loop | dev | Story implementation, code review, retro |
-
-#### 🔄 State & Navigation
-| Code | Name | Description |
-|---|---|---|
-| `ST` | Status | Display current state including initiative, phase, audience, gate progression |
-| `CX` | Context | Display current active context summary |
-| `SW` | Switch Context | Switch active initiative, lens, or phase |
-| `SY` | Sync State | Validate and repair state consistency |
-| `FX` | Fix State | Rebuild state from event-log.jsonl when state.yaml is corrupted |
-| `OV` | Override State | Manual state override with safety confirmation |
-| `RS` | Resume | Resume interrupted workflow from last checkpoint |
-| `AR` | Archive | Archive completed or abandoned initiative |
-| `RB` | Recreate Branches | Recreate missing git branches (recovery) |
-| `FS` | Fix Story | Correction loop (Quick-Spec → Review → Quick-Dev) |
-
-#### ⚖️ Governance
-| Code | Name | Description |
-|---|---|---|
-| `CO` | Constitution | Create, amend, or view constitutions |
-| `CC` | Compliance Check | Check artifact compliance against constitutions |
-| `AN` | Ancestry | Display constitution inheritance chain |
-| `RC` | Resolve Constitution | Resolve accumulated rules for current context |
-
-#### 🔍 Discovery
-| Code | Name | Description |
-|---|---|---|
-| `DR` | Discover Repos | Scan and inventory target project repositories |
-| `RP` | Repo Status | Check status of all discovered repositories |
-| `DM` | Domain Map | View or edit domain architecture map |
-| `IA` | Impact Analysis | Cross-boundary impact analysis |
-
-#### ℹ️ Help & Context
-| Code | Name | Description |
-|---|---|---|
-| `H` | Help | This command — full command reference |
-| `CX` | Context | Current active context |
-
----
-
-### Step 3 — Context-Sensitive Highlighting
-
-If current state is available, append a "What's Next?" block:
-
-```
-💡 What's Next for [{initiative_name}]
-Current: Phase={current_phase}, Audience={audience}
-Recommended: [{next_command_code}] {next_command_name}
+```bash
+test -f _bmad-output/lens-work/profile.yaml
 ```
 
-Use this table to determine recommended next command:
+- **First-time user:** Show extended introduction before command list.
+- **Returning user:** Show command list directly.
 
-| Phase | Audience | Recommended |
-|---|---|---|
-| (none) | — | `OB` Onboard or `ND` New Domain |
-| preplan | small | `BP` Business Plan |
-| businessplan | small | `TP` Tech Plan |
-| techplan | small | `DP` Dev Proposal (promote to medium first) |
-| devproposal | medium | `SP` Sprint Plan (promote to large first) |
-| sprintplan | large | `DV` Dev Loop (promote to base first) |
-| dev | base | Continue stories or `AR` Archive when complete |
+### Step 2: First-Time User Introduction (if applicable)
 
----
+```
+👋 Welcome to LENS Workbench!
 
-## Output
+LENS manages your planning lifecycle from idea to implementation using
+git-native workflows. Everything is derived from git — branches are
+your state, PRs are your gates, and lifecycle.yaml is your contract.
 
-- Inline formatted command reference table
-- Context-sensitive "What's Next?" block (when state available)
-- No files written
+**Getting started:**
+1. Run `/onboard` to authenticate and set up your profile
+2. Run `/new-domain {name}` to create your first initiative
+3. Run `/next` anytime to see what to do next
 
----
+Here are all the commands available:
+```
 
-## Error Handling
+### Step 3: Read Command Registry
 
-| Condition | Action |
-|---|---|
-| `state.yaml` missing | Show full reference without context highlighting |
-| Unrecognised phase in state | Show full reference, flag unknown phase |
+Load `module-help.csv` from the lens-work module root to get the canonical command list.
+
+### Step 4: Display Commands by Category
+
+```
+📖 @lens Command Reference
+
+━━━ 🚀 Lifecycle ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /preplan          Start PrePlan phase — brainstorm, research, product brief
+                    Usage: /preplan
+
+  /businessplan     Start BusinessPlan phase — PRD creation, UX design
+                    Usage: /businessplan
+
+  /techplan         Start TechPlan phase — architecture, technical decisions
+                    Usage: /techplan
+
+  /devproposal      Start DevProposal phase — epics, stories, readiness check
+                    Usage: /devproposal
+
+  /sprintplan       Start SprintPlan phase — sprint-status, story files
+                    Usage: /sprintplan
+
+  /dev              Start Dev phase — hand off to implementation agents
+                    Usage: /dev
+
+━━━ 🧭 Navigation ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /new-domain       Create a new domain-level initiative
+                    Usage: /new-domain {domain-name}
+
+  /new-service      Create a new service-level initiative within a domain
+                    Usage: /new-service {domain}/{service-name}
+
+  /new-feature      Create a new feature-level initiative within a service
+                    Usage: /new-feature {domain}/{service}/{feature-name}
+
+  /switch           Switch to a different initiative
+                    Usage: /switch [initiative-name]
+
+  /status           Show all active initiatives and their state
+                    Usage: /status
+
+  /next             Get recommended next action
+                    Usage: /next
+
+━━━ 🛡️ Governance ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /promote          Promote current audience to next level with gate checks
+                    Usage: /promote
+
+  /sense            Run cross-initiative overlap detection on demand
+                    Usage: /sense
+
+━━━ 🔧 Utility ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /onboard          Bootstrap control repo — detect provider, validate auth
+                    Usage: /onboard
+
+  /help             Show this command reference
+                    Usage: /help
+```
+
+### Step 5: Handle Invalid Commands
+
+If the user typed an unrecognized command, find the closest valid command:
+
+**Matching strategy:**
+1. Exact prefix match (e.g., `/pre` → `/preplan`)
+2. Fuzzy match by string similarity (e.g., `/bussiness` → `/businessplan`)
+3. Category suggestion if no close match
+
+**Response:**
+```
+❓ Unknown command: `/{input}`
+   Did you mean `/preplan`?
+
+   Run `/help` to see all available commands.
+```
+
+### Step 6: Display Footer
+
+```
+💡 Tip: Run `/next` anytime to see your recommended next action.
+```
+
+## Design Principles
+
+- Direction C (Conversational Narrative) — warmth and clarity
+- First-time users get extended explanation, not jargon
+- Invalid commands get closest suggestion, not "command not found"
+- All ~16 user touchpoints documented
+- Categories group related commands for discoverability

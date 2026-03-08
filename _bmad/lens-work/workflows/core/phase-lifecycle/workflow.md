@@ -1,393 +1,151 @@
----
-name: phase-lifecycle
-description: Start and finish phase operations (v2 — named phases)
-agent: "@lens/git-orchestration"
-trigger: Phase transitions via @lens
-category: core
-auto_triggered: true
-imports: lifecycle.yaml
----
+# Phase Lifecycle Workflow
 
-# Phase Lifecycle Workflows (v2 — Lifecycle Contract)
+**Phase:** Core
+**Purpose:** Manage phase completion, automatic PR creation, and branch cleanup.
+**Trigger:** Automatically invoked at the end of each phase routing workflow.
 
----
+## Overview
 
-## Start Phase
+This core workflow handles the lifecycle of a phase branch:
+1. **Phase Start** — Branch creation (handled by phase router)
+2. **Phase Work** — Artifact production (handled by delegated agent)
+3. **Phase End** — Automatic PR creation (this workflow)
+4. **Branch Cleanup** — Phase branch deletion after PR merge
 
-**Purpose:** Create named phase branch from audience branch when first workflow of phase begins.
+## Phase Completion Detection
 
-### Input
+A phase is complete when all required artifacts exist for that phase.
+
+**Algorithm:**
+1. Read `lifecycle.yaml` to get required artifacts for the current phase
+2. Check file existence at `_bmad-output/lens-work/initiatives/{path}/phases/{phase}/`
+3. All required artifacts must be present
+
+| Phase | Required Artifacts |
+|-------|--------------------|
+| preplan | product-brief.md, research.md |
+| businessplan | prd.md, ux-design.md |
+| techplan | architecture.md |
+| devproposal | epics.md |
+| sprintplan | sprint-status.yaml |
+
+## Auto-PR Creation
+
+When phase work is complete, automatically create a PR:
+
+### PR Source and Target
+
+```
+Source branch: {initiative-root}-{audience}-{phase}
+Target branch: {initiative-root}-{audience}
+```
+
+### PR Title Format
+
+```
+[PHASE] {initiative-root} — {display_name} complete
+```
+
+Examples:
+- `[PHASE] foo-bar-auth — PrePlan complete`
+- `[PHASE] foo-bar-auth — TechPlan complete`
+
+### PR Body Generation
+
+The PR body is generated dynamically from committed artifact content (not hardcoded templates):
+
+```markdown
+## Phase Completion: {display_name}
+
+**Initiative:** {initiative-root}
+**Track:** {track}
+**Audience:** {audience}
+**Phase Agent:** {agent} ({agent_role})
+
+### Artifacts Produced
+
+- [x] `{artifact-1}.md` — {first line or heading from artifact}
+- [x] `{artifact-2}.md` — {first line or heading from artifact}
+
+### Artifact Summaries
+
+#### {artifact-1}
+{First paragraph or executive summary extracted from artifact content}
+
+#### {artifact-2}
+{First paragraph or executive summary extracted from artifact content}
+
+### Phase Gate Requirements
+
+| Requirement | Status |
+|-------------|--------|
+| All required artifacts present | ✅ |
+| Artifact content non-empty | ✅ |
+| Constitution compliance | {PASS/PENDING — integrated at Story 6.2} |
+
+### Review Instructions
+
+Review the artifacts for completeness, quality, and alignment with initiative goals.
+Merge this PR to mark the {display_name} phase as complete.
+```
+
+### PR Creation
+
+Use provider-adapter `create-pr`:
 
 ```yaml
-phase_name: string         # preplan|businessplan|techplan|devproposal|sprintplan
-initiative_id: string
-# audience is derived from lifecycle.yaml phases[phase_name].audience
-# e.g., preplan → small, devproposal → medium, sprintplan → large
+title: "[PHASE] {initiative-root} — {display_name} complete"
+body: "{generated body}"
+source_branch: "{initiative-root}-{audience}-{phase}"
+target_branch: "{initiative-root}-{audience}"
 ```
 
-### Sequence
-
-0. **Verify Git State**
-   ```bash
-   # Ensure clean working tree in BMAD control repo
-   if ! git diff-index --quiet HEAD --; then
-     echo "Uncommitted changes detected. Commit or stash before starting a phase."
-     exit 1
-   fi
-
-   git fetch origin
-   ```
-
-1. **Validate Previous Phase**
-   ```yaml
-   # Load lifecycle contract to determine phase ordering
-   lifecycle = load("_bmad/_config/custom/lens-work/lifecycle.yaml")
-   initiative = load("_bmad-output/lens-work/initiatives/${initiative_id}.yaml")
-   track = initiative.track  # e.g., "full"
-   active_phases = lifecycle.tracks[track].phases  # e.g., [preplan, businessplan, techplan, devproposal, sprintplan]
-
-   # Find index of requested phase in track's active phases
-   phase_index = active_phases.index(phase_name)
-
-   if phase_index > 0:
-     prev_phase = active_phases[phase_index - 1]
-     prev_audience = lifecycle.phases[prev_phase].audience
-
-     # Check: if prev_phase is in the same audience, it must be complete (PR merged)
-     if prev_audience == lifecycle.phases[phase_name].audience:
-       if initiative.phase_status[prev_phase] != "passed":
-         echo "⚠️ Phase ${prev_phase} not complete. Finish it before starting ${phase_name}."
-         exit 1
-       fi
-
-     # Check: if prev_phase is in a different audience, audience promotion must be complete
-     else:
-       # Audience promotion gate must have been passed
-       promotion_key = "${prev_audience}_to_${current_audience}"
-       if state.audience_status[promotion_key] != "passed":
-         echo "⚠️ Audience promotion ${prev_audience} → ${current_audience} not complete."
-         echo "└── Complete audience promotion before starting ${phase_name}."
-         exit 1
-       fi
-   ```
-
-2. **Create Phase Branch**
-   ```bash
-   # Derive audience from lifecycle.yaml
-   # phases.preplan.audience = small, phases.devproposal.audience = medium, etc.
-   audience=$(get_phase_audience ${phase_name})  # e.g., "small" for preplan
-
-   # Phase branch created from audience branch
-   git checkout "${initiative_root}-${audience}"
-   git pull origin "${initiative_root}-${audience}"
-   git checkout -b "${initiative_root}-${audience}-${phase_name}"
-   git push -u origin "${initiative_root}-${audience}-${phase_name}"
-   ```
-
-3. **Update State**
-   ```yaml
-   # state.yaml
-   current_phase: "${phase_name}"
-   workflow_status: running
-
-   # Dual-write to initiative config
-   initiative.current_phase: "${phase_name}"
-   ```
-
-4. **Log Event**
-   ```json
-   {"ts":"${ISO_TIMESTAMP}","event":"start-phase","phase":"${phase_name}","audience":"${audience}","track":"${track}"}
-   ```
-
-5. **Commit Phase Start**
-    ```bash
-    # Ensure we're on the new phase branch
-    git checkout "${initiative_root}-${audience}-${phase_name}"
-
-    # Stage state + event log
-    git add _bmad-output/lens-work/state.yaml _bmad-output/lens-work/event-log.jsonl
-
-    # Commit only if there are changes
-    if ! git diff-index --quiet HEAD --; then
-       git commit -m "phase(${phase_name}): Start ${phase_name} (${initiative_id})"
-       git push origin "${initiative_root}-${audience}-${phase_name}"
-    else
-       echo "No phase-start changes to commit."
-    fi
-    ```
-
----
-
-## Finish Phase
-
-**Purpose:** Push phase branch and create PR to audience branch after all workflows complete.
-
-> **Note:** Phase prompts now delegate completion to `_bmad/lens-work/skills/phase-completion.md`.
-> This workflow section documents the underlying procedure; the skill loads this JIT and
-> adds sub-workflow verification + auto-advance logic on top.
-
-### Sequence
-
-0. **Verify Git State**
-   ```bash
-   # Ensure clean working tree in BMAD control repo
-   if ! git diff-index --quiet HEAD --; then
-     echo "Uncommitted changes detected. Commit or stash before finishing a phase."
-     exit 1
-   fi
-
-   git fetch origin
-   ```
-
-1. **Validate All Workflows Complete**
-   ```yaml
-   # Load sub-workflow definitions from lifecycle.yaml
-   lifecycle = load("_bmad/lens-work/lifecycle.yaml")
-   sub_workflow_defs = lifecycle.phases[phase_name].sub_workflows
-   
-   # Load actual sub-workflow statuses from initiative config
-   initiative = load("_bmad-output/lens-work/initiatives/${initiative_id}.yaml")
-   sub_workflow_status = initiative.sub_workflows[phase_name] || {}
-   
-   # Check each required sub-workflow
-   for sw in sub_workflow_defs:
-     if sw.required == true:
-       status = sub_workflow_status[sw.name]
-       if status != "complete":
-         echo "⚠️ Required sub-workflow '${sw.name}' not complete (status: ${status || 'not started'})"
-         echo "└── Complete it before finishing phase ${phase_name}."
-         exit 1
-   
-   # Mark optional sub-workflows that were never started as 'skipped'
-   for sw in sub_workflow_defs:
-     if sw.required == false && sub_workflow_status[sw.name] == null:
-       sub_workflow_status[sw.name] = "skipped"
-   
-   echo "✅ All required sub-workflows for ${phase_name} are complete."
-   ```
-
-2. **Push Phase Branch**
-   ```bash
-   audience=$(get_phase_audience ${phase_name})
-   git push origin "${initiative_root}-${audience}-${phase_name}"
-   ```
-
-3. **Load PAT & Create PR (HARD GATE)**
-   ```yaml
-   # Load user profile for git credentials
-   profile = load("_bmad-output/personal/profile.yaml")
-
-   # Determine which host PAT to use by matching remote URL
-   remote_url = shell("git remote get-url origin")
-   remote_host = extract_hostname(remote_url)
-
-   pat = null
-   if profile.git_credentials != null:
-     for cred in profile.git_credentials:
-       if cred.host == remote_host:
-         pat = cred.pat
-         break
-
-   if pat == null:
-     error: |
-       ⚠️ HARD GATE: No PAT found for host '${remote_host}'
-       ├── Run @lens onboard to configure git credentials
-       └── Then re-run finish-phase
-     exit: 1
-   ```
-
-   ```bash
-   # Create PR: phase branch → audience branch
-   source_branch="${initiative_root}-${audience}-${phase_name}"
-   target_branch="${initiative_root}-${audience}"
-   pr_title="phase(${phase_name}): Complete ${phase_name} for ${initiative_id} [${audience} audience]"
-
-   if [[ "$remote_url" == *"gitlab.com"* ]]; then
-     # GitLab detected — skip to GitLab block below
-     :
-   elif [[ "$remote_url" == *"dev.azure.com"* ]]; then
-     # Azure DevOps detected — skip to ADO block below
-     :
-   elif [[ "$remote_url" == https://* ]]; then
-     # GitHub (github.com or GitHub Enterprise)
-     org_repo=$(echo "$remote_url" | sed -E "s|https://${remote_host}/||; s|\.git$||")
-     owner=$(echo "$org_repo" | cut -d'/' -f1)
-
-     # Derive API base URL: github.com → api.github.com, GHE → {host}/api/v3
-     if [[ "$remote_host" == "github.com" ]]; then
-       api_base="https://api.github.com"
-     else
-       api_base="https://${remote_host}/api/v3"
-     fi
-
-     pr_body="## Phase Complete: ${phase_name}
-
-   **Initiative:** ${initiative_id}
-   **Phase:** ${phase_name}
-   **Audience:** ${audience}
-   **Track:** ${track}
-
-   All workflows in this phase have been completed and merged.
-
-   ---
-   *Created automatically by lens-work phase-lifecycle*"
-
-     http_code=$(curl -s -o /tmp/pr_response.json -w '%{http_code}' \
-       -X POST "${api_base}/repos/${org_repo}/pulls" \
-       -H "Authorization: token ${pat}" \
-       -H "Content-Type: application/json" \
-       -d "$(jq -n \
-         --arg head "$source_branch" \
-         --arg base "$target_branch" \
-         --arg title "$pr_title" \
-         --arg body "$pr_body" \
-         '{head: $head, base: $base, title: $title, body: $body}')")
-
-     if [ "$http_code" = "201" ]; then
-       pr_url=$(jq -r '.html_url' /tmp/pr_response.json)
-     elif [ "$http_code" = "422" ]; then
-       echo "ℹ️ PR already exists for this phase"
-       pr_url=$(curl -s \
-         "${api_base}/repos/${org_repo}/pulls?state=open&head=${owner}:${source_branch}" \
-         -H "Authorization: token ${pat}" | jq -r '.[0].html_url // empty')
-     else
-       echo "❌ HARD GATE: PR creation failed"
-       echo "├── HTTP ${http_code}: $(jq -r '.message // empty' /tmp/pr_response.json)"
-       echo "└── Fix the issue and re-run finish-phase"
-       exit 1
-     fi
-     rm -f /tmp/pr_response.json
-
-   fi
-
-   if [[ "$remote_url" == *"gitlab.com"* ]]; then
-     org_repo=$(echo "$remote_url" | sed -E 's|https://gitlab\.com/||; s|\.git$||')
-     encoded_repo=$(echo "$org_repo" | sed 's|/|%2F|g')
-     pr_result=$(curl -s -X POST \
-       "https://gitlab.com/api/v4/projects/${encoded_repo}/merge_requests" \
-       -H "PRIVATE-TOKEN: ${pat}" \
-       -d "source_branch=${source_branch}" \
-       -d "target_branch=${target_branch}" \
-       -d "title=${pr_title}")
-     pr_url=$(echo "$pr_result" | jq -r '.web_url // empty')
-     if [ -z "$pr_url" ]; then
-       echo "❌ HARD GATE: MR creation failed"
-       exit 1
-     fi
-
-   elif [[ "$remote_url" == *"dev.azure.com"* ]]; then
-     ado_org=$(echo "$remote_url" | sed -E 's|https://dev\.azure\.com/([^/]+)/.*|\1|')
-     ado_project=$(echo "$remote_url" | sed -E 's|https://dev\.azure\.com/[^/]+/([^/]+)/.*|\1|')
-     ado_repo=$(echo "$remote_url" | sed -E 's|.*/_git/([^/]+)(\.git)?$|\1|')
-     pr_result=$(curl -s -X POST \
-       "https://dev.azure.com/${ado_org}/${ado_project}/_apis/git/repositories/${ado_repo}/pullrequests?api-version=7.0" \
-       -H "Authorization: Basic $(echo -n ":${pat}" | base64)" \
-       -H "Content-Type: application/json" \
-       -d "{\"sourceRefName\":\"refs/heads/${source_branch}\",\"targetRefName\":\"refs/heads/${target_branch}\",\"title\":\"${pr_title}\"}")
-     pr_url=$(echo "$pr_result" | jq -r '.url // empty')
-     if [ -z "$pr_url" ]; then
-       echo "❌ HARD GATE: PR creation failed"
-       exit 1
-     fi
-
-   else
-     echo "⚠️ Unknown remote type. Create PR manually: ${source_branch} → ${target_branch}"
-     pr_url="manual"
-   fi
-
-   echo "✅ Phase PR created: ${pr_url}"
-   ```
-
-4. **Update Phase Status**
-   ```yaml
-   # Dual-write: state.yaml + initiative config
-   state.phase_status.${phase_name}: "passed"
-   initiative.phase_status.${phase_name}: "passed"
-   ```
-
-5. **Log Event**
-   ```json
-   {"ts":"${ISO_TIMESTAMP}","event":"finish-phase","phase":"${phase_name}","audience":"${audience}","pr_url":"${pr_url}"}
-   ```
-
-6. **Commit Phase Finish**
-   ```bash
-   # Ensure we're on the phase branch
-   git checkout "${initiative_root}-${audience}-${phase_name}"
-
-   # Stage state + event log + initiative config
-   git add _bmad-output/lens-work/state.yaml _bmad-output/lens-work/event-log.jsonl
-   git add _bmad-output/lens-work/initiatives/
-
-   # Commit only if there are changes
-   if ! git diff-index --quiet HEAD --; then
-     git commit -m "phase(${phase_name}): Finish ${initiative_id} [${audience} audience]"
-     git push origin "${initiative_root}-${audience}-${phase_name}"
-   else
-     echo "No phase-finish changes to commit."
-   fi
-   ```
-
-7. **Output**
-   ```
-   ✅ Phase ${phase_name} complete
-   ├── All workflows merged
-   ├── Audience: ${audience}
-   ├── PR Created: ${pr_url}
-   ├── HARD GATE: PR must be merged before next phase can proceed
-   └── Ready for next phase (after PR merge)
-   ```
-
----
-
-## Audience Promotion
-
-When all phases within an audience are complete, content flows up through the promotion chain:
+### Response
 
 ```
-small (preplan + businessplan + techplan complete) → medium via adversarial review (party mode)
-medium (devproposal complete) → large via stakeholder approval
-large (sprintplan complete) → base (initiative root) via constitution gate (constitution skill)
+✅ Phase PR created
+
+## PR Details
+- **Title:** [PHASE] {initiative-root} — {display_name} complete
+- **URL:** {pr_url}
+- **Artifacts included:** {count} files
+- **Review required:** Yes — merge to complete this phase
+
+## Next Step
+Merge the PR, then run `/{next_phase}` to continue.
 ```
 
-### Promotion Trigger Check
+## Phase Branch Cleanup
 
-```yaml
-# After finishing a phase, check if all phases in this audience are complete
-audience = lifecycle.phases[phase_name].audience
-audience_phases = lifecycle.audiences[audience].phases
+After a phase PR is merged, the phase branch should be cleaned up.
 
-all_complete = true
-for p in audience_phases:
-  if initiative.phase_status[p] != "passed":
-    all_complete = false
-    break
+### Detection
 
-if all_complete:
-  # Determine next audience and gate type
-  promotion = get_next_promotion(audience, initiative.track)
-  if promotion != null:
-    output: |
-      📋 All ${audience} phases complete!
-      ├── Promotion available: ${audience} → ${promotion.target}
-      ├── Gate required: ${promotion.gate_type}
-      └── Run audience-promotion to proceed
-```
+Branch cleanup is triggered lazily when `/next` or `/status` detects a merged phase PR with an existing phase branch.
 
-### Open Final Review (large → base)
+### Algorithm
 
-**Trigger:** All large phases complete (sprintplan merged)
+1. Check if PR from `{root}-{audience}-{phase}` → `{root}-{audience}` is merged (via provider-adapter `query-pr`)
+2. If merged AND phase branch still exists:
+   ```bash
+   git branch -d {root}-{audience}-{phase}        # Delete local
+   git push origin --delete {root}-{audience}-{phase}  # Delete remote
+   ```
+3. Report cleanup:
+   ```
+   🧹 Cleaned up merged phase branch `{root}-{audience}-{phase}`
+   ```
 
-**Purpose:** Open PR from large → initiative root (base) for constitution-gated review.
+### Safety
 
-```bash
-# Validate all large phases complete
-if all_audience_phases_complete "large"; then
-  pr_link="${remote}/compare/${initiative_root}...${initiative_root}-large"
-  echo "📋 Final Review Ready (Constitution Gate)"
-  echo "├── PR: ${pr_link}"
-  echo "├── All phases complete across all audiences"
-  echo "├── Gate: Constitution skill validation required"
-  echo "└── Ready for final promotion to base"
-fi
-```
+- **ALWAYS** verify PR is merged before deletion (via provider-adapter)
+- Phase completion state is preserved in PR metadata — branch deletion doesn't lose state
+- git-state derives phase completion from PR metadata, NOT branch existence
+
+## Error Handling
+
+| Error | Response |
+|-------|----------|
+| Missing required artifacts | `❌ Phase incomplete. Missing: {artifact-list}. Complete these before PR creation.` |
+| PR creation fails | `❌ PR creation failed: {error}. Check provider authentication with /onboard.` |
+| Branch cleanup on unmerged PR | Abort — never delete an unmerged phase branch |

@@ -1,5 +1,5 @@
-# LENS Workbench Module Configuration
-# Generated: 2026-02-03 via BMAD Module workflow
+# LENS Workbench Module Configuration v2.0
+# Source repo — CI/CD promotes to bmad.lens.release
 
 code: lens-work
 name: "LENS Workbench"
@@ -12,397 +12,124 @@ default_selected: false
 type: standalone
 global: false
 
-# Lifecycle Contract (single source of truth for all lifecycle semantics)
+# Lifecycle Contract
 lifecycle:
   file: lifecycle.yaml
   schema_version: 2
 
 # Dependencies
 dependencies:
-  - bmm      # Core workflow execution
-  - core     # BMAD core infrastructure
+  - core
 
 optional_dependencies:
-  - cis      # Creative Innovation Suite (brainstorming/research)
-  - tea      # Test Engineering Academy (test planning)
+  - cis
+  - tea
 
-# Skills (formalize agent delegation contracts)
+# Skills (v2: git-state replaces state-management, sensing replaces discovery)
+# Provider adapter operations are integrated into git-orchestration skill
 skills:
+  - id: git-state
+    file: skills/git-state.md
+    description: "Derive initiative state from git primitives — read-only queries"
   - id: git-orchestration
     file: skills/git-orchestration.md
-    description: Branch creation, commits, pushes, topology management
-  - id: state-management
-    file: skills/state-management.md
-    description: state.yaml read/write, event-log.jsonl append, status queries
-  - id: discovery
-    file: skills/discovery.md
-    description: Repo scanning, documentation, bootstrapping, onboarding
+    description: "Branch creation, commits, pushes, PR management, provider adapter — write operations"
   - id: constitution
     file: skills/constitution.md
-    description: Inline governance checks at every workflow step
+    description: "Constitutional governance resolution and compliance checks"
+  - id: sensing
+    file: skills/sensing.md
+    description: "Cross-initiative overlap detection at lifecycle gates"
   - id: checklist
     file: skills/checklist.md
-    description: Progressive phase gate checklists with expandable detail
+    description: "Phase gate checklists with progressive validation"
 
-# Installation Questions
-install_questions:
-  target_projects_path:
-    prompt: "Path to TargetProjects folder (where repos are cloned)"
-    default: "../TargetProjects"
-    result: "{answer}"
-  
-  docs_output_path:
-    prompt: "Path for canonical documentation output"
-    default: "Docs"
-    result: "{answer}"
-  
-  enable_telemetry:
-    prompt: "Enable lifecycle telemetry dashboards?"
-    type: boolean
-    default: true
-    result: "{answer}"
-  
-  discovery_depth:
-    prompt: "Default discovery depth?"
-    type: single-select
-    options:
-      - shallow
-      - standard
-      - deep
-    default: standard
-    result: "{answer}"
-
-  enable_jira_integration:
-    prompt: "Enable JIRA integration during discovery?"
-    type: boolean
-    default: false
-    result: "{answer}"
-
-  lens_data_folder:
-    prompt: "Path for lens data storage"
-    default: "bmad.lens.release/_bmad/lens-work"
-    result: "{answer}"
-
-  metadata_output_folder:
-    prompt: "Path for BMAD metadata storage"
-    default: "bmad.lens.release/_bmad-output"
-    result: "{answer}"
-
-  default_git_remote:
-    prompt: "Default git remote type"
-    type: single-select
-    options:
-      - github
-      - gitlab
-      - azure-devops
-    default: github
-    result: "{answer}"
-
-# Agent Roster (v2: single @lens agent per TD-005)
-agents:
-  - id: lens
-    file: agents/lens.agent.yaml
-    name: "@lens"
-    role: Unified lifecycle router with 5 skills (git-orchestration, state-management, discovery, constitution, checklist)
-
-# Workflow Categories
-workflow_categories:
+# Workflows
+workflows:
   core:
-    description: "Auto-triggered lifecycle operations"
-    workflows:
-      - phase-lifecycle    # Consolidates: detect-layer, phase-transition, start-phase, finish-phase
-      - audience-promotion # v2: small→medium→large→base promotion gates
-  
+    - id: phase-lifecycle
+      path: workflows/core/phase-lifecycle/
+      description: "Phase start, phase end, phase-to-audience PR"
+    - id: audience-promotion
+      path: workflows/core/audience-promotion/
+      description: "Audience→audience PR with gate + sensing"
   router:
-    description: "Phase router commands (user-facing, v2 named phases)"
-    workflows:
-      - pre-plan        # /preplan (alias: /pre-plan) — Mary/Analyst, small audience
-      - spec            # /businessplan (alias: /spec) — John/PM + Sally/UX, small audience
-      - tech-plan       # /techplan (alias: /tech-plan) — Winston/Architect, small audience
-      - plan            # /devproposal (alias: /plan) — John/PM, medium audience
-      - sprintplan      # /sprintplan (alias: /review) — Bob/SM, large audience
-      - dev             # /dev — implementation loop
-      - init-initiative # /new-domain, /new-service, /new-feature
-  
-  background:
-    description: "Auto-triggered lifecycle operations (never user-invoked)"
-    workflows:
-      - state-sync           # Validate state.yaml at workflow boundaries
-      - event-log            # Append to event-log.jsonl on state mutations
-      - branch-validate      # Verify branch topology matches expected patterns
-      - branch-preflight     # Check/switch branch before BMAD processes
-      - constitution-check   # Run governance validation at workflow boundaries
-      - checklist-update     # Update progressive checklist items
-  
-  discovery:
-    description: "Repo discovery and documentation"
-    workflows:
-      - repo-discover
-      - repo-document
-      - repo-reconcile
-      - repo-status
-      - discover
-      - analyze-codebase
-      - generate-docs
-      - lens-sync
-      - domain-map
-      - impact-analysis
-
+    - id: init-initiative
+      path: workflows/router/init-initiative/
+      description: "/new-domain, /new-service, /new-feature"
+    - id: preplan
+      path: workflows/router/preplan/
+      description: "/preplan phase workflow"
+    - id: businessplan
+      path: workflows/router/businessplan/
+      description: "/businessplan phase workflow"
+    - id: techplan
+      path: workflows/router/techplan/
+      description: "/techplan phase workflow"
+    - id: devproposal
+      path: workflows/router/devproposal/
+      description: "/devproposal phase workflow"
+    - id: sprintplan
+      path: workflows/router/sprintplan/
+      description: "/sprintplan phase workflow"
+    - id: dev
+      path: workflows/router/dev/
+      description: "/dev phase workflow"
   utility:
-    description: "Manual/support workflows"
-    workflows:
-      - status
-      - resume
-      - next
-      - sync
-      - fix-state
-      - override
-      - archive
-      - bootstrap
-      - batch-process
-      - onboarding
-      - setup-rollback
-      - fix-story
-      - switch
-      - check-repos
-      - migrate-state
-      - migrate-lifecycle  # v1→v2 lifecycle contract migration
-      - recreate-branches
-
+    - id: onboard
+      path: workflows/utility/onboard/
+      description: "/onboard — profile, auth, governance bootstrap"
+    - id: status
+      path: workflows/utility/status/
+      description: "/status — git-derived state report"
+    - id: next
+      path: workflows/utility/next/
+      description: "/next — recommended next action"
+    - id: switch
+      path: workflows/utility/switch/
+      description: "/switch — checkout different initiative"
+    - id: help
+      path: workflows/utility/help/
+      description: "/help — command reference"
+    - id: module-management
+      path: workflows/utility/module-management/
+      description: "Module version check, update detection, and self-service update"
   governance:
-    description: "Constitutional governance and compliance (v2: 4-level hierarchy)"
-    workflows:
-      - amendment-propagation
-      - ancestry
-      - compliance-check     # v2: adds track permission + gate validation
-      - constitution         # v2: 4-level layer selection (org/domain/service/repo)
-      - constitution-check   # Background trigger — inline governance checks
-      - cross-artifact-analysis
-      - requirements-checklist
-      - resolve-constitution # v2: 4-level chain with track/gate accumulation
-      - resolve-context      # v2: 4-level chain with track_governance context
+    - id: compliance-check
+      path: workflows/governance/compliance-check/
+      description: "Constitution compliance scan"
+    - id: resolve-constitution
+      path: workflows/governance/resolve-constitution/
+      description: "4-level hierarchy resolution"
+    - id: cross-initiative
+      path: workflows/governance/cross-initiative/
+      description: "Cross-initiative sensing at gates"
 
-  includes:
-    description: "Shared reference files included by workflows"
-    files:
-      - size-topology
-      - jira-integration
-      - gate-event-template
-      - pr-links
-      - docs-path
-      - artifact-validator
-
-# Prompts (entry point commands)
-prompts:
-  directory: "prompts/"
-  files:
-    # System
-    - lens-work.start.prompt.md
-    - lens-work.compass.prompt.md        # Legacy alias — routes to @lens agent
-    # Phase Router (@lens)
-    - lens-work.preplan.prompt.md      # v2: renamed from pre-plan
-    - lens-work.spec.prompt.md
-    - lens-work.plan.prompt.md
-    - lens-work.techplan.prompt.md     # v2: renamed from tech-plan
-    - lens-work.story-gen.prompt.md    # NEW: story generation phase
-    - lens-work.review.prompt.md
-    - lens-work.dev.prompt.md
-    # Initiative Commands (@lens)
-    - lens-work.new-domain.prompt.md
-    - lens-work.new-service.prompt.md
-    - lens-work.new-feature.prompt.md
-    - lens-work.fix-story.prompt.md
-    # State & Recovery (@lens/state-management)
-    - lens-work.status.prompt.md
-    - lens-work.resume.prompt.md
-    - lens-work.next.prompt.md
-    - lens-work.sync.prompt.md
-    - lens-work.fix.prompt.md
-    - lens-work.override.prompt.md
-    - lens-work.archive.prompt.md
-    # Context Commands (@lens)
-    - lens-work.switch.prompt.md
-    - lens-work.context.prompt.md
-    - lens-work.focus.prompt.md
-    - lens-work.lens.prompt.md
-    # Governance (@lens/constitution)
-    - lens-work.constitution.prompt.md
-    - lens-work.compliance.prompt.md
-    - lens-work.scribe.prompt.md
-    - lens-work.ancestry.prompt.md
-    # Discovery (@lens/discovery)
-    - lens-work.domain-map.prompt.md
-    - lens-work.impact-analysis.prompt.md
-    # Help
-    - lens-work.help.prompt.md         # NEW: full command reference with context
-    # Utility (@lens/git-orchestration)
-    - lens-work.recreate-branches.prompt.md
-    # Bootstrap & Discovery (@lens/discovery)
-    - lens-work.onboard.prompt.md
-    - lens-work.bootstrap.prompt.md
-    - lens-work.discover.prompt.md
-    - lens-work.document.prompt.md
-    - lens-work.lens-sync.prompt.md
-    - lens-work.reconcile.prompt.md
-    - lens-work.repo-status.prompt.md
-    - lens-work.rollback.prompt.md
-
-# Output Paths
-# ─────────────────────────────────────────────────────────────────────────────
-# DATA ZONE RULES (see also: lifecycle.yaml#data_zones, bmadconfig.yaml#data_zone_enforcement)
-#
-#   governance  →  TargetProjects/lens/lens-governance/   (bmad.lens.governance repo)
-#   initiative  →  _bmad-output/lens-work/initiatives/    (this control repo)
-#   personal    →  _bmad-output/lens-work/personal/       (git-ignored, local only)
-#
-# Agents MUST resolve governance_repo_root from this file — never hardcode the path.
-# ─────────────────────────────────────────────────────────────────────────────
-outputs:
-  # ── Control-repo outputs (initiative + runtime) ──────────────────────────
-  state_file: "_bmad-output/lens-work/state.yaml"
-  event_log: "_bmad-output/lens-work/event-log.jsonl"
-  bootstrap_report: "_bmad-output/lens-work/bootstrap-report.md"
-  document_log: "_bmad-output/lens-work/repo-document-log.md"
-  dashboards: "_bmad-output/lens-work/dashboards/"
-  initiatives_dir: "_bmad-output/lens-work/initiatives/"
-  domain_map: "_bmad-output/lens-work/domain-map.yaml"
-  personal_profile: "_bmad-output/lens-work/personal/profile.yaml"
-
-  # ── Governance-repo outputs (loaded from governance-setup.yaml) ─────────
-  # Control-repo-specific governance config lives in:
-  #   _bmad-output/lens-work/governance-setup.yaml
-  # Copy governance-setup.example.yaml to create it.
-  # Agents resolve paths at runtime from that file; these are defaults.
-  governance_setup: "_bmad-output/lens-work/governance-setup.yaml"
-  governance_repo_root: "TargetProjects/lens/lens-governance"
-  constitutions_dir: "TargetProjects/lens/lens-governance/constitutions/"
-  roster_dir: "TargetProjects/lens/lens-governance/roster/"
-  repo_inventory: "TargetProjects/lens/lens-governance/repo-inventory.yaml"
-  policies_dir: "TargetProjects/lens/lens-governance/policies/"
-
-# Templates
-templates:
-  constitutions:
-    directory: "templates/constitutions/"
-    files:
-      - org-constitution.md          # v2: new top-level (4-level hierarchy)
-      - domain-constitution.md
-      - service-constitution.md
-      - repo-constitution.md          # v2: replaces microservice/feature (4-level hierarchy)
-  state:
-    file: "templates/state-template.yaml"
-    description: "Schema template for _bmad-output/lens-work/state.yaml"
-  initiative:
-    file: "templates/initiative-template.yaml"
-    description: "Schema template for initiative config files"
-
-# Documentation
-docs:
-  directory: "docs/"
-  copilot_instructions: "docs/copilot-instructions.md"
-  install_to_github: ".github/lens-work-instructions.md"
-  files:
-    # v3 operational docs
-    - copilot-instructions.md
-    - migration-guide.md
-    - branch-protection.md
-    - ci-integration.md
-    - hotfix-release-strategy.md
-    - multi-repo-initiatives.md
-    - bmad-folder-changes-quick-spec.md
-    # Reference docs (from discovery workflows)
-    - agents.md
-    - architecture.md
-    - configuration.md
-    - examples.md
-    - getting-started.md
-    - installation-testing.md
-    - migrations.md
-    - operations.md
-    - prerequisites.md
-    - review-log.md
-    - scope.md
-    - spec-checklist.md
-    - testing.md
-    - traceability.md
-    - troubleshooting.md
-    - workflows.md
-    # Governance docs
-    - context-extension.md
-    - governance/constitution-guide.md
-    - governance/command-reference.md
-    - governance/examples.md
-    - governance/getting-started.md
-    # API Reference
-    - api-reference.md
-
-# Tests
-tests:
-  directory: "tests/"
-  files:
-    - lens-work-tests.spec.md
-
-# Validation Scripts
+# Scripts (cross-platform, no CLI dependencies beyond git+curl)
 scripts:
-  directory: "scripts/"
-  files:
-    - validate-lens-work.ps1
-    - sync-prompts.ps1
+  - id: promote-branch
+    files:
+      - scripts/promote-branch.ps1
+      - scripts/promote-branch.sh
+    description: "Branch promotion, PR creation via REST API, and branch cleanup"
+  - id: store-github-pat
+    files:
+      - scripts/store-github-pat.ps1
+      - scripts/store-github-pat.sh
+    description: "Secure PAT collection into environment variables (run outside AI context)"
 
-# Git Configuration
-git:
-  fetch_strategy: background
-  fetch_ttl: 60
-  # How often (seconds) to pull the governance repo in the background.
-  # A marker file at {governance_repo_root}/.last-governance-pull records the
-  # last successful pull timestamp.  If now() - last_pull > governance_sync_ttl,
-  # branch-preflight pulls main before proceeding.  Default: 900 s (15 min).
-  governance_sync_ttl: 900
-  branch_patterns:
-    # Organizational branches (unchanged)
-    domain: "{domain_prefix}"
-    service: "{domain_prefix}-{service_prefix}"
-    # Initiative branches (v2 named-phase patterns)
-    root: "{initiative_root}"
-    audience_small: "{initiative_root}-small"
-    audience_medium: "{initiative_root}-medium"
-    audience_large: "{initiative_root}-large"
-    phase: "{initiative_root}-{audience}-{phase_name}"
-    workflow: "{initiative_root}-{audience}-{phase_name}-{workflow_name}"
-  # Target project GitFlow patterns (defined in lifecycle.yaml)
-  target_project_patterns:
-    epic: "feature/{epic-key}"
-    story: "feature/{epic-key}-{story-key}"
-    integration: develop
-    release: "release/{version}"
-    production: main
-
-# Background Triggers (auto-triggered workflow dispatch)
-background_triggers:
-  workflow_start:
-    - state-sync           # Read current state
-    - governance-sync      # Pull governance repo if TTL exceeded (see git.governance_sync_ttl)
-    - constitution-check   # Validate governance
-  workflow_end:
-    - state-sync           # Write updated state
-    - event-log            # Append event
-    - checklist-update     # Update checklists
-  phase_transition:
-    - branch-validate      # Verify topology
-    - state-sync           # Read + write state
-    - event-log            # Append event
-    - constitution-check   # Validate governance
-    - checklist-update     # Update checklists
-  initiative_create:
-    - branch-validate      # Create topology
-    - state-sync           # Initialize state
-    - event-log            # Append creation event
-  error:
-    - event-log            # Log error event
-    - state-sync           # Mark error in state
-  bmad_process_start:
-    - branch-preflight     # Ensure correct branch before any BMAD command
-  command_invocation:
-    - branch-preflight     # Check branch for interactive commands
-  initiative_change:
-    - branch-preflight     # Switch branch when changing initiatives
+# Prompts
+prompts:
+  - lens-work.onboard.prompt.md
+  - lens-work.new-initiative.prompt.md
+  - lens-work.preplan.prompt.md
+  - lens-work.businessplan.prompt.md
+  - lens-work.techplan.prompt.md
+  - lens-work.devproposal.prompt.md
+  - lens-work.sprintplan.prompt.md
+  - lens-work.status.prompt.md
+  - lens-work.next.prompt.md
+  - lens-work.switch.prompt.md
+  - lens-work.promote.prompt.md
+  - lens-work.constitution.prompt.md
+  - lens-work.help.prompt.md
