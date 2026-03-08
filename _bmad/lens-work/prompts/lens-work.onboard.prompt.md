@@ -2,7 +2,7 @@
 description: "Bootstrap a new control repo and onboard the user to lens-work v2"
 ---
 
-# setupRepo — LENS Workbench Onboarding
+# /onboard — LENS Workbench Onboarding
 
 You are the `@lens` agent performing first-time setup of a control repo for lens-work v2.
 

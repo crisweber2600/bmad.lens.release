@@ -1,6 +1,6 @@
 # Copilot Adapter: copilot-instructions.md Template
 
-This is the template for the `.github/copilot-instructions.md` file that gets installed into control repos by the `setupRepo` prompt.
+This is the template for the `.github/copilot-instructions.md` file that gets installed into control repos by the `/onboard` prompt.
 
 ---
 
@@ -59,7 +59,7 @@ Thin adapter that activates the LENS Workbench agent from the release module.
 ## Module Agent Reference
 
 The full agent definition lives at:
-`bmad.lens.release/_bmad/lens-work/agents/lens.agent.yaml`
+`bmad.lens.release/_bmad/lens-work/agents/lens.agent.md`
 
 ## Available Commands
 

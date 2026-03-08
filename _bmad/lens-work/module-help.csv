@@ -8,7 +8,7 @@ lens-work,anytime,Status,ST,,workflows/utility/status/workflow.md,lens-work.stat
 lens-work,anytime,Next,NX,,workflows/utility/next/workflow.md,lens-work.next.prompt.md,false,lens,,"Recommend next action based on lifecycle state",,,
 lens-work,anytime,Help,HLP,,workflows/utility/help/workflow.md,lens-work.help.prompt.md,false,lens,,"Show available commands and usage",,,
 lens-work,anytime,Promote,PR,,workflows/core/audience-promotion/workflow.md,lens-work.promote.prompt.md,false,lens,,"Promote current audience to next level with gate checks",,,
-lens-work,anytime,Sense,SN,,workflows/governance/cross-initiative/workflow.md,lens-work.constitution.prompt.md,false,lens,,"Run cross-initiative overlap detection on demand",,,
+lens-work,anytime,Sense,SN,,workflows/governance/cross-initiative/workflow.md,lens-work.sense.prompt.md,false,lens,,"Run cross-initiative overlap detection on demand",,,
 lens-work,anytime,Constitution,CN,,workflows/governance/resolve-constitution/workflow.md,lens-work.constitution.prompt.md,false,lens,,"Resolve and display constitutional governance",,,
 lens-work,anytime,Module Management,MM,,workflows/utility/module-management/workflow.md,,false,lens,,"Check module version and guide self-service updates",,,
 lens-work,phase-1,PrePlan,PP,1,workflows/router/preplan/,lens-work.preplan.prompt.md,false,lens,,"Start PrePlan phase — brainstorm research product brief",_bmad-output/lens-work/initiatives,product-brief research brainstorm,

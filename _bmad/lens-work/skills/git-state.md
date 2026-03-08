@@ -60,8 +60,13 @@ Parse branch name to extract active phase suffix after audience token.
 
 **Algorithm:**
 ```bash
-PHASE=$(echo "$BRANCH" | sed -E 's/^.*-(small|medium|large|base)-//')
-# If branch is {root}-{audience} with no phase suffix, PHASE is empty
+if [[ "$BRANCH" =~ ^.+-(small|medium|large|base)-.+$ ]]; then
+    PHASE=$(echo "$BRANCH" | sed -E 's/^.*-(small|medium|large|base)-//')
+else
+    PHASE=""
+fi
+# If branch is {root}-{audience} with no phase suffix, or not an initiative branch,
+# PHASE is empty
 ```
 
 **Output:**
@@ -84,7 +89,7 @@ Parse audience token from branch name.
 
 **Algorithm:**
 ```bash
-AUDIENCE=$(echo "$BRANCH" | grep -oE '(small|medium|large|base)')
+AUDIENCE=$(echo "$BRANCH" | sed -nE 's/^.*-(small|medium|large|base)(-.*)?$/\1/p')
 ```
 
 **Output:**
@@ -206,9 +211,9 @@ List files in a specific phase directory on the current or specified branch.
 
 **Algorithm:**
 ```bash
-# List artifacts for a phase
-git show "${BRANCH}:_bmad-output/lens-work/initiatives/${DOMAIN}/${SERVICE}/phases/${PHASE}/" 2>/dev/null
-# Or on current branch:
+# List artifacts for a phase on a specified branch
+git ls-tree --name-only "${BRANCH}" -- "_bmad-output/lens-work/initiatives/${DOMAIN}/${SERVICE}/phases/${PHASE}/" 2>/dev/null
+# Or on current branch (working tree):
 ls _bmad-output/lens-work/initiatives/${DOMAIN}/${SERVICE}/phases/${PHASE}/
 ```
 
