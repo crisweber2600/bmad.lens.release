@@ -1,0 +1,9 @@
+# LENS Workbench Configuration
+# Generated during installation
+
+# TargetProjects path (where repos are cloned)
+target_projects_path: "../TargetProjects"
+
+# Git settings
+git:
+  default_remote: github

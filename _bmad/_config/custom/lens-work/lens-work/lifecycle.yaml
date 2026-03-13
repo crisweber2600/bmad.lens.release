@@ -1,0 +1,398 @@
+# =============================================================================
+# Lens-Work Lifecycle Contract v2.0
+# =============================================================================
+# The single source of truth for lens-work lifecycle behavior.
+# The @lens agent (with 5 skills) and all workflows import
+# this contract. No lifecycle semantics should be hardcoded elsewhere.
+#
+# v2 redesign: Git-derived state replaces state.yaml entirely.
+# Branch existence + PR metadata + committed artifacts = state.
+# =============================================================================
+
+schema_version: 2
+
+# Supported Programming Languages for Language-Specific Constitutions
+supported_languages:
+  - typescript
+  - python
+  - go
+  - java
+  - csharp
+  - rust
+  - php
+  - kotlin
+  - swift
+  - cpp
+
+# Language auto-detection order:
+# 1. Explicit {language} field in initiative config
+# 2. .bmad/language file in target repository
+# 3. Build files (package.json → typescript, pyproject.toml → python, etc.)
+# 4. Source code analysis (file extension distribution)
+# 5. GitHub primary language (when available)
+# 6. "unknown" (default fallback)
+
+# -----------------------------------------------------------------------------
+# FUNDAMENTAL TRUTHS (non-negotiable design axioms)
+# -----------------------------------------------------------------------------
+fundamental_truths:
+  ft1: "Planning artifacts must exist and be reviewed before code is written"
+  ft2: "AI agents must work within disciplined constraints, not freestyle"
+  ft3: "Multi-service initiatives must have coordinated lifecycle governance"
+
+# -----------------------------------------------------------------------------
+# DESIGN AXIOMS (derived from v1 lessons)
+# -----------------------------------------------------------------------------
+design_axioms:
+  A1: "Git is the only source of truth for shared workflow state. No git-ignored runtime state."
+  A2: "PRs are the only gating mechanism. No side-channel approval."
+  A3: "Authority domains must be explicit. Every file belongs to exactly one authority."
+  A4: "Sensing must be automatic at lifecycle gates, not manual discovery."
+  A5: "The control repo is an operational workspace, not a code repo."
+
+# -----------------------------------------------------------------------------
+# LENS HIERARCHY
+# -----------------------------------------------------------------------------
+lens_hierarchy:
+  levels: [org, domain, service, repo]
+  constitution_inheritance: additive
+  language_constitution_support: enabled
+  language_scope_enforcement: "Language-specific constitutions apply ONLY to repos matching the declared language"
+
+# -----------------------------------------------------------------------------
+# AUDIENCES (promotion backbone)
+# -----------------------------------------------------------------------------
+audiences:
+  small:
+    role: "IC creation work"
+    description: "Where early planning phases happen — individual contributor generates artifacts"
+    phases: [preplan, businessplan, techplan]
+  medium:
+    role: "Lead review"
+    description: "Adversarial review gate — devproposal phase branches from here post-promotion"
+    phases: [devproposal]
+    entry_gate: adversarial-review
+    entry_gate_mode: party
+  large:
+    role: "Stakeholder approval"
+    description: "Stakeholder sign-off — sprintplan phase branches from here post-promotion"
+    phases: [sprintplan]
+    entry_gate: stakeholder-approval
+  base:
+    role: "Ready for execution"
+    description: "Constitution-gated — dev execution happens outside this planning lifecycle"
+    phases: []
+    entry_gate: constitution-gate
+
+# -----------------------------------------------------------------------------
+# PHASES
+# -----------------------------------------------------------------------------
+phases:
+  preplan:
+    display_name: "PrePlan"
+    agent: mary
+    agent_role: Analyst
+    supporting_agents: []
+    description: "Analysis — brainstorm, research, product brief, project documentation"
+    artifacts:
+      - product-brief
+      - research
+      - brainstorm
+    audience: small
+    auto_advance_to: /businessplan
+    auto_advance_promote: false
+
+  businessplan:
+    display_name: "BusinessPlan"
+    agent: john
+    agent_role: PM
+    supporting_agents: [sally]
+    description: "Business planning — PRD creation/validation, UX design"
+    artifacts:
+      - prd
+      - ux-design
+    audience: small
+    auto_advance_to: /techplan
+    auto_advance_promote: false
+
+  techplan:
+    display_name: "TechPlan"
+    agent: winston
+    agent_role: Architect
+    supporting_agents: []
+    description: "Technical design — architecture document, technical decisions"
+    artifacts:
+      - architecture
+    audience: small
+    auto_advance_to: /devproposal
+    auto_advance_promote: true
+
+  devproposal:
+    display_name: "DevProposal"
+    agent: john
+    agent_role: PM
+    supporting_agents: []
+    description: "Implementation proposal — epics, stories, readiness check"
+    artifacts:
+      - epics
+      - stories
+      - implementation-readiness
+    audience: small
+    branching_audience: medium
+    auto_advance_to: /sprintplan
+    auto_advance_promote: true
+
+  sprintplan:
+    display_name: "SprintPlan"
+    agent: bob
+    agent_role: Scrum Master
+    supporting_agents: []
+    description: "Sprint planning — sprint-status, individual story files"
+    artifacts:
+      - sprint-status
+      - story-files
+    audience: small
+    branching_audience: large
+    auto_advance_to: /dev
+    auto_advance_promote: true
+
+# Phase ordering (canonical sequence for full track)
+# NOTE: 'dev' is NOT a lifecycle phase — it is a delegation command that hands off
+# to implementation agents in target projects. It exists as a router workflow but
+# is not part of the phase ordering or audience promotion chain.
+phase_order: [preplan, businessplan, techplan, devproposal, sprintplan]
+
+# -----------------------------------------------------------------------------
+# TRACKS (predefined lifecycle profiles)
+# -----------------------------------------------------------------------------
+tracks:
+  full:
+    description: "Complete lifecycle — all phases, all audiences"
+    phases: [preplan, businessplan, techplan, devproposal, sprintplan]
+    audiences: [small, medium, large, base]
+    start_phase: preplan
+
+  feature:
+    description: "Known business context — skip research, start at business plan"
+    phases: [businessplan, techplan, devproposal, sprintplan]
+    audiences: [small, medium, large, base]
+    start_phase: businessplan
+
+  tech-change:
+    description: "Pure technical change — no business case needed"
+    phases: [techplan, sprintplan]
+    audiences: [small, medium, large, base]
+    constitution_controlled_gates: [devproposal, medium-to-large]
+    start_phase: techplan
+
+  hotfix:
+    description: "Urgent fix — minimal planning, fast to execution"
+    phases: [techplan]
+    audiences: [small, base]
+    constitution_controlled_gates: [adversarial-review]
+    start_phase: techplan
+
+  spike:
+    description: "Research only — no implementation"
+    phases: [preplan]
+    audiences: [small]
+    start_phase: preplan
+
+  quickdev:
+    description: "Rapid execution — delegates to target-project agents"
+    phases: [devproposal]
+    audiences: [small, base]
+    constitution_controlled_gates: [adversarial-review]
+    start_phase: devproposal
+
+# -----------------------------------------------------------------------------
+# ADVERSARIAL REVIEW (party mode)
+# -----------------------------------------------------------------------------
+adversarial_review:
+  mode: party
+  reviews:
+    product-brief:
+      lead: john
+      participants: [john, winston, sally]
+      focus: "Actionable? Buildable? User-centered?"
+    prd:
+      lead: winston
+      participants: [winston, mary, sally]
+      focus: "Buildable? Well-researched? UX-aligned?"
+    ux-design:
+      lead: john
+      participants: [john, winston, mary]
+      focus: "Serves requirements? Technically feasible? Grounded?"
+    architecture:
+      lead: john
+      participants: [john, mary, bob]
+      focus: "Meets spec? Practical? Sprintable?"
+    epics-and-stories:
+      lead: winston
+      participants: [winston, bob, amelia]
+      focus: "Buildable? Right-sized? Implementable?"
+
+# -----------------------------------------------------------------------------
+# BRANCH TOPOLOGY — PLANNING REPO (control repo)
+# -----------------------------------------------------------------------------
+planning_repo:
+  artifacts_location: central-only
+  branch_patterns:
+    initiative_root: "{initiative-root}"
+    audience: "{initiative-root}-{audience}"
+    phase: "{initiative-root}-{audience}-{phase}"
+  merge_chain:
+    - source: "{initiative-root}-{audience}-{phase}"
+      target: "{initiative-root}-{audience}"
+      type: phase-completion
+    - source: "{initiative-root}-small"
+      target: "{initiative-root}-medium"
+      type: audience-promotion
+      gate: adversarial-review
+    - source: "{initiative-root}-medium"
+      target: "{initiative-root}-large"
+      type: audience-promotion
+      gate: stakeholder-approval
+    - source: "{initiative-root}-large"
+      target: "{initiative-root}-base"
+      type: audience-promotion
+      gate: constitution-gate
+  # v2: Lazy audience branch creation
+  audience_branch_creation: lazy
+  # Audience branches created on-demand at promotion time, not at init
+
+# -----------------------------------------------------------------------------
+# BRANCH TOPOLOGY — TARGET PROJECTS (code repos)
+# -----------------------------------------------------------------------------
+target_projects:
+  branching_model: gitflow
+  branch_patterns:
+    epic: "feature/{epic-key}"
+    story: "feature/{epic-key}-{story-key}"
+    integration: develop
+    release: "release/{version}"
+    production: main
+  merge_chain:
+    - source: "feature/{epic-key}-{story-key}"
+      target: "feature/{epic-key}"
+      type: story-completion
+      gate: code-review
+      auto_pr: true
+    - source: "feature/{epic-key}"
+      target: develop
+      type: epic-completion
+      gate: feature-complete-review
+    - source: develop
+      target: "release/{version}"
+      type: release-cut
+      gate: release-readiness
+    - source: "release/{version}"
+      target: main
+      type: production-deploy
+      gate: production-gate
+
+# -----------------------------------------------------------------------------
+# INITIATIVE CONFIGURATION
+# -----------------------------------------------------------------------------
+initiative:
+  scope_levels: [repo, service, domain, org]
+
+  # Scope hierarchy — each level's containment and next-step behavior:
+  #   domain  → contains services  → next step: /new-service
+  #   service → contains features  → next step: /new-feature
+  #   feature → has phases/audiences → next step: /{start_phase}
+  # Only feature-level initiatives have audience branches and lifecycle phases.
+  # Domain and service scopes are organizational containers.
+  scope_hierarchy:
+    domain:
+      contains: service
+      next_command: /new-service
+      has_phases: false
+      has_audiences: false
+    service:
+      contains: feature
+      next_command: /new-feature
+      has_phases: false
+      has_audiences: false
+    feature:
+      contains: null
+      next_command: null  # determined by track start_phase
+      has_phases: true
+      has_audiences: true
+
+  config_schema:
+    required_fields: [initiative, scope, domain, track, created, initiative_root]
+    optional_fields: [service, feature, language]
+    path_patterns:
+      domain: "_bmad-output/lens-work/initiatives/{domain}/initiative.yaml"
+      service: "_bmad-output/lens-work/initiatives/{domain}/{service}/initiative.yaml"
+      feature: "_bmad-output/lens-work/initiatives/{domain}/{service}/{feature}.yaml"
+
+# -----------------------------------------------------------------------------
+# CONSTITUTION SCHEMA
+# -----------------------------------------------------------------------------
+constitution:
+  inheritance: additive
+  resolution_order: [org, domain, service, repo]
+  capabilities:
+    - permitted_tracks
+    - required_gates
+    - additional_review_participants
+    - required_artifacts
+    - enforce_stories
+
+# -----------------------------------------------------------------------------
+# GIT STATE MODEL (v2 — replaces state.yaml)
+# -----------------------------------------------------------------------------
+# State is derived from three durable sources:
+# 1. Branch existence — what branches exist tells you what's been started
+# 2. PR provider metadata — open/merged/closed PRs tell you what's been reviewed
+# 3. Committed artifacts — what files exist on what branches tells you what's been produced
+#
+# NO state.yaml. NO event-log.jsonl. NO git-ignored runtime state.
+git_state:
+  sources:
+    - git_symbolic_ref: "Current branch → initiative, audience, phase"
+    - git_branch_list: "Branch existence → phase started, audience created"
+    - provider_adapter_pr: "PR state → phase complete, promotion complete"
+    - git_show: "Cross-branch config reads without checkout"
+    - committed_artifacts: "File existence → artifact inventory"
+  skill: git-state
+  write_skill: git-orchestration
+
+# -----------------------------------------------------------------------------
+# DATA ZONES
+# -----------------------------------------------------------------------------
+data_zones:
+  governance:
+    description: "Universal artifacts shared across all initiatives"
+    setup_file: "_bmad-output/lens-work/governance-setup.yaml"
+    artifacts:
+      - constitutions/
+      - roster/
+      - policies/
+      - repo-inventory.yaml
+    write_roles: [Tech Lead, Architect]
+    pr_required: true
+
+  initiative:
+    description: "Initiative-scoped planning artifacts in control repo"
+    local_path: _bmad-output/lens-work/initiatives/
+    branch_strategy:
+      pattern: "{initiative_root}-{audience}-{phase}"
+      merge_target: "{initiative_root}"
+
+  personal:
+    description: "User profile and preferences"
+    local_path: _bmad-output/lens-work/
+    artifacts:
+      - profile.yaml
+      - governance-setup.yaml
+
+# -----------------------------------------------------------------------------
+# CREDENTIAL POLICY (NFR4)
+# -----------------------------------------------------------------------------
+credentials:
+  storage: "OS credential store or provider CLI login state ONLY"
+  git_tracked: never
+  enforcement: "Scanning all git-tracked files for credential patterns must find nothing"
