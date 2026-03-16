@@ -17,16 +17,21 @@ git -C bmad.lens.release branch --show-current
 
 ### 2. Determine Pull Strategy
 
-**If branch is `alpha` or `beta`:** Run **full preflight** — pull ALL authority repos (do NOT check `.preflight-timestamp` — ALWAYS pull on alpha/beta):
+Read `_bmad-output/lens-work/personal/.preflight-timestamp` as the last successful full preflight time (ISO 8601 UTC datetime).
+
+Use branch-aware freshness windows:
+- **If branch is `alpha`:** run full preflight when timestamp is missing or older than **1 hour**.
+- **If branch is `beta`:** run full preflight when timestamp is missing or older than **3 hours**.
+- **Otherwise:** run full preflight when timestamp is missing or older than **today** (daily cadence).
+
+If full preflight is required, pull ALL authority repos:
 
 ```bash
 git -C bmad.lens.release pull origin
 git -C {governance-repo-path} pull origin   # path from governance-setup.yaml
 ```
 
-**Otherwise:** Read `_bmad-output/lens-work/personal/.preflight-timestamp`. 
-- If missing or older than today: run the same pulls
-- If today's date matches: skip pulls
+If full preflight is not required, skip pulls and run presence + `.github` sync checks only.
 
 ### 3. Sync .github from Release Repo
 
@@ -100,7 +105,7 @@ fi
 
 ### 4. Update Timestamp
 
-Write today's date to `_bmad-output/lens-work/personal/.preflight-timestamp`.
+After a successful full preflight, write the current UTC timestamp (ISO 8601 datetime) to `_bmad-output/lens-work/personal/.preflight-timestamp`.
 
 ### 5. Verify Authority Repos
 

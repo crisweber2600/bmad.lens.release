@@ -185,19 +185,20 @@ Tables MUST use ≤5 columns for chat panel rendering compatibility.
 
 ## Session Preflight
 
-At session start, @lens verifies all authority domain repos are present and pulls latest **once per day**. Every command workflow also runs a preflight gate before command execution. The `/preflight` command forces a pull regardless of freshness.
+At session start, @lens verifies all authority domain repos are present and pulls latest using **branch-aware freshness windows**. Every command workflow also runs a preflight gate before command execution. The `/preflight` command forces a pull regardless of freshness.
 
-### Daily Freshness Check
+### Branch-Aware Freshness Check
 
-Preflight uses `_bmad-output/lens-work/personal/.preflight-timestamp` to track the last pull. The file contains a single ISO 8601 date (e.g., `2026-03-09`).
+Preflight uses `_bmad-output/lens-work/personal/.preflight-timestamp` to track the last full pull. The file contains a single ISO 8601 UTC datetime (e.g., `2026-03-16T14:30:00Z`).
 
 **Algorithm:**
 1. Read the `bmad.lens.release` branch with `git -C bmad.lens.release branch --show-current`.
-2. If the `bmad.lens.release` branch is `alpha` or `beta` → ALWAYS run full preflight (presence + pull), ignoring timestamp cache.
-3. Otherwise, read `personal/.preflight-timestamp`. If the date matches today → skip pulls, run presence checks only.
-4. If the timestamp file is missing or older than today → run full preflight (presence + pull).
-5. After a successful full preflight, write today's date to `personal/.preflight-timestamp`.
-6. `/preflight` always runs full preflight regardless of the timestamp.
+2. If the branch is `alpha`, run full preflight when timestamp is missing or older than 1 hour.
+3. If the branch is `beta`, run full preflight when timestamp is missing or older than 3 hours.
+4. Otherwise, run full preflight when timestamp is missing or older than today (daily cadence).
+5. If freshness is still valid, skip pulls and run presence checks only.
+6. After a successful full preflight, write current UTC datetime to `personal/.preflight-timestamp`.
+7. `/preflight` always runs full preflight regardless of the timestamp.
 
 ### Preflight Algorithm
 

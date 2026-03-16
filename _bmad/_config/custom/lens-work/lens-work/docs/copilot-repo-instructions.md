@@ -78,5 +78,5 @@ The lens-work module manages a 5-phase planning lifecycle with audience-based pr
 
 - All `.github/prompts/` and `.github/skills/` files are **stubs** that redirect to full implementations in `bmad.lens.release/`
 - Never duplicate module content into `.github/` — module updates propagate through path references
-- The `bmad.lens.release/` submodule branch matters: on `alpha` or `beta`, always pull before operations
+- The `bmad.lens.release/` submodule branch matters: on `alpha`, run full preflight at most once per hour; on `beta`, run full preflight at most once every 3 hours
 - Initiative artifacts live at `_bmad-output/lens-work/initiatives/{domain}/{service}/{feature}.yaml`
