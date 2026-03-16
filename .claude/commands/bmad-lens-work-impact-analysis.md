@@ -1,6 +1,0 @@
----
-name: 'impact-analysis'
-description: 'Analyze cross-boundary impacts of proposed changes'
----
-
-IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad.lens.release/_bmad/lens-work/workflows/discovery/impact-analysis/workflow.md, READ its entire contents and follow its directions exactly!

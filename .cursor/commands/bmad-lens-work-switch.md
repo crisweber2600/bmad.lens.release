@@ -1,6 +1,6 @@
 ---
 name: 'switch'
-description: 'Interactive context switcher with branch checkout and state sync'
+description: 'Switch to different initiative branch'
 ---
 
-IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad.lens.release/_bmad/lens-work/workflows/utility/workflow.md, READ its entire contents and follow its directions exactly!
+IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad.lens.release/_bmad/lens-work/workflows/utility/switch/workflow.md, READ its entire contents and follow its directions exactly!

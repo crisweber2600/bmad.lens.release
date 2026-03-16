@@ -1,7 +1,8 @@
 ---
 name: validate-prd
 description: 'Validate a PRD against standards. Use when the user says "validate this PRD" or "run PRD validation"'
-main_config: 'bmad.lens.release/_bmad/bmm/bmadconfig.yaml'
+standalone: false
+main_config: '{project-root}/_bmad/bmm/bmadconfig.yaml'
 validateWorkflow: './steps-v/step-v-01-discovery.md'
 ---
 
@@ -43,7 +44,6 @@ This uses **step-file architecture** for disciplined execution:
 - 🎯 **ALWAYS** follow the exact instructions in the step file
 - ⏸️ **ALWAYS** halt at menus and wait for user input
 - 📋 **NEVER** create mental todo lists from future steps
-- 🔄 **BATCH MODE**: If user selects `[B]` at any step menu, or profile has `question_mode: batch`, read fully and follow `_bmad/core/workflows/batch-mode/workflow.md` to generate all remaining content continuously, then present batch review
 
 ## INITIALIZATION SEQUENCE
 
@@ -56,6 +56,7 @@ Load and read full config from {main_config} and resolve:
 - `date` as system-generated current datetime
 
 ✅ YOU MUST ALWAYS SPEAK OUTPUT In your Agent communication style with the configured `{communication_language}`.
+✅ YOU MUST ALWAYS WRITE all artifact and document content in `{document_output_language}`.
 
 ### 2. Route to Validate Workflow
 

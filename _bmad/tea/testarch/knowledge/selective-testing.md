@@ -694,14 +694,7 @@ Skip tests (emergency only):
 
 ```bash
 git commit --no-verify  # Skip pre-commit hook
-
-# Force merge via REST API (requires admin)
-# For github.com:     api_base="https://api.github.com"
-# For GHE:            api_base="https://{host}/api/v3"
-curl -s -X PUT "${api_base}/repos/{owner}/{repo}/pulls/{number}/merge" \
-  -H "Authorization: token ${pat}" \
-  -H "Content-Type: application/json" \
-  -d '{"merge_method": "merge"}'
+gh pr merge --admin     # Force merge (requires admin)
 ```
 ````
 
@@ -735,5 +728,5 @@ Before implementing selective testing, verify:
 - Related fragments: `ci-burn-in.md`, `test-priorities-matrix.md`, `test-quality.md`
 - Selection tools: Playwright --grep, Cypress @cypress/grep, git diff
 
-_Source: 32+ selective testing strategies blog, Murat testing philosophy, SEON CI optimization_
+_Source: 32+ selective testing strategies blog, Murat testing philosophy, enterprise CI optimization_
 ```

@@ -3,7 +3,7 @@ name: 'step-06-structure'
 description: 'Define project structure, directory organization, and architectural boundaries'
 
 # Path Definitions
-workflow_path: 'bmad.lens.release/_bmad/gds/workflows/3-technical/game-architecture'
+workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/game-architecture'
 
 # File References
 thisStepFile: './step-06-structure.md'
@@ -11,9 +11,12 @@ nextStepFile: './step-07-patterns.md'
 workflowFile: '{workflow_path}/workflow.md'
 outputFile: '{output_folder}/game-architecture.md'
 
+# Knowledge Bases
+engineKnowledge: '{workflow_path}/knowledge/{selected_engine}-engine.md'
+
 # Task References
-advancedElicitationTask: 'bmad.lens.release/_bmad/core/workflows/advanced-elicitation/workflow.yaml'
-partyModeWorkflow: 'bmad.lens.release/_bmad/core/workflows/party-mode/workflow.md'
+advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.yaml'
+partyModeWorkflow: '{project-root}/_bmad/core/workflows/party-mode/workflow.md'
 ---
 
 # Step 6: Project Structure
@@ -76,6 +79,8 @@ Define the complete project structure including directory organization, file nam
 | **Domain-Driven** | By game domain/system            | Complex games |
 
 **Engine Conventions:**
+
+Consult `{engineKnowledge}` for engine-specific project structure conventions and naming rules.
 
 - {{engine}} typically uses: {{engine_convention}}
 

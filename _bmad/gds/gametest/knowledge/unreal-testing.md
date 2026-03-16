@@ -340,7 +340,7 @@ UnrealEditor.exe MyGame -ExecCmds="Automation RunTests MyGame.Combat" -unattende
 # Run with report
 UnrealEditor.exe MyGame \
   -ExecCmds="Automation RunTests Now; Automation ReportResults" \
-  -ReportOutputPath=TestResults.xml
+  -ReportOutputPath=TestResults.yaml
 
 # Note: For UE4, use UE4Editor.exe instead of UnrealEditor.exe
 ```

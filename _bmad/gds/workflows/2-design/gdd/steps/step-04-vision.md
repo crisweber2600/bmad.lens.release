@@ -3,7 +3,7 @@ name: 'step-04-vision'
 description: 'Define project goals, context, and unique selling points'
 
 # Path Definitions
-workflow_path: 'bmad.lens.release/_bmad/gds/workflows/2-design/gdd'
+workflow_path: '{project-root}/_bmad/gds/workflows/2-design/gdd'
 
 # File References
 thisStepFile: './step-04-vision.md'
@@ -12,8 +12,8 @@ workflowFile: '{workflow_path}/workflow.md'
 outputFile: '{output_folder}/gdd.md'
 
 # Task References
-advancedElicitationTask: 'bmad.lens.release/_bmad/core/workflows/advanced-elicitation/workflow.yaml'
-partyModeWorkflow: 'bmad.lens.release/_bmad/core/workflows/party-mode/workflow.md'
+advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.yaml'
+partyModeWorkflow: '{project-root}/_bmad/core/workflows/party-mode/workflow.md'
 ---
 
 # Step 4: Goals & Vision

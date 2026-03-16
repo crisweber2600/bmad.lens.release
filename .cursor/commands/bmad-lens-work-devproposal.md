@@ -1,6 +1,6 @@
 ---
 name: 'devproposal'
-description: 'Implementation proposal (Epics/Stories/Readiness)'
+description: 'Launch DevProposal phase (epics/stories/readiness check)'
 ---
 
-IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad.lens.release/_bmad/lens-work/workflows/router/plan/workflow.md, READ its entire contents and follow its directions exactly!
+IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad.lens.release/_bmad/lens-work/workflows/router/devproposal/workflow.md, READ its entire contents and follow its directions exactly!

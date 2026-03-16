@@ -3,7 +3,7 @@ name: 'step-07-content'
 description: 'Define content framework, art/audio direction, and risk assessment'
 
 # Path Definitions
-workflow_path: 'bmad.lens.release/_bmad/gds/workflows/1-preproduction/game-brief'
+workflow_path: '{project-root}/_bmad/gds/workflows/1-preproduction/game-brief'
 
 # File References
 thisStepFile: './step-07-content.md'
@@ -12,8 +12,8 @@ workflowFile: '{workflow_path}/workflow.md'
 outputFile: '{output_folder}/game-brief.md'
 
 # Task References
-advancedElicitationTask: 'bmad.lens.release/_bmad/core/workflows/advanced-elicitation/workflow.yaml'
-partyModeWorkflow: 'bmad.lens.release/_bmad/core/workflows/party-mode/workflow.md'
+advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.yaml'
+partyModeWorkflow: '{project-root}/_bmad/core/workflows/party-mode/workflow.md'
 ---
 
 # Step 7: Content & Production

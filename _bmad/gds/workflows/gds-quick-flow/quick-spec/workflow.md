@@ -1,13 +1,13 @@
 ---
 name: quick-spec
-description: 'Conversational spec engineering workflow - ask questions, investigate code, produce implementation-ready tech-spec. Use when the user says "lets create a tech spec" or "I want to create a technical specification"'
-main_config: 'bmad.lens.release/_bmad/gds/bmadconfig.yaml'
+description: 'Very quick process to create implementation-ready quick specs for small changes or features. Use when the user says "create a quick spec" or "generate a quick tech spec"'
+main_config: '{project-root}/_bmad/gds/bmadconfig.yaml'
 web_bundle: true
 
-# Checkpoint handler paths
-advanced_elicitation: 'bmad.lens.release/_bmad/core/workflows/advanced-elicitation/workflow.yaml'
-party_mode_exec: 'bmad.lens.release/_bmad/core/workflows/party-mode/workflow.md'
-quick_dev_workflow: 'bmad.lens.release/_bmad/gds/workflows/gds-quick-flow/quick-dev/workflow.md'
+# Checkpoint handler references
+advanced_elicitation: 'skill:gds-advanced-elicitation'
+party_mode_exec: '{project-root}/_bmad/core/workflows/bmad-party-mode/workflow.md'
+quick_dev_workflow: '{project-root}/_bmad/gds/workflows/gds-quick-flow/gds-quick-dev/workflow.md'
 ---
 
 # Quick-Spec Workflow
@@ -47,9 +47,9 @@ This uses **step-file architecture** for disciplined execution:
 1. **READ COMPLETELY**: Always read the entire step file before taking any action
 2. **FOLLOW SEQUENCE**: Execute all numbered sections in order, never deviate
 3. **WAIT FOR INPUT**: If a menu is presented, halt and wait for user selection
-4. **CHECK CONTINUATION**: Only proceed to next step when user selects [c] (Continue)
+4. **CHECK CONTINUATION**: Only proceed to next step when user selects [C] (Continue)
 5. **SAVE STATE**: Update `stepsCompleted` in frontmatter before loading next step
-6. **LOAD NEXT**: When directed, load and read entire next step file, then execute
+6. **LOAD NEXT**: When directed, read fully and follow the next step file
 
 ### Critical Rules (NO EXCEPTIONS)
 
@@ -60,7 +60,6 @@ This uses **step-file architecture** for disciplined execution:
 - **ALWAYS** follow the exact instructions in the step file
 - **ALWAYS** halt at menus and wait for user input
 - **NEVER** create mental todo lists from future steps
-- **BATCH MODE**: If user selects `[B]` at any step menu, or profile has `question_mode: batch`, read fully and follow `_bmad/core/workflows/batch-mode/workflow.md` to generate all remaining content continuously, then present batch review
 
 ---
 
@@ -73,8 +72,9 @@ Load and read full config from `{main_config}` and resolve:
 - `project_name`, `output_folder`, `planning_artifacts`, `implementation_artifacts`, `user_name`
 - `communication_language`, `document_output_language`, `game_dev_experience`
 - `date` as system-generated current datetime
+- `project_context` = `**/project-context.md` (load if exists)
 - ✅ YOU MUST ALWAYS SPEAK OUTPUT In your Agent communication style with the config `{communication_language}`
 
 ### 2. First Step Execution
 
-Load, read the full file, and then execute `steps/step-01-understand.md` to begin the workflow.
+Read fully and follow: `{project-root}/_bmad/gds/workflows/gds-quick-flow/quick-spec/steps/step-01-understand.md` to begin the workflow.

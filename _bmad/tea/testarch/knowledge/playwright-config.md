@@ -61,7 +61,7 @@ export const baseConfig = defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
-    ['junit', { outputFile: 'test-results/results.xml' }],
+    ['junit', { outputFile: 'test-results/results.yaml' }],
     ['list'],
   ],
   use: {
@@ -290,7 +290,7 @@ export default defineConfig({
     [
       'junit',
       {
-        outputFile: 'test-results/results.xml',
+        outputFile: 'test-results/results.yaml',
       },
     ],
 
@@ -399,7 +399,7 @@ test('capture screenshot on specific error', async ({ page }) => {
 - `video: 'retain-on-failure'` captures full flow on failures
 - `trace: 'on-first-retry'` provides deep debugging data (network, DOM, console)
 - HTML report at `playwright-report/` (visual debugging)
-- JUnit XML at `test-results/results.xml` (CI integration)
+- JUnit XML at `test-results/results.yaml` (CI integration)
 - CI uploads artifacts on failure with 30-day retention
 - Custom fixture can capture console logs, network logs, etc.
 
@@ -727,4 +727,4 @@ jobs:
 - [ ] Projects defined for cross-browser/device testing (if needed)
 - [ ] CI uploads artifacts on failure with 30-day retention
 
-_Source: Playwright book repo, SEON configuration example, Murat testing philosophy (lines 216-271)._
+_Source: Playwright book repo, enterprise configuration example, Murat testing philosophy (lines 216-271)._

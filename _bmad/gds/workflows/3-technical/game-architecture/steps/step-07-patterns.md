@@ -3,7 +3,7 @@ name: 'step-07-patterns'
 description: 'Design implementation patterns and novel architectural patterns for consistency'
 
 # Path Definitions
-workflow_path: 'bmad.lens.release/_bmad/gds/workflows/3-technical/game-architecture'
+workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/game-architecture'
 
 # File References
 thisStepFile: './step-07-patterns.md'
@@ -13,10 +13,11 @@ outputFile: '{output_folder}/game-architecture.md'
 
 # Knowledge Bases
 patternCategories: '{workflow_path}/pattern-categories.csv'
+engineKnowledge: '{workflow_path}/knowledge/{selected_engine}-engine.md'
 
 # Task References
-advancedElicitationTask: 'bmad.lens.release/_bmad/core/workflows/advanced-elicitation/workflow.yaml'
-partyModeWorkflow: 'bmad.lens.release/_bmad/core/workflows/party-mode/workflow.md'
+advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.yaml'
+partyModeWorkflow: '{project-root}/_bmad/core/workflows/party-mode/workflow.md'
 ---
 
 # Step 7: Implementation Patterns
@@ -124,6 +125,8 @@ Walk me through how you envision {{pattern_name}} working."
 Does this capture your vision?"
 
 ### 3. Define Standard Implementation Patterns
+
+Consult `{engineKnowledge}` for engine-specific coding patterns, best practices, and common architectural patterns.
 
 "Now let's define standard implementation patterns for consistency.
 

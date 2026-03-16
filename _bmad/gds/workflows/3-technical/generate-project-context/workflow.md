@@ -27,7 +27,7 @@ This uses **micro-file architecture** for disciplined execution:
 
 ### Configuration Loading
 
-Load config from `bmad.lens.release/_bmad/gds/bmadconfig.yaml` and resolve:
+Load config from `{project-root}/_bmad/gds/bmadconfig.yaml` and resolve:
 
 - `project_name`, `output_folder`, `user_name`
 - `communication_language`, `document_output_language`, `game_dev_experience`
@@ -36,7 +36,7 @@ Load config from `bmad.lens.release/_bmad/gds/bmadconfig.yaml` and resolve:
 
 ### Paths
 
-- `installed_path` = `bmad.lens.release/_bmad/gds/workflows/3-technical/generate-project-context`
+- `installed_path` = `{project-root}/_bmad/gds/workflows/3-technical/generate-project-context`
 - `template_path` = `{installed_path}/project-context-template.md`
 - `output_file` = `{output_folder}/project-context.md`
 

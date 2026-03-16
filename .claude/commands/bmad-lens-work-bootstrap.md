@@ -1,6 +1,0 @@
----
-name: 'bootstrap'
-description: 'Setup TargetProjects from service map'
----
-
-IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad.lens.release/_bmad/lens-work/workflows/utility/bootstrap/workflow.md, READ its entire contents and follow its directions exactly!

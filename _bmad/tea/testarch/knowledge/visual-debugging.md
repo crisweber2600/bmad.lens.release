@@ -47,7 +47,7 @@ export default defineConfig({
   // CI-specific artifact retention
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
-    ['junit', { outputFile: 'results.xml' }],
+    ['junit', { outputFile: 'results.yaml' }],
     ['list'], // Console output
   ],
 
@@ -521,4 +521,4 @@ Before deploying tests to CI, ensure:
 - **Related fragments**: `playwright-config.md` (artifact configuration), `ci-burn-in.md` (CI artifact upload), `test-quality.md` (debugging best practices)
 - **Tools**: Playwright Trace Viewer, Cypress Debug UI, axe-core, HAR files
 
-_Source: Playwright official docs, Murat testing philosophy (visual debugging manifesto), SEON production debugging patterns_
+_Source: Playwright official docs, Murat testing philosophy (visual debugging manifesto), enterprise production debugging patterns_

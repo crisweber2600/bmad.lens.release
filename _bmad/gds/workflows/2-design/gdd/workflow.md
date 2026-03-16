@@ -1,7 +1,7 @@
 ---
 name: create-gdd
 description: 'Comprehensive game design document creator through collaborative discovery. Use when the user says "lets create a game design document" or "I want to create a comprehensive GDD"'
-main_config: 'bmad.lens.release/_bmad/gds/bmadconfig.yaml'
+main_config: '{project-root}/_bmad/gds/bmadconfig.yaml'
 web_bundle: true
 ---
 
@@ -43,7 +43,6 @@ This uses **step-file architecture** for disciplined execution:
 - ALWAYS follow the exact instructions in the step file
 - ALWAYS halt at menus and wait for user input
 - NEVER create mental todo lists from future steps
-- **BATCH MODE**: If user selects `[B]` at any step menu, or profile has `question_mode: batch`, read fully and follow `_bmad/core/workflows/batch-mode/workflow.md` to generate all remaining content continuously, then present batch review
 
 ---
 
