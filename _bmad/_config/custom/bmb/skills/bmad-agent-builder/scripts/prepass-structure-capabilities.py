@@ -9,7 +9,7 @@ can use instead of reading all files itself. Covers:
 - Agent name validation (bmad-{code}-agent-{name} or bmad-agent-{name})
 - Required agent sections (Overview, Identity, Communication Style, Principles, On Activation)
 - bmad-manifest.json validation (persona field for agent detection, capabilities)
-- Capability cross-referencing with prompts/
+- Capability cross-referencing with prompt files at skill root
 - Memory path consistency checking
 - Language/directness pattern grep
 - On Exit / Exiting section detection (invalid)
@@ -339,7 +339,6 @@ def cross_reference_capabilities(skill_path: Path) -> tuple[dict, list[dict]]:
     }
 
     manifest_path = skill_path / 'bmad-manifest.json'
-    prompts_dir = skill_path / 'prompts'
 
     if not manifest_path.exists():
         return crossref, findings
@@ -362,11 +361,11 @@ def cross_reference_capabilities(skill_path: Path) -> tuple[dict, list[dict]]:
                 prompt_cap_names.add(name)
                 crossref['manifest_prompt_caps'].append(name)
 
-    # Get actual prompt files
+    # Get actual prompt files (at skill root, excluding SKILL.md and non-prompt files)
     actual_prompts = set()
-    if prompts_dir.exists():
-        for f in prompts_dir.iterdir():
-            if f.is_file() and f.suffix == '.md':
+    skip_files = {'SKILL.md', 'bmad-manifest.json', 'bmad-skill-manifest.yaml'}
+    for f in skill_path.iterdir():
+        if f.is_file() and f.suffix == '.md' and f.name not in skip_files:
                 actual_prompts.add(f.stem)
 
     # Missing prompt files (in manifest but no file)
@@ -376,7 +375,7 @@ def cross_reference_capabilities(skill_path: Path) -> tuple[dict, list[dict]]:
         findings.append({
             'file': 'bmad-manifest.json', 'line': 0,
             'severity': 'high', 'category': 'capability-crossref',
-            'issue': f'Prompt capability "{name}" has no matching file prompts/{name}.md',
+            'issue': f'Prompt capability "{name}" has no matching file {name}.md at skill root',
         })
 
     # Orphaned prompt files (file exists but not in manifest)
@@ -384,9 +383,9 @@ def cross_reference_capabilities(skill_path: Path) -> tuple[dict, list[dict]]:
     for name in sorted(orphaned):
         crossref['orphaned_prompt_files'].append(name)
         findings.append({
-            'file': f'prompts/{name}.md', 'line': 0,
+            'file': f'{name}.md', 'line': 0,
             'severity': 'medium', 'category': 'capability-crossref',
-            'issue': f'Prompt file prompts/{name}.md not referenced as a prompt capability in manifest',
+            'issue': f'Prompt file {name}.md not referenced as a prompt capability in manifest',
         })
 
     return crossref, findings
@@ -450,15 +449,16 @@ def check_prompt_basics(skill_path: Path) -> tuple[list[dict], list[dict]]:
     """Check each prompt file for config header and progression conditions."""
     findings = []
     prompt_details = []
-    prompts_dir = skill_path / 'prompts'
-    if not prompts_dir.exists():
+    skip_files = {'SKILL.md', 'bmad-manifest.json', 'bmad-skill-manifest.yaml'}
+
+    prompt_files = [f for f in sorted(skill_path.iterdir())
+                    if f.is_file() and f.suffix == '.md' and f.name not in skip_files]
+    if not prompt_files:
         return prompt_details, findings
 
-    for f in sorted(prompts_dir.iterdir()):
-        if not f.is_file() or f.suffix != '.md':
-            continue
+    for f in prompt_files:
         content = f.read_text(encoding='utf-8')
-        rel_path = f'prompts/{f.name}'
+        rel_path = f.name
         detail = {'file': f.name, 'has_config_header': False, 'has_progression': False}
 
         # Config header check

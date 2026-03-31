@@ -15,7 +15,7 @@ global: false
 # Lifecycle Contract
 lifecycle:
   file: lifecycle.yaml
-  schema_version: 2
+  schema_version: 3
 
 # Dependencies
 dependencies:
@@ -53,6 +53,9 @@ workflows:
     - id: audience-promotion
       path: workflows/core/audience-promotion/
       description: "Audience→audience PR with gate + sensing"
+    - id: milestone-promotion
+      path: workflows/core/milestone-promotion/
+      description: "Milestone branch creation and promotion"
   router:
     - id: init-initiative
       path: workflows/router/init-initiative/
@@ -78,6 +81,9 @@ workflows:
     - id: discover
       path: workflows/router/discover/
       description: "/discover — repo discovery, governance inventory, branch creation"
+    - id: close
+      path: workflows/router/close/
+      description: "/close — close/abandon initiative"
   utility:
     - id: onboard
       path: workflows/utility/onboard/
@@ -97,6 +103,12 @@ workflows:
     - id: module-management
       path: workflows/utility/module-management/
       description: "Module version check, update detection, and self-service update"
+    - id: promote
+      path: workflows/utility/promote/
+      description: "/promote — advance audience tier with gate checks"
+    - id: upgrade
+      path: workflows/utility/upgrade/
+      description: "/lens-upgrade — migrate control repo to latest schema version"
   governance:
     - id: compliance-check
       path: workflows/governance/compliance-check/
@@ -128,14 +140,24 @@ scripts:
       - scripts/store-github-pat.ps1
       - scripts/store-github-pat.sh
     description: "Secure PAT collection into environment variables (run outside AI context)"
+  - id: create-pr
+    files:
+      - scripts/create-pr.ps1
+      - scripts/create-pr.sh
+    description: "PR creation via REST API with provider detection"
+  - id: setup-control-repo
+    files:
+      - scripts/setup-control-repo.ps1
+      - scripts/setup-control-repo.sh
+    description: "Control repo bootstrapping — clone governance and target repos"
 
 # Installation Questions
 install_questions:
-  target_projects_path:
+  target-projects-path:
     prompt: "Path to TargetProjects folder (where repos are cloned)"
     default: "../TargetProjects"
-    result: "{value}"
-  default_git_remote:
+    result: "{project-root}/{value}"
+  default-git-remote:
     prompt: "Default git remote provider"
     default: "github"
     result: "{value}"

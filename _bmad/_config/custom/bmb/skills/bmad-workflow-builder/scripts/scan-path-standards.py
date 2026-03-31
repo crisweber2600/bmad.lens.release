@@ -2,12 +2,11 @@
 """Deterministic path standards scanner for BMad skills.
 
 Validates all .md files against BMad path conventions:
-1. {skill-root} must never appear (always wrong)
-2. {project-root} only valid before /_bmad
-3. Bare _bmad references must have {project-root} prefix
-4. Config variables used directly (no double-prefix)
-5. No ./ or ../ relative prefixes
-6. No absolute paths
+1. {project-root} only valid before /_bmad
+2. Bare _bmad references must have {project-root} prefix
+3. Config variables used directly (no double-prefix)
+4. No ./ or ../ relative prefixes
+5. No absolute paths
 """
 
 # /// script
@@ -25,7 +24,6 @@ from pathlib import Path
 
 
 # Patterns to detect
-SKILL_ROOT_RE = re.compile(r'\{skill-root\}')
 # {project-root} NOT followed by /_bmad
 PROJECT_ROOT_NOT_BMAD_RE = re.compile(r'\{project-root\}/(?!_bmad)')
 # Bare _bmad without {project-root} prefix — match _bmad at word boundary
@@ -61,8 +59,6 @@ def scan_file(filepath: Path, skip_fenced: bool = True) -> list[dict]:
     rel_path = filepath.name
 
     checks = [
-        (SKILL_ROOT_RE, 'skill-root-found', 'critical',
-         '{skill-root} found — never use this, use bare relative paths for skill-internal files'),
         (PROJECT_ROOT_NOT_BMAD_RE, 'project-root-not-bmad', 'critical',
          '{project-root} used for non-_bmad path — only valid use is {project-root}/_bmad/...'),
         (ABSOLUTE_PATH_RE, 'absolute-path', 'high',
@@ -87,8 +83,9 @@ def scan_file(filepath: Path, skip_fenced: bool = True) -> list[dict]:
                 'line': line_num,
                 'severity': severity,
                 'category': category,
-                'issue': message,
-                'context': line_content[:120],
+                'title': message,
+                'detail': line_content[:120],
+                'action': '',
             })
 
     # Bare _bmad check — more nuanced, need to avoid false positives
@@ -111,8 +108,9 @@ def scan_file(filepath: Path, skip_fenced: bool = True) -> list[dict]:
             'line': line_num,
             'severity': 'high',
             'category': 'bare-bmad',
-            'issue': 'Bare _bmad reference without {project-root} prefix',
-            'context': line_content[:120],
+            'title': 'Bare _bmad reference without {project-root} prefix',
+            'detail': line_content[:120],
+            'action': '',
         })
 
     return findings
@@ -129,9 +127,6 @@ def scan_skill(skill_path: Path, skip_fenced: bool = True) -> dict:
 
     files_scanned = []
     for md_file in md_files:
-        # Skip tests/fixtures
-        if 'tests/fixtures' in str(md_file):
-            continue
         rel = md_file.relative_to(skill_path)
         files_scanned.append(str(rel))
         file_findings = scan_file(md_file, skip_fenced)
@@ -142,7 +137,6 @@ def scan_skill(skill_path: Path, skip_fenced: bool = True) -> dict:
     # Build summary
     by_severity = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}
     by_category = {
-        'skill_root_found': 0,
         'project_root_not_bmad': 0,
         'bare_bmad': 0,
         'double_prefix': 0,
@@ -166,11 +160,13 @@ def scan_skill(skill_path: Path, skip_fenced: bool = True) -> dict:
         'timestamp': datetime.now(timezone.utc).isoformat(),
         'files_scanned': files_scanned,
         'status': 'pass' if not all_findings else 'fail',
-        'issues': all_findings,
+        'findings': all_findings,
+        'assessments': {},
         'summary': {
-            'total_issues': len(all_findings),
+            'total_findings': len(all_findings),
             'by_severity': by_severity,
             'by_category': by_category,
+            'assessment': 'Path standards scan complete',
         },
     }
 

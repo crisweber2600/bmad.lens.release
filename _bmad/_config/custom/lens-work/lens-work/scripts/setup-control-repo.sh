@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# LENS Workbench v2 — Control Repo Setup
+# LENS Workbench v3 — Control Repo Setup
 #
 # PURPOSE:
 #   Bootstraps a new control repo by cloning all required authority domains:
@@ -240,7 +240,7 @@ ensure_gitignore_entries() {
 # =============================================================================
 
 echo ""
-echo -e "${BOLD}LENS Workbench v2 — Control Repo Setup${RESET}"
+echo -e "${BOLD}LENS Workbench v3 — Control Repo Setup${RESET}"
 echo -e "${DIM}Base URL: ${BASE_URL}${RESET}"
 echo -e "${DIM}Root:     ${PROJECT_ROOT}${RESET}"
 echo ""
@@ -274,7 +274,28 @@ else
   log_info "[DRY-RUN] Would create _bmad-output/lens-work/ directories"
 fi
 
-# -- 5. Ensure .gitignore entries -------------------------------------------
+# -- 5. Write LENS_VERSION ---------------------------------------------------
+if [[ "$DRY_RUN" != true ]]; then
+  SCHEMA_VERSION=$(grep '^schema_version:' "${RELEASE_PATH}/_bmad/lens-work/lifecycle.yaml" | awk '{print $2}')
+
+  # Validate that SCHEMA_VERSION was successfully parsed and is numeric
+  if [[ -z "${SCHEMA_VERSION:-}" ]]; then
+    log_error "Failed to determine schema_version from ${RELEASE_PATH}/_bmad/lens-work/lifecycle.yaml"
+    exit 1
+  fi
+
+  if ! [[ "${SCHEMA_VERSION}" =~ ^[0-9]+$ ]]; then
+    log_error "Invalid schema_version '${SCHEMA_VERSION}' in ${RELEASE_PATH}/_bmad/lens-work/lifecycle.yaml (expected numeric)"
+    exit 1
+  fi
+
+  printf '%s.0.0\n' "${SCHEMA_VERSION}" > "${PROJECT_ROOT}/LENS_VERSION"
+  log_ok "LENS_VERSION written: ${SCHEMA_VERSION}.0.0"
+else
+  log_info "[DRY-RUN] Would write LENS_VERSION"
+fi
+
+# -- 6. Ensure .gitignore entries -------------------------------------------
 ensure_gitignore_entries
 
 # -- Summary ----------------------------------------------------------------

@@ -4,6 +4,12 @@
 
 **Purpose:** Ensures all authority repos are synchronized and constitutional governance is resolved before workflow execution.
 
+## Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `skip_constitution` | boolean | `false` | When `true`, skip Step 5 (Resolve and Enforce Constitution). Use this when the calling workflow performs its own constitutional context injection (e.g., via a dedicated Step 1a). |
+
 ---
 
 ## Preflight Steps
@@ -13,6 +19,55 @@
 Read the `bmad.lens.release` branch:
 ```bash
 git -C bmad.lens.release branch --show-current
+```
+
+### 1a. Enforce LENS_VERSION Compatibility
+
+Read `LENS_VERSION` from the control repo root and `schema_version` from `bmad.lens.release/_bmad/lens-work/lifecycle.yaml`.
+
+If `LENS_VERSION` is missing or does not match the lifecycle schema version, hard-stop the workflow:
+
+```bash
+MODULE_SCHEMA=$(awk '/^schema_version:/ { print $2; exit }' bmad.lens.release/_bmad/lens-work/lifecycle.yaml)
+
+if [[ -z "$MODULE_SCHEMA" ]]; then
+        echo "ERROR: Unable to determine schema_version from bmad.lens.release/_bmad/lens-work/lifecycle.yaml."
+        exit 1
+fi
+
+if [[ ! -f LENS_VERSION ]]; then
+        echo "VERSION MISMATCH: control repo is missing LENS_VERSION, module expects v${MODULE_SCHEMA}. Run /lens-upgrade."
+        exit 1
+fi
+
+CONTROL_VERSION=$(tr -d $'\r\n' < LENS_VERSION || true)
+
+if [[ -z "$CONTROL_VERSION" || ( "$CONTROL_VERSION" != "$MODULE_SCHEMA" && "$CONTROL_VERSION" != "$MODULE_SCHEMA.0.0" ) ]]; then
+        echo "VERSION MISMATCH: control repo is v${CONTROL_VERSION:-missing}, module expects v${MODULE_SCHEMA}. Run /lens-upgrade."
+        exit 1
+fi
+```
+
+**PowerShell:**
+```powershell
+$moduleSchemaLine = Get-Content "bmad.lens.release/_bmad/lens-work/lifecycle.yaml" | Where-Object { $_ -match '^schema_version:' } | Select-Object -First 1
+
+if ([string]::IsNullOrWhiteSpace($moduleSchemaLine)) {
+    throw "VERSION MISMATCH: lifecycle.yaml is missing a 'schema_version:' entry. Run /lens-upgrade."
+}
+
+$moduleSchema = ($moduleSchemaLine -split ':', 2)[1].Trim()
+
+if ([string]::IsNullOrWhiteSpace($moduleSchema)) {
+    throw "VERSION MISMATCH: lifecycle.yaml has an empty 'schema_version'. Run /lens-upgrade."
+}
+
+$controlVersion = if (Test-Path "LENS_VERSION") { (Get-Content "LENS_VERSION" -Raw).Trim() } else { "" }
+
+if ([string]::IsNullOrWhiteSpace($controlVersion) -or ($controlVersion -ne $moduleSchema -and $controlVersion -ne "$moduleSchema.0.0")) {
+                $displayControlVersion = if ([string]::IsNullOrWhiteSpace($controlVersion)) { 'missing' } else { $controlVersion }
+                throw "VERSION MISMATCH: control repo is v$displayControlVersion, module expects v$moduleSchema. Run /lens-upgrade."
+}
 ```
 
 ### 2. Determine Pull Strategy
@@ -111,30 +166,37 @@ If any authority repo directory is missing, stop and report the failure.
 
 ### 5. Resolve and Enforce Constitution
 
+> **Skippable:** When `params.skip_constitution == true`, skip this entire step and proceed to Step 6.
+> Callers that perform their own constitutional context injection (e.g., router workflows with a dedicated Step 1a)
+> MUST pass `skip_constitution: true` to avoid double-resolution. The constitution skill's `resolve-context`
+> operation returns the session-cached result on second call, but the gate enforcement below does NOT re-run from cache —
+> skipping here is the clean approach.
+
 Resolve constitutional governance before any workflow-specific logic runs.
 
 ```yaml
-# Resolve constitutional context (initiative-aware when available, global fallback otherwise)
-constitutional_context = invoke("constitution.resolve-context")
+if params.skip_constitution != true:
+  # Resolve constitutional context (initiative-aware when available, global fallback otherwise)
+  constitutional_context = invoke("constitution.resolve-context")
 
-if constitutional_context.status == "parse_error":
-        # Bootstrap workflows (for example /onboard, /new-domain) may not have
-        # initiative-level context yet. Downgrade to advisory in that case.
-        if constitutional_context.context_available == false:
-                warning: "⚠️ Constitutional context unavailable during bootstrap. Continuing in advisory mode."
-                constitutional_context.gate_mode = "advisory"
-        else:
-                FAIL("❌ Constitutional context parse error. Fix governance files before continuing.")
+  if constitutional_context.status == "parse_error":
+          # Bootstrap workflows (for example /onboard, /new-domain) may not have
+          # initiative-level context yet. Downgrade to advisory in that case.
+          if constitutional_context.context_available == false:
+                  warning: "⚠️ Constitutional context unavailable during bootstrap. Continuing in advisory mode."
+                  constitutional_context.gate_mode = "advisory"
+          else:
+                  FAIL("❌ Constitutional context parse error. Fix governance files before continuing.")
 
-session.constitutional_context = constitutional_context
+  session.constitutional_context = constitutional_context
 
-# Enforce hard-gate mode immediately when constitution requires it
-if constitutional_context.gate_mode == "hard" and constitutional_context.preflight_status == "FAIL":
-        FAIL("❌ Constitution hard gate failed during preflight. Resolve compliance issues before running this workflow.")
+  # Enforce hard-gate mode immediately when constitution requires it
+  if constitutional_context.gate_mode == "hard" and constitutional_context.preflight_status == "FAIL":
+          FAIL("❌ Constitution hard gate failed during preflight. Resolve compliance issues before running this workflow.")
 
-# Advisory mode never blocks, but must be surfaced to the user
-if constitutional_context.gate_mode == "advisory" and constitutional_context.preflight_status == "WARN":
-        warning: "⚠️ Constitution advisory warnings detected. Continue with care and address warnings in phase outputs."
+  # Advisory mode never blocks, but must be surfaced to the user
+  if constitutional_context.gate_mode == "advisory" and constitutional_context.preflight_status == "WARN":
+          warning: "⚠️ Constitution advisory warnings detected. Continue with care and address warnings in phase outputs."
 ```
 
 All downstream workflow decisions MUST follow `session.constitutional_context`.

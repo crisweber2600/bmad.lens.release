@@ -8,7 +8,7 @@ This directory contains the thin VS Code Copilot adapter that wires the `@lens` 
 .github/
 ├── copilot-instructions.md     # References BMAD framework + lens-work module
 └── agents/
-    └── lens.agent.md           # Thin wrapper → @lens agent in release module
+    └── bmad-agent-lens-work-lens.agent.md  # Thin wrapper → @lens agent in release module
 ```
 
 ## Principles

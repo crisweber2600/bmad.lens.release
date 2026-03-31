@@ -1,53 +1,40 @@
-# Workflow: Resolve Constitution
+---
+name: resolve-constitution
+description: Resolve the effective constitution for the active initiative using the governance inheritance chain
+agent: "@lens"
+trigger: Internal governance workflow used by compliance and promotion flows
+category: governance
+phase_name: governance
+display_name: Resolve Constitution
+entryStep: './steps/step-01-preflight.md'
+---
 
-**Module:** lens-work
-**Type:** Governance workflow
-**Trigger:** Called internally by compliance-check workflow and promotion workflow
+# Resolve Constitution Workflow
+
+**Goal:** Resolve the effective initiative constitution from the active initiative context and return it to the calling workflow.
+
+**Your Role:** Operate as a read-only governance helper. Gather only the context needed to resolve constitution inheritance and return the result without side effects.
 
 ---
 
-## Purpose
+## WORKFLOW ARCHITECTURE
 
-Resolve the effective constitution for an initiative by merging the 4-level governance hierarchy. This is a supporting workflow that wraps the `constitution` skill's `resolve-constitution` operation.
+This workflow uses **step-file architecture**:
 
-## Workflow Steps
+- Step 1 runs shared preflight and resolves the initiative identity.
+- Step 2 invokes constitution resolution with the derived domain, service, repo, and language context.
+- Step 3 returns the resolved constitution to the caller with a concise summary.
 
-### Step 0: Run Preflight
+State persists through `initiative_state`, `initiative_config`, `resolution_context`, and `resolved_constitution`.
 
-Run preflight before executing this workflow:
+---
 
-1. Execute shared preflight from `_bmad/lens-work/workflows/includes/preflight.md`.
-2. If preflight reports missing authority repos, stop and direct the user to run `/onboard` first.
+## EXECUTION
 
-### Step 1: Determine Initiative Context
+Read fully and follow: `{entryStep}`
 
-1. Use `git-state` skill → `current-initiative` to get the initiative root
-2. Parse domain, service, and repo from the initiative root
-3. Determine language (from initiative config if available)
+### Step Map
 
-### Step 2: Invoke Constitution Resolution
-
-1. Call `constitution` skill → `resolve-constitution` with:
-   - `domain`: parsed domain
-   - `service`: parsed service
-   - `repo`: parsed repo (optional)
-   - `language`: detected language (optional)
-2. Receive resolved constitution
-
-### Step 3: Return Result
-
-Return the resolved constitution to the calling workflow (compliance-check or audience-promotion).
-
-## Error Handling
-
-| Error | Response |
-|-------|----------|
-| Governance repo not found | `❌ Governance repo not accessible. Run /onboard to verify.` |
-| Org-level constitution missing | `❌ Org-level constitution is required. Check governance repo setup.` |
-| Invalid constitution format | Use parent level defaults with warning |
-
-## Key Constraints
-
-- Read-only — never writes to governance repo
-- Deterministic — identical inputs always produce identical output (NFR3)
-- Additive inheritance — lower levels add requirements, never remove
+1. `step-01-preflight.md` - Preflight and initiative context
+2. `step-02-resolve.md` - Constitution resolution
+3. `step-03-render-result.md` - Return summary and resolved constitution

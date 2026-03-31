@@ -1,15 +1,20 @@
 # =============================================================================
-# Lens-Work Lifecycle Contract v2.0
+# Lens-Work Lifecycle Contract v3.0
 # =============================================================================
 # The single source of truth for lens-work lifecycle behavior.
 # The @lens agent (with 5 skills) and all workflows import
 # this contract. No lifecycle semantics should be hardcoded elsewhere.
 #
-# v2 redesign: Git-derived state replaces legacy file-based state entirely.
+# v3 redesign: Git-derived state replaces legacy file-based state entirely.
 # Branch existence + PR metadata + committed artifacts = state.
 # =============================================================================
 
-schema_version: 2
+schema_version: 3
+close_states: [completed, abandoned, superseded]
+initiative_state_schema: initiative-state.yaml
+artifact_publication:
+  governance_root: "artifacts/"
+  enabled: true
 
 # Supported Programming Languages for Language-Specific Constitutions
 supported_languages:
@@ -60,27 +65,27 @@ lens_hierarchy:
   language_scope_enforcement: "Language-specific constitutions apply ONLY to repos matching the declared language"
 
 # -----------------------------------------------------------------------------
-# AUDIENCES (promotion backbone)
+# MILESTONES (promotion backbone)
 # -----------------------------------------------------------------------------
-audiences:
-  small:
+milestones:
+  techplan:
     role: "IC creation work"
-    description: "Where early planning phases happen — individual contributor generates artifacts"
+    description: "Where early planning phases happen — individual contributor generates artifacts before promotion"
     phases: [preplan, businessplan, techplan]
-  medium:
+  devproposal:
     role: "Lead review"
-    description: "Adversarial review gate — devproposal phase branches from here post-promotion"
+    description: "Adversarial review gate — devproposal milestone branches from here post-promotion"
     phases: [devproposal]
     entry_gate: adversarial-review
     entry_gate_mode: party
-  large:
+  sprintplan:
     role: "Stakeholder approval"
-    description: "Stakeholder sign-off — sprintplan phase branches from here post-promotion"
+    description: "Stakeholder sign-off — sprintplan milestone branches from here post-promotion"
     phases: [sprintplan]
     entry_gate: stakeholder-approval
-  base:
+  dev-ready:
     role: "Ready for execution"
-    description: "Constitution-gated — dev execution happens outside this planning lifecycle"
+    description: "Constitution-gated — dev execution happens after sprintplan completes"
     phases: []
     entry_gate: constitution-gate
 
@@ -98,7 +103,7 @@ phases:
       - product-brief
       - research
       - brainstorm
-    audience: small
+    milestone: techplan
     auto_advance_to: /businessplan
     auto_advance_promote: false
 
@@ -111,7 +116,7 @@ phases:
     artifacts:
       - prd
       - ux-design
-    audience: small
+    milestone: techplan
     auto_advance_to: /techplan
     auto_advance_promote: false
 
@@ -123,7 +128,7 @@ phases:
     description: "Technical design — architecture document, technical decisions"
     artifacts:
       - architecture
-    audience: small
+    milestone: techplan
     auto_advance_to: /devproposal
     auto_advance_promote: true
 
@@ -137,8 +142,8 @@ phases:
       - epics
       - stories
       - implementation-readiness
-    audience: small
-    branching_audience: medium
+    milestone: devproposal
+    branching_milestone: devproposal
     auto_advance_to: /sprintplan
     auto_advance_promote: true
 
@@ -151,15 +156,15 @@ phases:
     artifacts:
       - sprint-status
       - story-files
-    audience: small
-    branching_audience: large
+    milestone: sprintplan
+    branching_milestone: sprintplan
     auto_advance_to: /dev
     auto_advance_promote: true
 
 # Phase ordering (canonical sequence for full track)
 # NOTE: 'dev' is NOT a lifecycle phase — it is a delegation command that hands off
 # to implementation agents in target projects. It exists as a router workflow but
-# is not part of the phase ordering or audience promotion chain.
+# is not part of the phase ordering or milestone promotion chain.
 phase_order: [preplan, businessplan, techplan, devproposal, sprintplan]
 
 # -----------------------------------------------------------------------------
@@ -167,41 +172,41 @@ phase_order: [preplan, businessplan, techplan, devproposal, sprintplan]
 # -----------------------------------------------------------------------------
 tracks:
   full:
-    description: "Complete lifecycle — all phases, all audiences"
+    description: "Complete lifecycle — all phases, all milestones"
     phases: [preplan, businessplan, techplan, devproposal, sprintplan]
-    audiences: [small, medium, large, base]
+    milestones: [techplan, devproposal, sprintplan, dev-ready]
     start_phase: preplan
 
   feature:
     description: "Known business context — skip research, start at business plan"
     phases: [businessplan, techplan, devproposal, sprintplan]
-    audiences: [small, medium, large, base]
+    milestones: [techplan, devproposal, sprintplan, dev-ready]
     start_phase: businessplan
 
   tech-change:
     description: "Pure technical change — no business case needed"
     phases: [techplan, sprintplan]
-    audiences: [small, medium, large, base]
-    constitution_controlled_gates: [devproposal, medium-to-large]
+    milestones: [techplan, devproposal, sprintplan, dev-ready]
+    constitution_controlled_gates: [devproposal, devproposal-to-sprintplan]
     start_phase: techplan
 
   hotfix:
     description: "Urgent fix — minimal planning, fast to execution"
     phases: [techplan]
-    audiences: [small, base]
+    milestones: [techplan, dev-ready]
     constitution_controlled_gates: [adversarial-review]
     start_phase: techplan
 
   spike:
     description: "Research only — no implementation"
     phases: [preplan]
-    audiences: [small]
+    milestones: [techplan]
     start_phase: preplan
 
   quickdev:
     description: "Rapid execution — delegates to target-project agents"
     phases: [devproposal]
-    audiences: [small, base]
+    milestones: [devproposal, dev-ready]
     constitution_controlled_gates: [adversarial-review]
     start_phase: devproposal
 
@@ -239,27 +244,23 @@ planning_repo:
   artifacts_location: central-only
   branch_patterns:
     initiative_root: "{initiative-root}"
-    audience: "{initiative-root}-{audience}"
-    phase: "{initiative-root}-{audience}-{phase}"
+    milestone: "{initiative-root}-{milestone}"
   merge_chain:
-    - source: "{initiative-root}-{audience}-{phase}"
-      target: "{initiative-root}-{audience}"
-      type: phase-completion
-    - source: "{initiative-root}-small"
-      target: "{initiative-root}-medium"
-      type: audience-promotion
+    - source: "{initiative-root}-techplan"
+      target: "{initiative-root}-devproposal"
+      type: milestone-promotion
       gate: adversarial-review
-    - source: "{initiative-root}-medium"
-      target: "{initiative-root}-large"
-      type: audience-promotion
+    - source: "{initiative-root}-devproposal"
+      target: "{initiative-root}-sprintplan"
+      type: milestone-promotion
       gate: stakeholder-approval
-    - source: "{initiative-root}-large"
-      target: "{initiative-root}-base"
-      type: audience-promotion
+    - source: "{initiative-root}-sprintplan"
+      target: "{initiative-root}-dev-ready"
+      type: milestone-promotion
       gate: constitution-gate
-  # v2: Lazy audience branch creation
-  audience_branch_creation: lazy
-  # Audience branches created on-demand at promotion time, not at init
+  # v3: Lazy milestone branch creation
+  milestone_branch_creation: lazy
+  # Create `{root}` and `{root}-techplan` at init; higher milestone branches are created on-demand at promotion time
 
 # -----------------------------------------------------------------------------
 # BRANCH TOPOLOGY — TARGET PROJECTS (code repos)
@@ -300,25 +301,25 @@ initiative:
   # Scope hierarchy — each level's containment and next-step behavior:
   #   domain  → contains services  → next step: /new-service
   #   service → contains features  → next step: /new-feature
-  #   feature → has phases/audiences → next step: /{start_phase}
-  # Only feature-level initiatives have audience branches and lifecycle phases.
+  #   feature → has phases/milestones → next step: /{start_phase}
+  # Only feature-level initiatives have milestone branches and lifecycle phases.
   # Domain and service scopes are organizational containers.
   scope_hierarchy:
     domain:
       contains: service
       next_command: /new-service
       has_phases: false
-      has_audiences: false
+      has_milestones: false
     service:
       contains: feature
       next_command: /new-feature
       has_phases: false
-      has_audiences: false
+      has_milestones: false
     feature:
       contains: null
       next_command: null  # determined by track start_phase
       has_phases: true
-      has_audiences: true
+      has_milestones: true
 
   config_schema:
     required_fields: [initiative, scope, domain, track, created, initiative_root]
@@ -342,7 +343,7 @@ constitution:
     - enforce_stories
 
 # -----------------------------------------------------------------------------
-# GIT STATE MODEL (v2 — git-derived)
+# GIT STATE MODEL (v3 — git-derived)
 # -----------------------------------------------------------------------------
 # State is derived from three durable sources:
 # 1. Branch existence — what branches exist tells you what's been started
@@ -352,8 +353,8 @@ constitution:
 # NO event-log.jsonl. NO git-ignored runtime state.
 git_state:
   sources:
-    - git_symbolic_ref: "Current branch → initiative, audience, phase"
-    - git_branch_list: "Branch existence → phase started, audience created"
+    - git_symbolic_ref: "Current branch → initiative lookup key; phase and milestone come from initiative-state.yaml"
+    - git_branch_list: "Branch existence → milestone progression attempted"
     - provider_adapter_pr: "PR state → phase complete, promotion complete"
     - git_show: "Cross-branch config reads without checkout"
     - committed_artifacts: "File existence → artifact inventory"
@@ -379,7 +380,7 @@ data_zones:
     description: "Initiative-scoped planning artifacts in control repo"
     local_path: _bmad-output/lens-work/initiatives/
     branch_strategy:
-      pattern: "{initiative_root}-{audience}-{phase}"
+      pattern: "{initiative_root}-{milestone}"
       merge_target: "{initiative_root}"
 
   personal:
@@ -396,3 +397,50 @@ credentials:
   storage: "OS credential store or provider CLI login state ONLY"
   git_tracked: never
   enforcement: "Scanning all git-tracked files for credential patterns must find nothing"
+
+# -----------------------------------------------------------------------------
+# MIGRATIONS
+# -----------------------------------------------------------------------------
+migrations:
+  - from_version: 2
+    to_version: 3
+    breaking: true
+    migration_command: "/lens-upgrade --from 2 --to 3"
+    branch_rename_required: true
+    changes:
+      - type: rename_key
+        path: audiences
+        new_path: milestones
+      - type: rename_field
+        path: milestones.small
+        new_path: milestones.techplan
+      - type: rename_field
+        path: milestones.medium
+        new_path: milestones.devproposal
+      - type: rename_field
+        path: milestones.large
+        new_path: milestones.sprintplan
+      - type: rename_field
+        path: milestones.base
+        new_path: milestones.dev-ready
+      - type: rename_field
+        path: phases.*.audience
+        new_path: phases.*.milestone
+      - type: rename_field
+        path: phases.*.branching_audience
+        new_path: phases.*.branching_milestone
+      - type: rename_field
+        path: tracks.*.audiences
+        new_path: tracks.*.milestones
+      - type: rename_field
+        path: scope_hierarchy.*.has_audiences
+        new_path: scope_hierarchy.*.has_milestones
+      - type: add_field
+        path: close_states
+        value: [completed, abandoned, superseded]
+      - type: add_field
+        path: artifact_publication
+        value: { governance_root: "artifacts/", enabled: true }
+      - type: add_field
+        path: initiative_state_schema
+        value: initiative-state.yaml

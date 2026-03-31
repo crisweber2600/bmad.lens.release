@@ -1,131 +1,62 @@
-# /status — Initiative Status Report Workflow
+---
+name: status
+description: Produce a consolidated initiative status report from git branch topology and provider PR state
+agent: "@lens"
+trigger: /status command
+category: utility
+phase_name: utility
+display_name: Status
+entryStep: './steps/step-01-preflight.md'
+inputs:
+  detail_initiative:
+    description: Optional initiative root to expand in the detailed view
+    required: false
+    default: ""
+---
 
-**Phase:** Utility
-**Purpose:** Produce a consolidated status report across all active initiatives by scanning git branch topology and PR states.
+# /status - Initiative Status Report Workflow
 
-## Pre-conditions
+**Goal:** Summarize all active initiatives in a narrow-panel-friendly report, then expand into a detailed view when there is only one initiative or the user asks for one.
 
-- Control repo is a git repository with a remote configured
+**Your Role:** Act as the control-plane status reporter. Derive all state from git and PR metadata, avoid stale shadow state, and return an operator-friendly summary of what is active and what should happen next.
 
-## Steps
+---
 
-### Step 0: Run Preflight
+## WORKFLOW ARCHITECTURE
 
-Run preflight before executing this workflow:
+This workflow uses **step-file architecture**:
 
-1. Execute shared preflight from `_bmad/lens-work/workflows/includes/preflight.md`.
-2. Shared preflight MUST resolve and enforce constitutional context before continuing.
-3. If preflight reports missing authority repos, stop and direct the user to run `/onboard` first.
+- Each step owns one reporting concern: preflight, inventory, state derivation, and rendering.
+- State persists through `detail_initiative`, `current_branch`, `current_initiative_root`, `initiative_roots`, `status_rows`, `detail_rows`, and `empty_state`.
+- Output defaults to a five-column summary table, with expanded detail only when the interaction justifies it.
 
-### Step 1: Scan Initiative Branches
+---
 
-Use the git-state skill to list all initiative roots:
+## INITIALIZATION
 
-```bash
-git branch -a | sed -E 's/-(small|medium|large|base)(-.*)?$//' | sort -u
-```
+### Configuration Loading
 
-Filter out non-initiative branches (main, develop, feature/, etc.).
+Load the lens-work session context already provided by `@lens` and resolve:
 
-**If no initiatives found:** Display empty state and exit:
-```
-ℹ️ No active initiatives.
+- `{user_name}`
+- `{communication_language}`
+- `{output_folder}`
+- `{initiative_output_folder}`
 
-Get started:
-  `/new-domain {name}`  — Create a domain-level initiative
-  `/new-service {domain}/{service}` — Create a service-level initiative
-```
+### Workflow References
 
-### Step 2: Derive State Per Initiative
+- `preflight_include = ../../includes/preflight.md`
+- `lifecycle_contract = ../../../lifecycle.yaml`
 
-For each initiative root, use the git-state skill to derive:
+---
 
-1. **Current audience:** Parse highest audience branch that exists.
-   ```bash
-   git branch --list '{root}-base' '{root}-large' '{root}-medium' '{root}-small'
-   ```
+## EXECUTION
 
-2. **Current phase:** Find the active phase branch (most recent, or with open PR).
-   ```bash
-   git branch --list '{root}-{audience}-*'
-   ```
+Read fully and follow: `{entryStep}`
 
-3. **Open PRs:** Use provider adapter to query PRs:
-   - Phase PRs: `{root}-{audience}-{phase}` → `{root}-{audience}`
-   - Promotion PRs: `{root}-{audience}` → `{root}-{next-audience}`
+### Step Map
 
-4. **Pending action:** Apply lifecycle rules:
-   - Phase branch exists, no PR → "Complete phase"
-   - PR open, not reviewed → "Awaiting review"
-   - PR merged, next phase exists → "Start next phase"
-   - All phases done → "Ready to promote"
-
-### Step 3: Load Initiative Configs
-
-For each initiative, read its config to get domain, service, and track:
-
-```bash
-git show {root}:_bmad-output/lens-work/initiatives/{domain}/[{service}/]{feature}.yaml
-```
-
-Use cross-branch reads (no checkout required).
-
-### Step 4: Determine Current Initiative
-
-Check what branch the user is currently on:
-
-```bash
-git symbolic-ref --short HEAD
-```
-
-Parse to extract current initiative root (if on an initiative branch).
-
-### Step 5: Format Status Table
-
-Render a table with ≤5 columns for narrow chat panel compatibility:
-
-```
-📊 Initiative Status Report
-
-| Initiative | Phase | Audience | PRs | Action |
-|------------|-------|----------|-----|--------|
-| ► foo-auth | techplan | small | 0 | Continue phase |
-| bar-api | businessplan | small | 1 ⏳ | Awaiting review |
-| baz-widget | — | medium | 0 | Start devproposal |
-
-► = current initiative
-```
-
-**Status indicators:**
-- ✅ Phase complete (PR merged)
-- ⏳ PR open / in review
-- ❌ Blocked (prerequisite not met)
-- ⚠️ Needs attention (stale PR, conflict)
-
-### Step 6: Display Detailed View (Optional)
-
-If user requests detail (or only one initiative exists), show expanded view:
-
-```
-📂 Initiative: foo-bar-auth
-🏷️ Track: full
-👥 Audience: small
-📋 Completed Phases: preplan ✅, businessplan ✅
-⏳ Current Phase: techplan (in progress)
-📝 Open PRs: none
-🔄 Pending: Complete techplan artifacts
-
-▶️ Continue working on `/techplan`
-```
-
-## Response Format
-
-Follow the UX spec Direction B (Structured Report Style):
-- Summary table by default
-- Detail on request or single-initiative context
-- ≤5 table columns
-- Status emoji supplements text labels (not sole indicator)
-
-## NFR Compliance
-
-- **NFR1:** All state derived from git — no secondary state stores queried
+1. `step-01-preflight.md` - Preflight and reporting context initialization
+2. `step-02-scan-initiatives.md` - Discover initiative roots and handle the empty state
+3. `step-03-derive-state.md` - Derive audience, phase, PR state, and next action per initiative
+4. `step-04-render-report.md` - Render the summary table and optional detailed view

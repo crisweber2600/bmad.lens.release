@@ -1,143 +1,63 @@
-# /help — Command Reference Workflow
+---
+name: help
+description: Display the canonical @lens command reference with first-use onboarding and invalid-command recovery
+agent: "@lens"
+trigger: /help command
+category: utility
+phase_name: utility
+display_name: Help
+entryStep: './steps/step-01-preflight.md'
+inputs:
+  requested_command:
+    description: Optional invalid or partial command to resolve while rendering help
+    required: false
+    default: ""
+---
 
-**Phase:** Utility
-**Purpose:** Display all available @lens commands grouped by category with descriptions, usage examples, and first-time user guidance.
+# /help - Command Reference Workflow
 
-## Pre-conditions
+**Goal:** Render the canonical @lens command registry with enough context for first-time users and enough recovery guidance for invalid command attempts.
 
-- lens-work module is installed
+**Your Role:** Act as the LENS command guide. Confirm the environment is valid, detect whether the user needs onboarding context, then present the authoritative command list with helpful recovery suggestions.
 
-## Steps
+---
 
-### Step 0: Run Preflight
+## WORKFLOW ARCHITECTURE
 
-Run preflight before executing this workflow:
+This workflow uses **step-file architecture**:
 
-1. Execute shared preflight from `_bmad/lens-work/workflows/includes/preflight.md`.
-2. Shared preflight MUST resolve and enforce constitutional context before continuing.
-3. If preflight reports missing authority repos, stop and direct the user to run `/onboard` first.
+- Each step owns one concern: preflight, user context, registry loading, and response rendering.
+- State persists through `requested_command`, `profile_path`, `first_time_user`, `command_registry_path`, `command_rows`, `grouped_commands`, `closest_match`, and `suggested_group`.
+- The command list comes from `module-help.csv` so `/help` stays aligned with the installed module surface.
 
-### Step 1: Detect User Context
+---
 
-Check if the user is a first-time user (no `profile.yaml`):
+## INITIALIZATION
 
-```bash
-test -f _bmad-output/lens-work/personal/profile.yaml
-```
+### Configuration Loading
 
-- **First-time user:** Show extended introduction before command list.
-- **Returning user:** Show command list directly.
+Load the lens-work session context already provided by `@lens` and resolve:
 
-### Step 2: First-Time User Introduction (if applicable)
+- `{user_name}`
+- `{communication_language}`
+- `{output_folder}`
+- `{initiative_output_folder}`
+- `{personal_output_folder}`
 
-```
-👋 Welcome to LENS Workbench!
+### Workflow References
 
-LENS manages your planning lifecycle from idea to implementation using
-git-native workflows. Everything is derived from git — branches are
-your state, PRs are your gates, and lifecycle.yaml is your contract.
+- `preflight_include = ../../includes/preflight.md`
+- `command_registry = ../../../module-help.csv`
 
-**Getting started:**
-1. Run `/onboard` to authenticate and set up your profile
-2. Run `/new-domain {name}` to create your first initiative
-3. Run `/next` anytime to see what to do next
+---
 
-Here are all the commands available:
-```
+## EXECUTION
 
-### Step 3: Read Command Registry
+Read fully and follow: `{entryStep}`
 
-Load `module-help.csv` from the lens-work module root to get the canonical command list.
+### Step Map
 
-### Step 4: Display Commands by Category
-
-```
-📖 @lens Command Reference
-
-━━━ 🚀 Lifecycle ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /preplan          Start PrePlan phase — brainstorm, research, product brief
-                    Usage: /preplan
-
-  /businessplan     Start BusinessPlan phase — PRD creation, UX design
-                    Usage: /businessplan
-
-  /techplan         Start TechPlan phase — architecture, technical decisions
-                    Usage: /techplan
-
-  /devproposal      Start DevProposal phase — epics, stories, readiness check
-                    Usage: /devproposal
-
-  /sprintplan       Start SprintPlan phase — sprint-status, story files
-                    Usage: /sprintplan
-
-  /dev              Start Dev phase — hand off to implementation agents
-                    Usage: /dev
-
-━━━ 🧭 Navigation ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /new-domain       Create a new domain-level initiative
-                    Usage: /new-domain {domain-name}
-
-  /new-service      Create a new service-level initiative within a domain
-                    Usage: /new-service {domain}/{service-name}
-
-  /new-feature      Create a new feature-level initiative within a service
-                    Usage: /new-feature {domain}/{service}/{feature-name}
-
-  /switch           Switch to a different initiative
-                    Usage: /switch [initiative-name]
-
-  /status           Show all active initiatives and their state
-                    Usage: /status
-
-  /next             Get recommended next action
-                    Usage: /next
-
-━━━ 🛡️ Governance ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /promote          Promote current audience to next level with gate checks
-                    Usage: /promote
-
-  /sense            Run cross-initiative overlap detection on demand
-                    Usage: /sense
-
-━━━ 🔧 Utility ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /onboard          Bootstrap control repo — detect provider, validate auth, clone repos
-                    Usage: /onboard
-
-  /help             Show this command reference
-                    Usage: /help
-```
-
-### Step 5: Handle Invalid Commands
-
-If the user typed an unrecognized command, find the closest valid command:
-
-**Matching strategy:**
-1. Exact prefix match (e.g., `/pre` → `/preplan`)
-2. Fuzzy match by string similarity (e.g., `/bussiness` → `/businessplan`)
-3. Category suggestion if no close match
-
-**Response:**
-```
-❓ Unknown command: `/{input}`
-   Did you mean `/preplan`?
-
-   Run `/help` to see all available commands.
-```
-
-### Step 6: Display Footer
-
-```
-💡 Tip: Run `/next` anytime to see your recommended next action.
-```
-
-## Design Principles
-
-- Direction C (Conversational Narrative) — warmth and clarity
-- First-time users get extended explanation, not jargon
-- Invalid commands get closest suggestion, not "command not found"
-- All ~16 user touchpoints documented
-- Categories group related commands for discoverability
+1. `step-01-preflight.md` - Preflight and help-context initialization
+2. `step-02-detect-context.md` - Detect first-time-user state and request intent
+3. `step-03-load-registry.md` - Load and normalize the canonical command registry
+4. `step-04-render-help.md` - Render grouped help output, invalid-command recovery, and footer

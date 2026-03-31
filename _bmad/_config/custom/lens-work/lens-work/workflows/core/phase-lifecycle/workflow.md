@@ -1,176 +1,68 @@
+---
+name: phase-lifecycle
+description: Manage phase completion checks, automatic phase PR creation, promotion readiness, and safe branch cleanup
+agent: "@lens"
+trigger: internal phase completion workflow
+category: core
+phase_name: core
+display_name: Phase Lifecycle
+entryStep: './steps/step-01-preflight.md'
+inputs:
+   phase_name:
+      description: Current phase being completed
+      required: true
+   display_name:
+      description: Human-readable phase display name
+      required: true
+   initiative_id:
+      description: Initiative identifier for the active phase
+      required: true
+---
+
 # Phase Lifecycle Workflow
 
-**Phase:** Core
-**Purpose:** Manage phase completion, automatic PR creation, and branch cleanup.
-**Trigger:** Automatically invoked at the end of each phase routing workflow.
+**Goal:** Detect whether a phase is complete, create or report the phase PR, surface promotion readiness, and clean up merged phase branches without losing execution state.
 
-## Preflight Gate
+**Your Role:** Operate as the phase-closeout controller. Validate artifacts before any PR is created, derive state from lifecycle and git metadata, and keep cleanup safe by verifying merge state before deleting branches.
 
-Run preflight before executing this workflow:
+---
 
-1. Execute shared preflight from `_bmad/lens-work/workflows/includes/preflight.md`.
-2. If preflight reports missing authority repos, stop and direct the user to run `/onboard` first.
+## WORKFLOW ARCHITECTURE
 
-## Overview
+This workflow uses **step-file architecture**:
 
-This core workflow handles the lifecycle of a phase branch:
-1. **Phase Start** — Branch creation (handled by phase router)
-2. **Phase Work** — Artifact production (handled by delegated agent)
-3. **Phase End** — Automatic PR creation (this workflow)
-4. **Branch Cleanup** — Phase branch deletion after PR merge
+- Each step handles one lifecycle concern: preflight, completion validation, PR creation, and cleanup.
+- State persists through `phase_name`, `display_name`, `initiative_id`, `initiative`, `lifecycle`, `required_artifacts`, `missing_artifacts`, `phase_branch`, `audience_branch`, `pr_title`, `pr_body`, `pr_result`, and `promotion_ready`.
+- This workflow is invoked by phase routers after artifact production; it does not replace the routers' branch start logic.
 
-## Phase Completion Detection
+---
 
-A phase is complete when all required artifacts exist for that phase.
+## INITIALIZATION
 
-**Algorithm:**
-1. Read `lifecycle.yaml` to get required artifacts for the current phase
-2. Check file existence at `_bmad-output/lens-work/initiatives/{path}/phases/{phase}/`
-3. All required artifacts must be present
+### Configuration Loading
 
-| Phase | Required Artifacts |
-|-------|--------------------|
-| preplan | product-brief.md, research.md |
-| businessplan | prd.md, ux-design.md (or ux-design-specification.md) |
-| techplan | architecture.md |
-| devproposal | epics.md |
-| sprintplan | sprint-status.yaml |
+Load the lens-work session context already provided by `@lens` and resolve:
 
-## Auto-PR Creation
+- `{user_name}`
+- `{communication_language}`
+- `{output_folder}`
+- `{initiative_output_folder}`
 
-When phase work is complete, automatically create a PR:
+### Workflow References
 
-### PR Source and Target
+- `preflight_include = ../../includes/preflight.md`
+- `promotion_check_include = ../../includes/promotion-check.md`
+- `lifecycle_contract = ../../../lifecycle.yaml`
 
-```
-Source branch: {initiative-root}-{audience}-{phase}
-Target branch: {initiative-root}-{audience}
-```
+---
 
-### PR Title Format
+## EXECUTION
 
-```
-[PHASE] {initiative-root} — {display_name} complete
-```
+Read fully and follow: `{entryStep}`
 
-Examples:
-- `[PHASE] foo-bar-auth — PrePlan complete`
-- `[PHASE] foo-bar-auth — TechPlan complete`
+### Step Map
 
-### PR Body Generation
-
-The PR body is generated dynamically from committed artifact content (not hardcoded templates):
-
-```markdown
-## Phase Completion: {display_name}
-
-**Initiative:** {initiative-root}
-**Track:** {track}
-**Audience:** {audience}
-**Phase Agent:** {agent} ({agent_role})
-
-### Artifacts Produced
-
-- [x] `{artifact-1}.md` — {first line or heading from artifact}
-- [x] `{artifact-2}.md` — {first line or heading from artifact}
-
-### Artifact Summaries
-
-#### {artifact-1}
-{First paragraph or executive summary extracted from artifact content}
-
-#### {artifact-2}
-{First paragraph or executive summary extracted from artifact content}
-
-### Phase Gate Requirements
-
-| Requirement | Status |
-|-------------|--------|
-| All required artifacts present | ✅ |
-| Artifact content non-empty | ✅ |
-| Constitution compliance | {PASS/PENDING — integrated at Story 6.2} |
-
-### Review Instructions
-
-Review the artifacts for completeness, quality, and alignment with initiative goals.
-Merge this PR to mark the {display_name} phase as complete.
-```
-
-### PR Creation
-
-Use provider-adapter `create-pr`:
-
-```yaml
-title: "[PHASE] {initiative-root} — {display_name} complete"
-body: "{generated body}"
-source_branch: "{initiative-root}-{audience}-{phase}"
-target_branch: "{initiative-root}-{audience}"
-```
-
-### Response
-
-```
-✅ Phase PR created
-
-## PR Details
-- **Title:** [PHASE] {initiative-root} — {display_name} complete
-- **URL:** {pr_url}
-- **Artifacts included:** {count} files
-- **Review required:** Yes — merge to complete this phase
-
-## Next Step
-Merge the PR, then run `/{next_phase}` to continue.
-```
-
-### Step: Check Promotion Readiness After Phase Completion
-
-After the phase PR is created, automatically check if promotion to the next audience should be available:
-
-1. Read the current phase's `auto_advance_promote` setting from `lifecycle.yaml`
-2. If `auto_advance_promote: false`: Continue to next step (no promotion check)
-3. If `auto_advance_promote: true`: 
-   - Run the promotion-check include: `_bmad/lens-work/workflows/includes/promotion-check.md`
-   - If all phases for current audience are complete, display promotion readiness message:
-   ```
-   ⏭️  PROMOTION READY
-   
-   After merging this phase PR and completing any remaining phases:
-   - All phases for [{current_audience}] will be complete
-   - Run @lens /promote to promote to [{next_audience}]
-   - The promote workflow will verify all gate requirements
-   ```
-
-## Phase Branch Cleanup
-
-After a phase PR is merged, the phase branch should be cleaned up.
-
-### Detection
-
-Branch cleanup is triggered lazily when `/next` or `/status` detects a merged phase PR with an existing phase branch.
-
-### Algorithm
-
-1. Check if PR from `{root}-{audience}-{phase}` → `{root}-{audience}` is merged (via provider-adapter `query-pr`)
-2. If merged AND phase branch still exists:
-   ```bash
-   git branch -d {root}-{audience}-{phase}        # Delete local
-   git push origin --delete {root}-{audience}-{phase}  # Delete remote
-   ```
-3. Report cleanup:
-   ```
-   🧹 Cleaned up merged phase branch `{root}-{audience}-{phase}`
-   ```
-
-### Safety
-
-- **ALWAYS** verify PR is merged before deletion (via provider-adapter)
-- Phase completion state is preserved in PR metadata — branch deletion doesn't lose state
-- git-state derives phase completion from PR metadata, NOT branch existence
-
-## Error Handling
-
-| Error | Response |
-|-------|----------|
-| Missing required artifacts | `❌ Phase incomplete. Missing: {artifact-list}. Complete these before PR creation.` |
-| PR creation fails | `❌ PR creation failed: {error}. Check provider authentication with /onboard.` |
-| Branch cleanup on unmerged PR | Abort — never delete an unmerged phase branch |
+1. `step-01-preflight.md` - Preflight and lifecycle context initialization
+2. `step-02-validate-completion.md` - Required artifact validation and gate enforcement
+3. `step-03-create-phase-pr.md` - Phase PR body generation, PR creation, and promotion-readiness signaling
+4. `step-04-cleanup.md` - Safe merged-branch cleanup and final response

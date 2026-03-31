@@ -61,7 +61,7 @@
           },
 
           "prompt": {
-            "description": "Relative path to the prompt file for internal capabilities (e.g., prompts/build-process.md). Omit if handled by SKILL.md directly or if this is an external skill call.",
+            "description": "Relative path to the prompt file for internal capabilities (e.g., build-process.md). Omit if handled by SKILL.md directly or if this is an external skill call.",
             "type": "string"
           },
           "skill-name": {

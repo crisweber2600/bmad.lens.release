@@ -1,66 +1,47 @@
-# Workflow: Cross-Initiative Sensing
+---
+name: cross-initiative
+description: Run cross-initiative sensing and classify overlaps under the current constitutional gate mode
+agent: "@lens"
+trigger: /sense command and internal promotion checks
+category: governance
+phase_name: governance
+display_name: Cross-Initiative Sensing
+entryStep: './steps/step-01-preflight.md'
+inputs:
+   enforce_gate:
+      description: When true, fail if a hard sensing gate finds overlaps
+      required: false
+      default: false
+---
 
-**Module:** lens-work
-**Type:** Governance workflow
-**Trigger:** Called by audience-promotion workflow and `/sense` command
+# Cross-Initiative Sensing Workflow
+
+**Goal:** Detect overlapping initiatives using git-derived branch topology, classify the result under the effective sensing gate mode, and return a report that promotion or on-demand callers can consume.
+
+**Your Role:** Operate as a read-only sensing wrapper. Use the sensing skill for topology analysis, the constitution skill for gate mode, and keep any blocking decision explicit.
 
 ---
 
-## Purpose
+## WORKFLOW ARCHITECTURE
 
-Orchestrate cross-initiative overlap detection using the sensing skill. This governance workflow wraps the sensing skill for use in promotion gates and on-demand checks.
+This workflow uses **step-file architecture**:
 
-## Workflow Steps
+- Step 1 runs shared preflight and resolves the initiative context.
+- Step 2 runs the sensing scan.
+- Step 3 resolves the constitutional sensing gate mode.
+- Step 4 renders the result and optionally fails when hard-gate enforcement is requested.
 
-### Step 0: Run Preflight
+State persists through `initiative_state`, `initiative_config`, `sensing_report`, `resolved_constitution`, and `sensing_result`.
 
-Run preflight before executing this workflow:
+---
 
-1. Execute shared preflight from `_bmad/lens-work/workflows/includes/preflight.md`.
-2. If preflight reports missing authority repos, stop and direct the user to run `/onboard` first.
+## EXECUTION
 
-### Step 1: Determine Initiative Context
+Read fully and follow: `{entryStep}`
 
-1. Use `git-state` skill → `current-initiative` to get the initiative root
-2. Parse domain, service, and feature from the initiative root
+### Step Map
 
-### Step 2: Run Sensing Scan
-
-1. Invoke `sensing` skill → `scan-initiatives` with:
-   - `current_domain`: parsed domain
-   - `current_service`: parsed service
-   - `current_feature`: parsed feature
-2. Receive sensing report with overlap analysis
-
-### Step 3: Check Constitution Gate Mode
-
-1. Invoke `constitution` skill → `resolve-constitution` for this initiative
-2. Check `sensing_gate_mode` in resolved constitution:
-   - `informational` (default): sensing results are advisory
-   - `hard`: sensing overlaps block promotion
-
-### Step 4: Return Result
-
-Return the sensing report and gate mode to the calling workflow:
-
-```yaml
-sensing_result:
-  report: {sensing_report}
-  gate_mode: informational | hard
-  has_overlaps: true | false
-  blocks_promotion: false  # true only if gate_mode=hard AND has_overlaps=true
-```
-
-## Error Handling
-
-| Error | Response |
-|-------|----------|
-| Not on initiative branch | `❌ Not on an initiative branch.` |
-| No remote branches | Return empty report with warning |
-| Constitution unavailable | Default to informational gate mode |
-
-## Key Constraints
-
-- Read-only — scans branches, never modifies anything
-- Deterministic — same branch state produces same report
-- Gate mode determined by constitution, not by this workflow
+1. `step-01-preflight.md` - Preflight and initiative context
+2. `step-02-run-sensing.md` - Run the sensing scan
+3. `step-03-resolve-gate.md` - Resolve sensing gate mode from constitution
+4. `step-04-render-result.md` - Render the result and enforce hard gate when requested

@@ -82,11 +82,14 @@ get_remote_url() {
 parse_remote_url() {
     local remote_url="$1"
 
+    # Strip optional .git suffix before matching
+    remote_url="${remote_url%.git}"
+
     # Initialize variables
     local host="" org="" repo="" project="" platform="unknown"
 
     # GitHub HTTPS: https://github.com/org/repo
-    if [[ "$remote_url" =~ ^https?://([^/]+)/([^/]+)/([^/]+?)(\.git)?$ ]]; then
+    if [[ "$remote_url" =~ ^https?://([^/]+)/([^/]+)/([^/]+)$ ]]; then
         host="${BASH_REMATCH[1]}"
         org="${BASH_REMATCH[2]}"
         repo="${BASH_REMATCH[3]}"
@@ -98,7 +101,7 @@ parse_remote_url() {
     fi
 
     # GitHub SSH: git@github.com:org/repo
-    if [[ "$remote_url" =~ ^git@([^:]+):([^/]+)/([^/]+?)(\.git)?$ ]]; then
+    if [[ "$remote_url" =~ ^git@([^:]+):([^/]+)/([^/]+)$ ]]; then
         host="${BASH_REMATCH[1]}"
         org="${BASH_REMATCH[2]}"
         repo="${BASH_REMATCH[3]}"
@@ -110,7 +113,7 @@ parse_remote_url() {
     fi
 
     # Azure DevOps HTTPS: https://dev.azure.com/org/project/_git/repo
-    if [[ "$remote_url" =~ ^https?://dev\.azure\.com/([^/]+)/([^/]+)/_git/([^/]+?)(\.git)?$ ]]; then
+    if [[ "$remote_url" =~ ^https?://dev\.azure\.com/([^/]+)/([^/]+)/_git/([^/]+)$ ]]; then
         host="dev.azure.com"
         org="${BASH_REMATCH[1]}"
         project="${BASH_REMATCH[2]}"
@@ -121,7 +124,7 @@ parse_remote_url() {
     fi
 
     # Azure DevOps SSH: git@ssh.dev.azure.com:v3/org/project/repo
-    if [[ "$remote_url" =~ ^git@ssh\.dev\.azure\.com:v3/([^/]+)/([^/]+)/([^/]+?)(\.git)?$ ]]; then
+    if [[ "$remote_url" =~ ^git@ssh\.dev\.azure\.com:v3/([^/]+)/([^/]+)/([^/]+)$ ]]; then
         host="dev.azure.com"
         org="${BASH_REMATCH[1]}"
         project="${BASH_REMATCH[2]}"
@@ -185,7 +188,7 @@ get_profile_pat() {
 
 invoke_github_pr_create() {
     local host="$1" org="$2" repo="$3" source="$4" target="$5" title="$6" body="$7" pat="${8:-}"
-    local timeout="${9:-30}"
+    local timeout="${9:-30}" platform="${10:-github}"
 
     # Attempt API creation if PAT is available
     if [[ -n "$pat" ]]; then
@@ -312,7 +315,7 @@ fi
 
 # Create PR
 if [[ "$PLATFORM" == "github" ]]; then
-    RESULT=$(invoke_github_pr_create "$HOST" "$ORG" "$REPO" "$SOURCE_BRANCH" "$TARGET_BRANCH" "$TITLE" "$BODY" "$PAT" "$TIMEOUT")
+    RESULT=$(invoke_github_pr_create "$HOST" "$ORG" "$REPO" "$SOURCE_BRANCH" "$TARGET_BRANCH" "$TITLE" "$BODY" "$PAT" "$TIMEOUT" "$PLATFORM")
     IFS='|' read -r STATUS URL NUMBER <<< "$RESULT"
 
     case "$STATUS" in

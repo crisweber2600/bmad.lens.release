@@ -154,6 +154,84 @@ Some requirements are skipped based on track type:
 | hotfix | preplan and businessplan artifacts |
 | tech-change | preplan artifacts |
 
+## `resolve-context` — Preflight-Level Cache-Aware Wrapper
+
+This operation is the primary entry point called by `preflight.md` and router workflows. It wraps `resolve-constitution` with two caching layers to eliminate redundant file reads.
+
+### Cache Strategy
+
+**Layer 1 — Session cache (zero cost):**
+If `session.constitutional_context` is already set in the current agent session, return it immediately. This eliminates duplicate resolution when both preflight and a router workflow call `resolve-context` in the same execution.
+
+**Layer 2 — File cache (fast path):**
+Cache the resolved constitution to `_bmad-output/lens-work/personal/.constitution-cache.yaml` with a UTC timestamp. Use branch-aware TTL windows matching the preflight freshness policy:
+- `alpha` branch: cache valid for **15 minutes**
+- `beta` branch: cache valid for **1 hour**
+- Otherwise: cache valid for **today** (daily cadence)
+
+On cache hit (timestamp within TTL and governance files unchanged), load and return the cached result.
+
+**Cache invalidation:** If any governance constitution file has a `git mtime` newer than the cache timestamp, invalidate and re-resolve.
+
+### Algorithm
+
+```yaml
+# constitute.resolve-context
+# Returns: constitutional_context object
+
+# Layer 1: Session cache
+if session.constitutional_context is set and session.constitutional_context.status != "parse_error":
+  return session.constitutional_context
+
+# Layer 2: File cache
+cache_path = "_bmad-output/lens-work/personal/.constitution-cache.yaml"
+if file_exists(cache_path):
+  cached = load(cache_path)
+  branch = git("branch --show-current")
+  ttl_minutes = branch == "alpha" ? 15 : branch == "beta" ? 60 : 1440  # 1440 = daily
+  cache_age_minutes = (now_utc - cached.resolved_at).total_minutes()
+  governance_changed = git("diff --name-only ${cached.resolved_at} HEAD -- ${governance_path}/constitutions/ 2>/dev/null")
+  if cache_age_minutes <= ttl_minutes and governance_changed == "":
+    session.constitutional_context = cached.constitutional_context
+    return cached.constitutional_context
+
+# Cache miss: resolve fresh
+initiative_state = invoke("git-state.current-initiative")
+resolve_input = {
+  domain: initiative_state.domain,
+  service: initiative_state.service,
+  repo: initiative_state.repo,        # optional
+  language: initiative_state.language # optional
+}
+constitutional_context = invoke("constitution.resolve-constitution", resolve_input)
+
+# Annotate with preflight gate status
+constitutional_context.preflight_status = "OK"
+if constitutional_context.gate_mode == "hard":
+  if any required gate failed in constitutional_context:
+    constitutional_context.preflight_status = "FAIL"
+elif constitutional_context.gate_mode == "advisory":
+  if any warning in constitutional_context:
+    constitutional_context.preflight_status = "WARN"
+
+# Write file cache
+write_file(cache_path, {
+  resolved_at: ISO_TIMESTAMP_UTC,
+  constitutional_context: constitutional_context
+})
+
+# Populate session cache
+session.constitutional_context = constitutional_context
+return constitutional_context
+```
+
+### Error Handling
+
+| Error | Response |
+|-------|----------|
+| No initiative context (bootstrap) | `context_available: false` — caller decides advisory vs. fail |
+| Parse error in governance file | `status: "parse_error"` with file and error details |
+
 ## Error Handling
 
 | Error | Response |

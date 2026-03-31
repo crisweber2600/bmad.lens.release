@@ -31,7 +31,7 @@ from typing import Any
 try:
     from jsonschema import Draft7Validator
 except ImportError:
-    print("Error: jsonschema required. Install with: pip install jsonschema", file=sys.stderr)
+    print("Error: jsonschema required. Run with: uv run scripts/manifest.py (PEP 723 handles deps)", file=sys.stderr)
     sys.exit(2)
 
 MANIFEST_FILENAME = "bmad-manifest.json"
@@ -224,7 +224,7 @@ def cmd_update(args: argparse.Namespace) -> int:
         if key.startswith("capability."):
             parts = key.split(".", 2)
             if len(parts) != 3:
-                print(f"Error: Capability update format: capability.<name>.<field>=<value>", file=sys.stderr)
+                print("Error: Capability update format: capability.<name>.<field>=<value>", file=sys.stderr)
                 return 1
             cap_name, field = parts[1], parts[2]
             found = False

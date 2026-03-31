@@ -1,64 +1,25 @@
-# LENS Workbench v2 — TODO
+# LENS Workbench TODO
 
-## Agents
+## Agent Build Checklist
 
-- [x] `lens` — Phase router + utility orchestrator (lens.agent.md)
-- [x] `lex` — Constitutional governance voice (constitution.md)
+- [x] Primary LENS agent defined for runtime activation in `agents/lens.agent.md`
+- [x] Validator-compatible structured companion added in `agents/lens.agent.yaml`
+- [ ] Run deep agent validation against `agents/lens.agent.yaml`
 
-## Workflows
+## Workflow Build Checklist
 
-### Core
-- [x] `phase-lifecycle` — Phase start, phase end, phase-to-audience PR
-- [x] `audience-promotion` — Audience→audience PR with gate + sensing
+- [x] Core, router, utility, and governance workflows implemented
+- [x] Step-file scaffolding added for single-file workflows so packaging is consistent
+- [ ] Run deep workflow validation on representative workflows, starting with `router/dev` and `router/sprintplan`
+- [ ] Decide whether to fully migrate legacy single-file workflows to step-driven execution
 
-### Router
-- [x] `init-initiative` — /new-domain, /new-service, /new-feature
-- [x] `preplan` — /preplan phase workflow
-- [x] `businessplan` — /businessplan phase workflow
-- [x] `techplan` — /techplan phase workflow
-- [x] `devproposal` — /devproposal phase workflow
-- [x] `sprintplan` — /sprintplan phase workflow
-- [x] `dev` — /dev phase workflow
+## Testing
 
-### Utility
-- [x] `onboard` — Profile, auth, governance bootstrap
-- [x] `status` — Git-derived state report
-- [x] `next` — Recommended next action
-- [x] `switch` — Checkout different initiative
-- [x] `help` — Command reference
-- [x] `module-management` — Module version check, updates
-
-### Governance
-- [x] `compliance-check` — Constitution compliance scan
-- [x] `resolve-constitution` — 4-level hierarchy resolution
-- [x] `cross-initiative` — Cross-initiative sensing at gates
-
-## Skills
-- [x] `git-state` — Read-only git state queries
-- [x] `git-orchestration` — Write operations (branch, commit, push, PR)
-- [x] `constitution` — Constitutional governance
-- [x] `sensing` — Cross-initiative overlap detection
-- [x] `checklist` — Phase gate checklists
-
-## Scripts
-- [x] `install.sh` / `install.ps1` — Multi-IDE adapter installer
-- [x] `promote-branch.sh` / `promote-branch.ps1` — Branch promotion + PR creation
-- [x] `store-github-pat.sh` / `store-github-pat.ps1` — PAT setup
-
-## Contract Tests
-- [x] `branch-parsing` — Branch name parsing validation
-- [x] `governance` — Constitutional governance rules
-- [x] `provider-adapter` — Git provider REST API adapter
-- [x] `sensing` — Cross-initiative overlap detection
-
-## Documentation
-- [x] `README.md` — Module overview
-- [x] `docs/lifecycle-reference.md` — Lifecycle reference
-- [x] `docs/copilot-adapter-reference.md` — Copilot adapter reference
-- [x] `docs/copilot-adapter-templates.md` — Adapter templates
-- [x] `docs/pipeline-source-to-release.md` — CI/CD pipeline
+- [ ] Re-run BMAD module validation after each structural change
+- [ ] Smoke test installer output for GitHub Copilot, Cursor, Claude, and Codex stubs
+- [ ] Verify `module-help.csv` command ordering remains aligned with the LENS agent menu
 
 ## Next Steps
-- [ ] End-to-end integration testing with a live control repo
-- [ ] Add Windsurf IDE adapter support
-- [ ] Add JetBrains IDE adapter support
+
+- [ ] Confirm whether install-question naming remains intentionally snake_case because of installer compatibility
+- [ ] Document the dual agent representation (`.md` runtime source and `.yaml` structured companion) in release-facing docs if this pattern is retained

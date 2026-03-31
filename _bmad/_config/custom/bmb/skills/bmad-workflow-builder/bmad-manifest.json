@@ -6,7 +6,7 @@
       "menu-code": "BP",
       "description": "Build, edit, or convert workflows and skills through six-phase conversational discovery. Covers new skills, format conversion, edits, and fixes.",
       "supports-headless": true,
-      "prompt": "prompts/build-process.md",
+      "prompt": "build-process.md",
       "phase-name": "anytime",
       "output-location": "{bmad_builder_output_folder}"
     },
@@ -15,7 +15,7 @@
       "menu-code": "QO",
       "description": "Comprehensive validation and optimization using lint scripts and LLM scanner subagents. Structure, prompt craft, efficiency, and more.",
       "supports-headless": true,
-      "prompt": "prompts/quality-optimizer.md",
+      "prompt": "quality-optimizer.md",
       "phase-name": "anytime",
       "output-location": "{bmad_builder_reports}"
     }

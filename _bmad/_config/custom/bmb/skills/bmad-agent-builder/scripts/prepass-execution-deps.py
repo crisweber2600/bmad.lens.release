@@ -185,8 +185,8 @@ def scan_sequential_patterns(filepath: Path, rel_path: str) -> list[dict]:
 
     # Subagent spawning from subagent (impossible)
     if re.search(r'(?i)spawn.*subagent|launch.*subagent|create.*subagent', content):
-        # Check if this file IS a subagent (lives in agents/)
-        if '/agents/' in rel_path or rel_path.startswith('agents/'):
+        # Check if this file IS a subagent (quality-scan-* or report-* files at root)
+        if re.match(r'(?:quality-scan-|report-)', rel_path):
             patterns.append({
                 'file': rel_path,
                 'type': 'subagent-chain-violation',

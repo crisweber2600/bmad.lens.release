@@ -18,7 +18,7 @@ This control repo uses the LENS Workbench module from the release payload:
 
 ## Agent
 
-The `@lens` agent is defined at `.github/agents/lens.agent.md` and references
+The `@lens` agent is defined at `.github/agents/bmad-agent-lens-work-lens.agent.md` and references
 the module agent at `bmad.lens.release/_bmad/lens-work/agents/lens.agent.md`.
 
 ## Skills (by path reference)
@@ -41,9 +41,9 @@ the module agent at `bmad.lens.release/_bmad/lens-work/agents/lens.agent.md`.
 
 ---
 
-# Copilot Adapter: lens.agent.md Template
+# Copilot Adapter: bmad-agent-lens-work-lens.agent.md Template
 
-This is the template for the `.github/agents/lens.agent.md` file.
+This is the template for the `.github/agents/bmad-agent-lens-work-lens.agent.md` file.
 
 ---
 

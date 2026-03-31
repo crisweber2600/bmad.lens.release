@@ -16,7 +16,7 @@ Promote the current initiative from the current audience tier to the next.
 4. Use `git-state` skill → `current-audience` to determine the current audience
 5. Look up the next audience in the audience chain: small → medium → large → base
 6. If already at `base`: report "Initiative is at the final audience — no promotion available"
-7. Otherwise: execute `workflows/core/audience-promotion/workflow.md`
+7. Otherwise: execute `workflows/utility/promote/workflow.md`
 
 ## Error Handling
 

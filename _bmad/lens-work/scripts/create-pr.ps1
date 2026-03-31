@@ -255,6 +255,43 @@ function Invoke-GitHubPrCreate {
             $StatusCode = $_.Exception.Response.StatusCode.value__
             if ($StatusCode -eq 422) {
                 Write-Host "  [WARN]  PR may already exist — HTTP 422" -ForegroundColor Yellow
+
+                try {
+                    $Head = [uri]::EscapeDataString("$($RemoteInfo.Org):$Source")
+                    $Base = [uri]::EscapeDataString($Target)
+                    $ExistingPulls = Invoke-RestMethod -Uri "$ApiBase/repos/$RepoName/pulls?head=$Head&base=$Base&state=open" `
+                        -Method Get `
+                        -Headers $Headers `
+                        -TimeoutSec $Timeout `
+                        -ErrorAction Stop
+
+                    if ($ExistingPulls -is [System.Array]) {
+                        $ExistingPull = $ExistingPulls | Select-Object -First 1
+                    } else {
+                        $ExistingPull = $ExistingPulls
+                    }
+
+                    if ($ExistingPull -and $ExistingPull.html_url) {
+                        Write-Host "  [INFO]  Existing PR found: $($ExistingPull.html_url)" -ForegroundColor Cyan
+                        return @{
+                            Success  = $true
+                            Url      = $ExistingPull.html_url
+                            Number   = $ExistingPull.number
+                            Id       = $ExistingPull.id
+                            Existing = $true
+                        }
+                    }
+                } catch {
+                    Write-Host "  [WARN]  Unable to resolve existing PR after HTTP 422" -ForegroundColor Yellow
+                }
+
+                return @{
+                    Success  = $false
+                    Url      = Get-PrUrl -RemoteInfo $RemoteInfo -Source $Source -Target $Target
+                    Existing = $true
+                    Fallback = $true
+                    Error    = $_.Exception.Message
+                }
             } else {
                 Write-Host "  [ERROR] PR creation failed — HTTP $StatusCode" -ForegroundColor Red
                 Write-Host "  $($_.Exception.Message)" -ForegroundColor Red

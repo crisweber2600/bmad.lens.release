@@ -20,6 +20,53 @@ const fsHelpers = {
     }
 };
 
+function readScalarYamlValue(content, key) {
+    const match = content.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'));
+    if (!match) return undefined;
+    const rawValue = match[1].trim();
+    if ((rawValue.startsWith('"') && rawValue.endsWith('"')) || (rawValue.startsWith("'") && rawValue.endsWith("'"))) {
+        return rawValue.slice(1, -1);
+    }
+    return rawValue;
+}
+
+function toYamlString(value) {
+    return `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+function getConfigValue(config, keys, fallback) {
+    for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(config, key) && config[key] !== undefined && config[key] !== null && config[key] !== '') {
+            return config[key];
+        }
+    }
+    return fallback;
+}
+
+async function readInstalledCoreConfig(projectRoot) {
+    const candidatePaths = [
+        path.join(projectRoot, '_bmad', 'core', 'bmadconfig.yaml'),
+        path.join(projectRoot, '_bmad', 'bmb', 'bmadconfig.yaml'),
+        path.join(projectRoot, '_bmad', 'bmm', 'bmadconfig.yaml'),
+        path.join(projectRoot, '_bmad', 'cis', 'bmadconfig.yaml'),
+        path.join(projectRoot, '_bmad', 'gds', 'bmadconfig.yaml'),
+        path.join(projectRoot, '_bmad', 'tea', 'bmadconfig.yaml'),
+    ];
+
+    for (const candidatePath of candidatePaths) {
+        if (!(await fsHelpers.pathExists(candidatePath))) continue;
+        const content = await fsHelpers.readFile(candidatePath);
+        return {
+            user_name: readScalarYamlValue(content, 'user_name'),
+            communication_language: readScalarYamlValue(content, 'communication_language'),
+            document_output_language: readScalarYamlValue(content, 'document_output_language'),
+            output_folder: readScalarYamlValue(content, 'output_folder'),
+        };
+    }
+
+    return {};
+}
+
 /**
  * Copy all files from srcDir to destDir, optionally skipping existing files.
  * Only copies files (not subdirectories).
@@ -45,6 +92,22 @@ async function copyDirContents(srcDir, destDir, { skipExisting = true, logger } 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stub generators — thin adapters that redirect to module content by path
 // ─────────────────────────────────────────────────────────────────────────────
+
+function ghSkillStub(name, skill, description) {
+    return `---
+name: ${name}
+description: "${description}"
+---
+
+# ${name}
+
+Read and follow all instructions in:
+
+\`\`\`
+bmad.lens.release/_bmad/lens-work/skills/${skill}.md
+\`\`\`
+`;
+}
 
 function ghAgentStub() {
     return `\`\`\`chatagent
@@ -137,48 +200,58 @@ See \`bmad.lens.release/_bmad/lens-work/module-help.csv\` for the complete comma
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Prompt and command definitions
+// Skill, prompt and command definitions
 // ─────────────────────────────────────────────────────────────────────────────
 
+// GitHub Copilot SKILL.md stubs — one per lens-work skill
+const SKILLS = [
+    { name: 'lens-work-checklist', skill: 'checklist', desc: "LENS Workbench skill 'checklist' wrapper. Use when lifecycle and orchestration guidance from lens-work is needed." },
+    { name: 'lens-work-constitution', skill: 'constitution', desc: "LENS Workbench skill 'constitution' wrapper. Use when lifecycle and orchestration guidance from lens-work is needed." },
+    { name: 'lens-work-git-orchestration', skill: 'git-orchestration', desc: "LENS Workbench skill 'git-orchestration' wrapper. Use when lifecycle and orchestration guidance from lens-work is needed." },
+    { name: 'lens-work-git-state', skill: 'git-state', desc: "LENS Workbench skill 'git-state' wrapper. Use when lifecycle and orchestration guidance from lens-work is needed." },
+    { name: 'lens-work-sensing', skill: 'sensing', desc: "LENS Workbench skill 'sensing' wrapper. Use when lifecycle and orchestration guidance from lens-work is needed." },
+];
+
 const STUB_PROMPTS = [
-    { file: 'lens-work.onboard.prompt.md',       name: 'lens-work.onboard',       desc: 'Bootstrap control repo — detect provider, validate auth, create profile, auto-clone TargetProjects', target: 'lens-work.onboard.prompt.md' },
-    { file: 'lens-work.new-initiative.prompt.md', name: 'lens-work.new-initiative', desc: 'Create a new initiative (domain, service, or feature)',                                target: 'lens-work.new-initiative.prompt.md' },
-    { file: 'lens-work.new-domain.prompt.md',     name: 'lens-work.new-domain',     desc: 'Create new domain-level initiative with domain-only branch and folder scaffolding',   target: 'lens-work.new-initiative.prompt.md', extra: 'Invoke with scope: **domain**' },
-    { file: 'lens-work.new-service.prompt.md',    name: 'lens-work.new-service',    desc: 'Create new service-level initiative within a domain',                                  target: 'lens-work.new-initiative.prompt.md', extra: 'Invoke with scope: **service**' },
-    { file: 'lens-work.new-feature.prompt.md',    name: 'lens-work.new-feature',    desc: 'Create new feature-level initiative within a service',                                  target: 'lens-work.new-initiative.prompt.md', extra: 'Invoke with scope: **feature**' },
-    { file: 'lens-work.preplan.prompt.md',        name: 'lens-work.preplan',        desc: 'Start PrePlan phase — brainstorm, research, product brief (Mary/Analyst, small audience)', target: 'lens-work.preplan.prompt.md', noModel: true },
-    { file: 'lens-work.businessplan.prompt.md',   name: 'lens-work.businessplan',   desc: 'Start BusinessPlan phase — PRD creation, UX design (John/PM + Sally/UX, small audience)', target: 'lens-work.businessplan.prompt.md' },
-    { file: 'lens-work.techplan.prompt.md',       name: 'lens-work.techplan',       desc: 'Start TechPlan phase — architecture document, technical decisions (Winston/Architect)', target: 'lens-work.techplan.prompt.md' },
-    { file: 'lens-work.devproposal.prompt.md',    name: 'lens-work.devproposal',    desc: 'Start DevProposal phase — epics, stories, readiness check (John/PM, medium audience)', target: 'lens-work.devproposal.prompt.md' },
-    { file: 'lens-work.sprintplan.prompt.md',     name: 'lens-work.sprintplan',     desc: 'Start SprintPlan phase — sprint-status, story files (Bob/Scrum Master, large audience)', target: 'lens-work.sprintplan.prompt.md' },
-    { file: 'lens-work.dev.prompt.md',            name: 'lens-work.dev',            desc: 'Launch Dev phase — epic-level implementation loop with per-task commits, code review, and retrospective (Amelia/Developer, base audience)', target: 'lens-work.dev.prompt.md', noModel: true },
-    { file: 'lens-work.status.prompt.md',         name: 'lens-work.status',         desc: 'Show consolidated status report across all active initiatives',                        target: 'lens-work.status.prompt.md' },
-    { file: 'lens-work.next.prompt.md',           name: 'lens-work.next',           desc: 'Recommend next action based on lifecycle state',                                        target: 'lens-work.next.prompt.md' },
-    { file: 'lens-work.discover.prompt.md',       name: 'lens-work.discover',       desc: 'Discover repos under TargetProjects and update governance inventory',                   target: 'lens-work.discover.prompt.md' },
-    { file: 'lens-work.switch.prompt.md',         name: 'lens-work.switch',         desc: 'Switch to a different initiative via git checkout',                                     target: 'lens-work.switch.prompt.md' },
-    { file: 'lens-work.promote.prompt.md',        name: 'lens-work.promote',        desc: 'Promote current audience to next level with gate checks',                               target: 'lens-work.promote.prompt.md' },
-    { file: 'lens-work.constitution.prompt.md',   name: 'lens-work.constitution',   desc: 'Resolve and display constitutional governance',                                         target: 'lens-work.constitution.prompt.md' },
-    { file: 'lens-work.help.prompt.md',           name: 'lens-work.help',           desc: 'Show available commands and usage',                                                      target: 'lens-work.help.prompt.md' },
+    { file: 'lens-work.onboard.prompt.md', name: 'lens-work.onboard', desc: 'Bootstrap control repo — detect provider, validate auth, create profile, auto-clone TargetProjects', target: 'lens-work.onboard.prompt.md' },
+    { file: 'lens-work.new-initiative.prompt.md', name: 'lens-work.new-initiative', desc: 'Create a new initiative (domain, service, or feature)', target: 'lens-work.new-initiative.prompt.md' },
+    { file: 'lens-work.new-domain.prompt.md', name: 'lens-work.new-domain', desc: 'Create new domain-level initiative with domain-only branch and folder scaffolding', target: 'lens-work.new-initiative.prompt.md', extra: 'Invoke with scope: **domain**' },
+    { file: 'lens-work.new-service.prompt.md', name: 'lens-work.new-service', desc: 'Create new service-level initiative within a domain', target: 'lens-work.new-initiative.prompt.md', extra: 'Invoke with scope: **service**' },
+    { file: 'lens-work.new-feature.prompt.md', name: 'lens-work.new-feature', desc: 'Create new feature-level initiative within a service', target: 'lens-work.new-initiative.prompt.md', extra: 'Invoke with scope: **feature**' },
+    { file: 'lens-work.preplan.prompt.md', name: 'lens-work.preplan', desc: 'Start PrePlan phase — brainstorm, research, product brief (Mary/Analyst, small audience)', target: 'lens-work.preplan.prompt.md', noModel: true },
+    { file: 'lens-work.businessplan.prompt.md', name: 'lens-work.businessplan', desc: 'Start BusinessPlan phase — PRD creation, UX design (John/PM + Sally/UX, small audience)', target: 'lens-work.businessplan.prompt.md' },
+    { file: 'lens-work.techplan.prompt.md', name: 'lens-work.techplan', desc: 'Start TechPlan phase — architecture document, technical decisions (Winston/Architect)', target: 'lens-work.techplan.prompt.md' },
+    { file: 'lens-work.devproposal.prompt.md', name: 'lens-work.devproposal', desc: 'Start DevProposal phase — epics, stories, readiness check (John/PM, medium audience)', target: 'lens-work.devproposal.prompt.md' },
+    { file: 'lens-work.sprintplan.prompt.md', name: 'lens-work.sprintplan', desc: 'Start SprintPlan phase — sprint-status, story files (Bob/Scrum Master, large audience)', target: 'lens-work.sprintplan.prompt.md' },
+    { file: 'lens-work.dev.prompt.md', name: 'lens-work.dev', desc: 'Launch Dev phase — epic-level implementation loop with per-task commits, code review, and retrospective (Amelia/Developer, base audience)', target: 'lens-work.dev.prompt.md', noModel: true },
+    { file: 'lens-work.status.prompt.md', name: 'lens-work.status', desc: 'Show consolidated status report across all active initiatives', target: 'lens-work.status.prompt.md' },
+    { file: 'lens-work.next.prompt.md', name: 'lens-work.next', desc: 'Recommend next action based on lifecycle state', target: 'lens-work.next.prompt.md' },
+    { file: 'lens-work.discover.prompt.md', name: 'lens-work.discover', desc: 'Discover repos under TargetProjects and update governance inventory', target: 'lens-work.discover.prompt.md' },
+    { file: 'lens-work.switch.prompt.md', name: 'lens-work.switch', desc: 'Switch to a different initiative via git checkout', target: 'lens-work.switch.prompt.md' },
+    { file: 'lens-work.promote.prompt.md', name: 'lens-work.promote', desc: 'Promote current audience to next level with gate checks', target: 'lens-work.promote.prompt.md' },
+    { file: 'lens-work.sense.prompt.md', name: 'lens-work.sense', desc: 'Run cross-initiative overlap detection on demand', target: 'lens-work.sense.prompt.md' },
+    { file: 'lens-work.constitution.prompt.md', name: 'lens-work.constitution', desc: 'Resolve and display constitutional governance', target: 'lens-work.constitution.prompt.md' },
+    { file: 'lens-work.help.prompt.md', name: 'lens-work.help', desc: 'Show available commands and usage', target: 'lens-work.help.prompt.md' },
 ];
 
 const IDE_COMMANDS = [
-    { file: 'bmad-lens-work-onboard.md',          name: 'onboard',          desc: 'Create profile + run bootstrap + auto-clone TargetProjects',          wf: 'workflows/utility/onboard/workflow.md' },
-    { file: 'bmad-lens-work-init-initiative.md',   name: 'init-initiative',   desc: 'Create new initiative (domain/service/feature) with branch topology', wf: 'workflows/router/init-initiative/workflow.md' },
-    { file: 'bmad-lens-work-preplan.md',           name: 'preplan',           desc: 'Launch PrePlan phase (brainstorm/research/product brief)',             wf: 'workflows/router/preplan/workflow.md' },
-    { file: 'bmad-lens-work-businessplan.md',      name: 'businessplan',      desc: 'Launch BusinessPlan phase (PRD/UX design)',                           wf: 'workflows/router/businessplan/workflow.md' },
-    { file: 'bmad-lens-work-techplan.md',          name: 'techplan',          desc: 'Launch TechPlan phase (architecture/technical decisions)',              wf: 'workflows/router/techplan/workflow.md' },
-    { file: 'bmad-lens-work-devproposal.md',       name: 'devproposal',       desc: 'Launch DevProposal phase (epics/stories/readiness check)',            wf: 'workflows/router/devproposal/workflow.md' },
-    { file: 'bmad-lens-work-sprintplan.md',        name: 'sprintplan',        desc: 'Launch SprintPlan phase (sprint-status/story files)',                 wf: 'workflows/router/sprintplan/workflow.md' },
-    { file: 'bmad-lens-work-dev.md',               name: 'dev',               desc: 'Delegate to implementation agents in target projects',                wf: 'workflows/router/dev/workflow.md' },
-    { file: 'bmad-lens-work-status.md',            name: 'status',            desc: 'Display current state, blocks, topology, next steps',                 wf: 'workflows/utility/status/workflow.md' },
-    { file: 'bmad-lens-work-next.md',              name: 'next',              desc: 'Recommend next action based on lifecycle state',                       wf: 'workflows/utility/next/workflow.md' },
-    { file: 'bmad-lens-work-switch.md',            name: 'switch',            desc: 'Switch to different initiative branch',                                wf: 'workflows/utility/switch/workflow.md' },
-    { file: 'bmad-lens-work-help.md',              name: 'help',              desc: 'Show available commands and usage reference',                          wf: 'workflows/utility/help/workflow.md' },
-    { file: 'bmad-lens-work-promote.md',           name: 'promote',           desc: 'Promote current audience to next tier with gate checks',              wf: 'workflows/core/audience-promotion/workflow.md' },
-    { file: 'bmad-lens-work-constitution.md',      name: 'constitution',      desc: 'Resolve and display constitutional governance',                       wf: 'workflows/governance/resolve-constitution/workflow.md' },
-    { file: 'bmad-lens-work-compliance.md',        name: 'compliance',        desc: 'Run constitution compliance check on current initiative',              wf: 'workflows/governance/compliance-check/workflow.md' },
-    { file: 'bmad-lens-work-sense.md',             name: 'sense',             desc: 'Cross-initiative overlap detection on demand',                        wf: 'workflows/governance/cross-initiative/workflow.md' },
-    { file: 'bmad-lens-work-module-management.md', name: 'module-management', desc: 'Check module version and guide self-service updates',                 wf: 'workflows/utility/module-management/workflow.md' },
+    { file: 'bmad-lens-work-onboard.md', name: 'onboard', desc: 'Create profile + run bootstrap + auto-clone TargetProjects', wf: 'workflows/utility/onboard/workflow.md' },
+    { file: 'bmad-lens-work-init-initiative.md', name: 'init-initiative', desc: 'Create new initiative (domain/service/feature) with branch topology', wf: 'workflows/router/init-initiative/workflow.md' },
+    { file: 'bmad-lens-work-preplan.md', name: 'preplan', desc: 'Launch PrePlan phase (brainstorm/research/product brief)', wf: 'workflows/router/preplan/workflow.md' },
+    { file: 'bmad-lens-work-businessplan.md', name: 'businessplan', desc: 'Launch BusinessPlan phase (PRD/UX design)', wf: 'workflows/router/businessplan/workflow.md' },
+    { file: 'bmad-lens-work-techplan.md', name: 'techplan', desc: 'Launch TechPlan phase (architecture/technical decisions)', wf: 'workflows/router/techplan/workflow.md' },
+    { file: 'bmad-lens-work-devproposal.md', name: 'devproposal', desc: 'Launch DevProposal phase (epics/stories/readiness check)', wf: 'workflows/router/devproposal/workflow.md' },
+    { file: 'bmad-lens-work-sprintplan.md', name: 'sprintplan', desc: 'Launch SprintPlan phase (sprint-status/story files)', wf: 'workflows/router/sprintplan/workflow.md' },
+    { file: 'bmad-lens-work-dev.md', name: 'dev', desc: 'Delegate to implementation agents in target projects', wf: 'workflows/router/dev/workflow.md' },
+    { file: 'bmad-lens-work-status.md', name: 'status', desc: 'Display current state, blocks, topology, next steps', wf: 'workflows/utility/status/workflow.md' },
+    { file: 'bmad-lens-work-next.md', name: 'next', desc: 'Recommend next action based on lifecycle state', wf: 'workflows/utility/next/workflow.md' },
+    { file: 'bmad-lens-work-switch.md', name: 'switch', desc: 'Switch to different initiative branch', wf: 'workflows/utility/switch/workflow.md' },
+    { file: 'bmad-lens-work-help.md', name: 'help', desc: 'Show available commands and usage reference', wf: 'workflows/utility/help/workflow.md' },
+    { file: 'bmad-lens-work-promote.md', name: 'promote', desc: 'Promote current audience to next tier with gate checks', wf: 'workflows/utility/promote/workflow.md' },
+    { file: 'bmad-lens-work-constitution.md', name: 'constitution', desc: 'Resolve and display constitutional governance', wf: 'workflows/governance/resolve-constitution/workflow.md' },
+    { file: 'bmad-lens-work-compliance.md', name: 'compliance', desc: 'Run constitution compliance check on current initiative', wf: 'workflows/governance/compliance-check/workflow.md' },
+    { file: 'bmad-lens-work-sense.md', name: 'sense', desc: 'Cross-initiative overlap detection on demand', wf: 'workflows/governance/cross-initiative/workflow.md' },
+    { file: 'bmad-lens-work-module-management.md', name: 'module-management', desc: 'Check module version and guide self-service updates', wf: 'workflows/utility/module-management/workflow.md' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -204,9 +277,10 @@ async function writeAdapterFile(filePath, content, { updateMode, logger }) {
 async function installGitHubCopilot(projectRoot, { updateMode, logger }) {
     logger.log('Installing GitHub Copilot adapter...');
 
-    const ghDir      = path.join(projectRoot, '.github');
-    const agentsDir  = path.join(ghDir, 'agents');
+    const ghDir = path.join(projectRoot, '.github');
+    const agentsDir = path.join(ghDir, 'agents');
     const promptsDir = path.join(ghDir, 'prompts');
+    const skillsDir = path.join(ghDir, 'skills');
 
     // Agent stub
     await writeAdapterFile(
@@ -234,6 +308,15 @@ async function installGitHubCopilot(projectRoot, { updateMode, logger }) {
         await writeAdapterFile(
             path.join(promptsDir, p.file),
             ghStubPrompt(p.name, p.desc, p.target, p.extra, { noModel: !!p.noModel }),
+            { updateMode, logger }
+        );
+    }
+
+    // Skill stubs
+    for (const s of SKILLS) {
+        await writeAdapterFile(
+            path.join(skillsDir, s.name, 'SKILL.md'),
+            ghSkillStub(s.name, s.skill, s.desc),
             { updateMode, logger }
         );
     }
@@ -320,6 +403,7 @@ async function install(options) {
     try {
         const modeLabel = updateMode ? 'Updating' : 'Installing';
         logger.log(`${modeLabel} LENS Workbench (lens-work)...`);
+        const coreConfig = await readInstalledCoreConfig(projectRoot);
 
         // ── Phase 1: Output directories ─────────────────────────────────
         const outputDir = path.join(projectRoot, '_bmad-output', 'lens-work');
@@ -335,18 +419,33 @@ async function install(options) {
         const configDir = path.join(projectRoot, '_bmad', 'lens-work');
         await fsHelpers.ensureDir(configDir);
 
+        const targetProjectsPath = getConfigValue(config, ['target-projects-path', 'target_projects_path'], '../TargetProjects');
+        const defaultGitRemote = getConfigValue(config, ['default-git-remote', 'default_git_remote'], 'github');
+
         const configFile = path.join(configDir, 'bmadconfig.yaml');
         if (!(await fsHelpers.pathExists(configFile))) {
             const configContent = [
                 '# LENS Workbench Configuration',
                 '# Generated during installation',
                 '',
-                '# TargetProjects path (where repos are cloned)',
-                `target_projects_path: "${config.target_projects_path || '../TargetProjects'}"`,
+                `project_name: ${toYamlString(path.basename(projectRoot))}`,
+                'user_skill_level: intermediate',
+                'planning_artifacts: "{project-root}/_bmad-output/planning-artifacts"',
+                'implementation_artifacts: "{project-root}/_bmad-output/implementation-artifacts"',
+                'project_knowledge: "{project-root}/docs"',
                 '',
-                '# Git settings',
-                'git:',
-                `  default_remote: ${config.default_git_remote || 'github'}`,
+                '# Lens-work module defaults',
+                `target_projects_path: ${toYamlString(targetProjectsPath)}`,
+                `default_git_remote: ${toYamlString(defaultGitRemote)}`,
+                'lifecycle_contract: "{project-root}/_bmad/lens-work/lifecycle.yaml"',
+                'initiative_output_folder: "{project-root}/_bmad-output/lens-work/initiatives"',
+                'personal_output_folder: "{project-root}/_bmad-output/lens-work/personal"',
+                '',
+                '# Core Configuration Values',
+                `user_name: ${toYamlString(coreConfig.user_name || config.user_name || 'User')}`,
+                `communication_language: ${toYamlString(coreConfig.communication_language || config.communication_language || 'English')}`,
+                `document_output_language: ${toYamlString(coreConfig.document_output_language || config.document_output_language || 'English')}`,
+                `output_folder: ${toYamlString(coreConfig.output_folder || config.output_folder || '{project-root}/_bmad-output')}`,
                 '',
             ].join('\n');
             await fsHelpers.writeFile(configFile, configContent);
@@ -356,9 +455,9 @@ async function install(options) {
         // ── Phase 3: IDE adapters ───────────────────────────────────────
         const IDE_HANDLERS = {
             'github-copilot': installGitHubCopilot,
-            'cursor':         installCursor,
-            'claude':         installClaude,
-            'codex':          installCodex,
+            'cursor': installCursor,
+            'claude': installClaude,
+            'codex': installCodex,
         };
 
         const ides = installedIDEs && installedIDEs.length > 0

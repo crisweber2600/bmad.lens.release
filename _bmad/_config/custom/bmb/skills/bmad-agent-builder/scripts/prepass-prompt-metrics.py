@@ -357,25 +357,24 @@ def scan_prompt_metrics(skill_path: Path) -> dict:
         data['is_skill_md'] = True
         files_data.append(data)
 
-    # Prompts — also extract frontmatter
-    prompts_dir = skill_path / 'prompts'
+    # Prompt files at skill root — also extract frontmatter
     prompt_frontmatters: dict[str, dict] = {}
+    skip_files = {'SKILL.md', 'bmad-manifest.json', 'bmad-skill-manifest.yaml'}
 
-    if prompts_dir.exists():
-        for f in sorted(prompts_dir.iterdir()):
-            if f.is_file() and f.suffix == '.md':
-                data = scan_file_patterns(f, f'prompts/{f.name}')
-                data['is_skill_md'] = False
+    for f in sorted(skill_path.iterdir()):
+        if f.is_file() and f.suffix == '.md' and f.name not in skip_files and f.name != 'SKILL.md':
+            data = scan_file_patterns(f, f.name)
+            data['is_skill_md'] = False
 
-                # Parse prompt frontmatter
-                pfm = parse_prompt_frontmatter(f)
-                data['prompt_frontmatter'] = pfm
+            # Parse prompt frontmatter
+            pfm = parse_prompt_frontmatter(f)
+            data['prompt_frontmatter'] = pfm
 
-                # Use stem as key for manifest alignment
-                prompt_name = pfm.get('fields', {}).get('name', f.stem)
-                prompt_frontmatters[prompt_name] = pfm
+            # Use stem as key for manifest alignment
+            prompt_name = pfm.get('fields', {}).get('name', f.stem)
+            prompt_frontmatters[prompt_name] = pfm
 
-                files_data.append(data)
+            files_data.append(data)
 
     # Resources (just sizes, for progressive disclosure assessment)
     resources_dir = skill_path / 'resources'

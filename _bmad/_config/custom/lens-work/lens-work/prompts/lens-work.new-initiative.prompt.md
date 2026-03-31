@@ -9,7 +9,7 @@ You are the `@lens` agent creating a new initiative in the control repo.
 
 ## What This Prompt Does
 
-Routes `/new-domain`, `/new-service`, and `/new-feature` commands to the init-initiative workflow, which creates the initiative's branch topology, config, and sensing report.
+Routes `/new-domain`, `/new-service`, and `/new-feature` commands to the init-initiative workflow, which creates the initiative's branch topology, config, and overlap sensing output.
 
 ## Parameters
 
@@ -45,7 +45,7 @@ The workflow handles:
 - Slug-safe name validation
 - Track selection and lifecycle.yaml validation (feature scope only — domain/service skip track)
 - Cross-initiative sensing (pre-creation)
-- Branch topology creation (domain/service: root only; feature: root + small)
+- Branch topology creation (domain/service: root only; feature: root + small, with higher audiences created lazily)
 - Initiative config creation and commit
 - Response formatting (Context Header → Primary Content → Next Step)
 

@@ -1,93 +1,51 @@
+---
+name: compliance-check
+description: Resolve constitution requirements and evaluate initiative artifacts against them
+agent: "@lens"
+trigger: Internal governance gate and on-demand compliance command
+category: governance
+phase_name: governance
+display_name: Compliance Check
+entryStep: './steps/step-01-preflight.md'
+inputs:
+	phase:
+		description: Optional phase override for the compliance check
+		required: false
+		default: ""
+	artifacts_path:
+		description: Optional artifacts root override
+		required: false
+		default: ""
+---
+
 # Compliance Check Workflow
 
-**Phase:** Governance
-**Purpose:** Run constitution compliance checks at PR gates.
-**Trigger:** Invoked by phase-lifecycle (before phase PR) and audience-promotion (before promotion PR).
+**Goal:** Resolve the effective constitution for the active initiative, evaluate artifact compliance for the requested phase, and return a PR-ready compliance summary.
 
-## Overview
+**Your Role:** Operate as a governance gate wrapper. Keep the workflow read-only, use constitution skill contracts directly, and fail only when hard-gate requirements are unresolved.
 
-This workflow resolves the constitutional requirements for an initiative and evaluates compliance against current artifacts. Results are formatted for embedding in PR descriptions.
+---
 
-## Steps
+## WORKFLOW ARCHITECTURE
 
-### Step 0: Run Preflight
+This workflow uses **step-file architecture**:
 
-Run preflight before executing this workflow:
+- Step 1 runs shared preflight and derives the initiative and phase context.
+- Step 2 resolves the effective constitution.
+- Step 3 evaluates compliance for the current phase and artifacts path.
+- Step 4 renders the compliance summary and blocks on hard-gate failures.
 
-1. Execute shared preflight from `_bmad/lens-work/workflows/includes/preflight.md`.
-2. If preflight reports missing authority repos, stop and direct the user to run `/onboard` first.
+State persists through `initiative_state`, `initiative_config`, `current_phase`, `artifacts_path`, `resolved_constitution`, and `compliance_result`.
 
-### Step 1: Resolve Constitution
+---
 
-Invoke the constitution skill `resolve-constitution` with the current initiative's domain, service, and repo context.
+## EXECUTION
 
-**Input:**
-- Domain and service from initiative config
-- Repo from governance repo structure (if Level 4 exists)
+Read fully and follow: `{entryStep}`
 
-**Output:** Resolved constitution with all merged requirements
+### Step Map
 
-### Step 2: Evaluate Compliance
-
-Invoke the constitution skill `check-compliance` with:
-- Resolved constitution
-- Current phase
-- Artifacts path for this initiative
-
-### Step 3: Process Results
-
-For each compliance check result:
-
-| Status | Action |
-|--------|--------|
-| PASS | Include as ✅ in report |
-| FAIL (hard gate) | **BLOCK** — do not create PR, report error |
-| FAIL (informational) | Include as ⚠️ warning in report |
-| NOT-APPLICABLE | Include as ⬜ N/A in report |
-
-### Step 4: Format for PR Body
-
-Generate the compliance section for the PR description:
-
-```markdown
-### Constitution Compliance
-
-| Requirement | Status | Details |
-|-------------|--------|---------|
-| PRD required | ✅ PASS | prd.md exists and is non-empty |
-| UX design required | ✅ PASS | ux-design.md (or ux-design-specification.md) exists and is non-empty |
-| Architecture required | ⬜ N/A | Not required for this phase |
-
-**Overall:** ✅ PASS — All requirements satisfied
-```
-
-### Hard Gate Failure
-
-If any hard-gate requirement fails, the PR is BLOCKED:
-
-```
-❌ Constitution Compliance FAILED — PR Cannot Be Created
-
-## Hard Gate Failures
-- **PRD required:** prd.md is missing from phases/businessplan/
-- **UX design required:** ux-design.md (or ux-design-specification.md) is missing or empty
-
-Fix these issues and try again. Hard gate failures must be resolved
-before the PR can be created.
-```
-
-## Integration Points
-
-### Phase-Lifecycle (Story 4.1)
-
-Compliance check runs BEFORE phase PR creation:
-1. Run compliance check
-2. If hard gate failure → block with error, do NOT create PR
-3. If all pass or informational-only → create PR with compliance section in body
-
-### Audience-Promotion (Story 7.1)
-
-Compliance check runs as part of pre-promotion gate checks:
-1. Run compliance check for ALL phases in current audience
-2. Results embedded in promotion PR body
-3. Hard gate failures block promotion
+1. `step-01-preflight.md` - Preflight and initiative context
+2. `step-02-resolve-constitution.md` - Resolve effective constitution
+3. `step-03-run-compliance.md` - Execute constitutional compliance checks
+4. `step-04-render-result.md` - Render summary and hard-gate failures

@@ -8,7 +8,7 @@
 
 ## Purpose
 
-Derive initiative state from git primitives. No runtime state files. This skill replaces v1's `state-management.md` entirely.
+Derive initiative state from git primitives and committed YAML state. `initiative-state.yaml` is the single source of truth for runtime state. This skill replaces v1's `state-management.md` entirely.
 
 **Design Axiom A1:** Git is the only source of truth. No git-ignored runtime state. No `event-log.jsonl`.
 
@@ -22,7 +22,7 @@ Derive initiative state from git primitives. No runtime state files. This skill 
 
 | Source | Purpose |
 |--------|---------|
-| `git symbolic-ref --short HEAD` | Current branch → initiative, audience, phase |
+| `git symbolic-ref --short HEAD` | Current branch → active initiative lookup key |
 | `git branch --list` | Branch existence → what's been started |
 | `git log --oneline` | Commit history inspection |
 | `git show <branch>:<path>` | Cross-branch config reads without checkout |
@@ -33,20 +33,22 @@ Derive initiative state from git primitives. No runtime state files. This skill 
 
 ### `current-initiative`
 
-Parse HEAD branch name to extract initiative root and read initiative config.
+Resolve the active initiative from the current branch and read its committed state file.
 
 **Algorithm:**
 ```bash
 BRANCH=$(git symbolic-ref --short HEAD)
-INITIATIVE_ROOT=$(echo "$BRANCH" | sed -E 's/-(small|medium|large|base)(-.*)?$//')
+# Branch name is a lookup key only. Use the active initiative config and committed
+# initiative-state.yaml to resolve the matching initiative record.
 ```
 
 **Output:**
 ```yaml
 initiative_root: foo-bar-auth
-branch: foo-bar-auth-small-techplan
-scope: feature        # derived from config or segment count
+branch: foo-bar-auth-techplan
+scope: feature
 config_path: _bmad-output/lens-work/initiatives/foo/bar/auth.yaml
+state_path: _bmad-output/lens-work/initiatives/foo/bar/auth/initiative-state.yaml
 ```
 
 **Config path resolution:**
@@ -58,19 +60,20 @@ The config path depends on initiative scope (segment count in root):
 When the config file exists, read the `scope` field to resolve ambiguity.
 
 **Edge cases:**
-- Root-only branch (no audience suffix): initiative is at root level
+- Root-only branch (no milestone suffix): initiative is at root level
 - Non-initiative branch (main, develop): return `null` initiative
+- Missing `initiative-state.yaml`: fall back to legacy branch-suffix detection and warn the user to run `/lens-upgrade`
 
 ---
 
 ### `current-phase`
 
-Parse branch name to extract active phase suffix after audience token.
+Read the active phase directly from `initiative-state.yaml`.
 
 **Algorithm:**
 ```bash
-PHASE=$(echo "$BRANCH" | sed -E 's/^.*-(small|medium|large|base)-//')
-# If branch is {root}-{audience} with no phase suffix, PHASE is empty
+# Read initiative-state.yaml for the active initiative.
+# Use state.phase as the authoritative current phase.
 ```
 
 **Output:**
@@ -78,72 +81,70 @@ PHASE=$(echo "$BRANCH" | sed -E 's/^.*-(small|medium|large|base)-//')
 phase: techplan
 display_name: TechPlan
 agent: winston
-audience: small
+milestone: techplan
 ```
 
 **Edge cases:**
-- Audience branch with no phase suffix: `phase: null` (between phases)
-- Root-only branch: `phase: null`, `audience: null`
+- Missing `initiative-state.yaml`: fall back to legacy branch-suffix detection and warn the user
+- Root-only branch: `phase: null`, `milestone: null`
 
 ---
 
-### `current-audience`
+### `current-milestone`
 
-Parse audience token from branch name.
+Read the active milestone directly from `initiative-state.yaml`.
 
 **Algorithm:**
 ```bash
-AUDIENCE=$(echo "$BRANCH" | grep -oE '(small|medium|large|base)')
+# Read initiative-state.yaml for the active initiative.
+# Use state.milestone as the authoritative branch milestone token.
 ```
 
 **Output:**
 ```yaml
-audience: small
+milestone: techplan
 role: "IC creation work"
 ```
 
 **Edge cases:**
-- No audience token found: on initiative root or non-initiative branch
+- No `initiative-state.yaml` found: warn and fall back to legacy branch-suffix detection
 
 ---
 
 ### `phase-status(phase)`
 
-Check PR state for a specific phase to determine completion.
+Read initiative state for a specific phase to determine completion.
 
 **Algorithm:**
 ```bash
-# Phase complete IFF merged PR exists from phase branch → audience branch
-# Uses provider adapter for PR queries
-provider-adapter query-pr-status \
-  --head "${INITIATIVE_ROOT}-${AUDIENCE}-${PHASE}" \
-  --base "${INITIATIVE_ROOT}-${AUDIENCE}" \
-  --state merged
+# Read initiative-state.yaml for the active initiative.
+# A phase is complete when artifacts.${PHASE} exists or the current state has advanced beyond
+# ${PHASE} with phase_status == complete on the same milestone chain.
+# Commit markers remain an audit trail, not the primary query path.
 ```
 
 **Output:**
 ```yaml
 phase: techplan
+milestone: techplan
 status: complete    # complete | in-progress | not-started
-branch_exists: true
-pr_state: merged    # merged | open | closed | none
+state_source: initiative-state.yaml
 ```
 
 **Derivation rules:**
-- Branch does not exist → `not-started`
-- Branch exists, no PR → `in-progress`
-- Branch exists, PR open → `in-progress` (pending review)
-- Branch exists, PR merged → `complete`
+- `artifacts.${PHASE}` exists or current phase moved past `${PHASE}` with completed status → `complete`
+- Current phase equals `${PHASE}` and `phase_status == in-progress` → `in-progress`
+- No recorded phase state yet → `not-started`
 
 ---
 
 ### `promotion-status(from, to)`
 
-Check PR state for audience-to-audience promotion.
+Check PR state for milestone-to-milestone promotion.
 
 **Algorithm:**
 ```bash
-# Promotion complete IFF merged PR exists from source audience → target audience
+# Promotion complete IFF merged PR exists from source milestone → target milestone
 provider-adapter query-pr-status \
   --head "${INITIATIVE_ROOT}-${FROM}" \
   --base "${INITIATIVE_ROOT}-${TO}" \
@@ -152,8 +153,8 @@ provider-adapter query-pr-status \
 
 **Output:**
 ```yaml
-from: small
-to: medium
+from: techplan
+to: devproposal
 status: complete    # complete | in-progress | not-started
 pr_state: merged    # merged | open | closed | none
 ```
@@ -166,22 +167,10 @@ List all active initiative roots, optionally filtered by domain.
 
 **Algorithm:**
 ```bash
-# List all initiative-root branches, deduplicate
-git branch -a \
-  | sed -E 's/^[*[:space:]]+//' \
-  | sed '/^remotes\/origin\/HEAD ->/d' \
-  | sed 's#^remotes/origin/##' \
-  | sed -E 's/-(small|medium|large|base)(-.*)?$//' \
-  | sort -u
-
-# Filter by domain if specified
-git branch -a \
-  | sed -E 's/^[*[:space:]]+//' \
-  | sed '/^remotes\/origin\/HEAD ->/d' \
-  | sed 's#^remotes/origin/##' \
-  | grep -E "^${DOMAIN}-" \
-  | sed -E 's/-(small|medium|large|base)(-.*)?$//' \
-  | sort -u
+# Enumerate committed initiative-state.yaml files under:
+# _bmad-output/lens-work/initiatives/
+# Filter by lifecycle_status == active and optionally by domain.
+# Branch scanning is not the discovery mechanism in v3.
 ```
 
 **Output:**
@@ -263,20 +252,21 @@ artifact_count: 1
 
 ---
 
-## v1 → v2 State Derivation Comparison
+## v2 → v3 State Derivation Comparison
 
-| Question | v2 (git-derived) |
+| Question | v2 (git-derived) | v3 (initiative-state.yaml) |
 |----------|-------------------|
-| Current initiative | Parse `git symbolic-ref --short HEAD` |
-| Current phase | Parse branch name suffix after audience |
-| Current audience | Parse branch name for audience token |
-| Completed phases | Query merged PRs via provider adapter |
-| Promotion status | Query merged PRs via provider adapter |
-| Active initiatives | `git branch --list` + parse roots |
+| Current initiative | Parse `git symbolic-ref --short HEAD` | Branch lookup key only; read `initiative-state.yaml` |
+| Current phase | Parse branch suffix | Read `initiative-state.yaml.phase` |
+| Current milestone | N/A | Read `initiative-state.yaml.milestone` |
+| Completed phases | Query merged PRs via provider adapter | Provider PRs + committed phase markers |
+| Promotion status | Query merged PRs via provider adapter | Provider PRs + milestone branch merge status |
+| Active initiatives | `git branch --list` + parse roots | Enumerate `_bmad-output/lens-work/initiatives/**/initiative-state.yaml` |
 | Initiative config | Dual-written (stale) | Committed on initiative branch (single source) |
 | Event history | `event-log.jsonl` (git-ignored, lost) | PR descriptions + commit messages |
 
 ## Dependencies
 
-- `lifecycle.yaml` — for valid audience tokens and phase names
-- Provider adapter (skills/provider-adapter.md) — for PR state queries
+- `lifecycle.yaml` — for valid milestone tokens and phase names
+- `initiative-state.yaml` — for authoritative initiative runtime state
+- `git-orchestration` skill (provider adapter section) — for PR state queries

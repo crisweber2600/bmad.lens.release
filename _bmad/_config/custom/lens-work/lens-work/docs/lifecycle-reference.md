@@ -78,7 +78,7 @@ Audience → Next audience           (promotion PR with gates)
 
 ### Lazy Branch Creation
 
-Only `{root}` and `{root}-small` are created at init. Higher audience branches are created on-demand at promotion time.
+Only `{root}` and `{root}-small` are created at init. Higher audience branches are created lazily when a promotion requires them.
 
 ## Commands Reference
 
