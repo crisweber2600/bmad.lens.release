@@ -29,6 +29,8 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$Org = "",
 
+    [string]$ControlDir = "",
+
     [string]$ReleaseOrg = "",
 
     [string]$ReleaseRepo = "bmad.lens.release",
@@ -67,6 +69,15 @@ catch {
     # Fallback: this script lives at _bmad\lens-work\scripts\
     $scriptDir = Split-Path -Parent $PSCommandPath
     $ProjectRoot = (Resolve-Path (Join-Path $scriptDir "..\..\..")).Path
+}
+
+# -- Apply -ControlDir override if provided ----------------------------------
+if ($ControlDir -and $ControlDir -ne "") {
+    $ControlDir = (Resolve-Path -Path $ControlDir -ErrorAction SilentlyContinue).Path
+    if (-not $ControlDir) {
+        $ControlDir = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $PSBoundParameters['ControlDir']))
+    }
+    $ProjectRoot = $ControlDir
 }
 
 # Derive governance defaults from control repo name unless explicitly provided.
@@ -424,8 +435,32 @@ function Invoke-SetupWizard {
     Write-Host "  Press Enter to accept defaults shown in [brackets]." -ForegroundColor DarkGray
     Write-Host ""
 
-    # -- Step 1: GitHub Account -----------------------------------------------
-    Write-Host "Step 1: GitHub Account" -ForegroundColor White
+    # -- Step 1: Control Repo Directory ----------------------------------------
+    Write-Host "Step 1: Control Repo Directory" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  The directory where your control repo will be set up." -ForegroundColor DarkGray
+
+    $wizardDir = Read-WithDefault -Prompt "Control repo directory" -Default $ProjectRoot
+    if ($wizardDir -and $wizardDir -ne $ProjectRoot) {
+        $resolved = $null
+        try { $resolved = (Resolve-Path -Path $wizardDir -ErrorAction Stop).Path } catch {}
+        if (-not $resolved) {
+            $resolved = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $wizardDir))
+        }
+        $script:ProjectRoot = $resolved
+        # Re-derive governance defaults from new directory
+        $controlRepoName = Split-Path -Leaf $script:ProjectRoot
+        $derivedControlName = $controlRepoName
+        if ($derivedControlName -match "\.src$") {
+            $derivedControlName = $derivedControlName -replace "\.src$", ".bmad"
+        }
+        $script:GovernanceRepo = "$derivedControlName.governance"
+        $script:GovernancePath = Join-Path "TargetProjects\lens" $script:GovernanceRepo
+    }
+    Write-Host ""
+
+    # -- Step 2: GitHub Account -----------------------------------------------
+    Write-Host "Step 2: GitHub Account" -ForegroundColor White
     Write-Host ""
 
     $detectedUser = Get-DetectedGitHubUsername
@@ -437,8 +472,8 @@ function Invoke-SetupWizard {
     $script:Org = Read-WithDefault -Prompt "GitHub org or username" -Default $defaultUser
     Write-Host ""
 
-    # -- Step 2: GitHub Server ------------------------------------------------
-    Write-Host "Step 2: GitHub Server" -ForegroundColor White
+    # -- Step 3: GitHub Server ------------------------------------------------
+    Write-Host "Step 3: GitHub Server" -ForegroundColor White
     Write-Host ""
 
     if (Read-YesNo -Prompt "Use github.com?" -Default "y") {
@@ -449,8 +484,8 @@ function Invoke-SetupWizard {
     }
     Write-Host ""
 
-    # -- Step 3: Release Repository -------------------------------------------
-    Write-Host "Step 3: Release Repository" -ForegroundColor White
+    # -- Step 4: Release Repository -------------------------------------------
+    Write-Host "Step 4: Release Repository" -ForegroundColor White
     Write-Host ""
     Write-Host "  The release repo contains the LENS module (read-only dependency)." -ForegroundColor DarkGray
 
@@ -459,8 +494,8 @@ function Invoke-SetupWizard {
     $script:ReleaseOrg = Read-WithDefault -Prompt "Release repo owner" -Default $Org
     Write-Host ""
 
-    # -- Step 4: Governance Repository ----------------------------------------
-    Write-Host "Step 4: Governance Repository" -ForegroundColor White
+    # -- Step 5: Governance Repository ----------------------------------------
+    Write-Host "Step 5: Governance Repository" -ForegroundColor White
     Write-Host ""
     Write-Host "  The governance repo holds constitutional rules for your organization." -ForegroundColor DarkGray
     Write-Host "  Auto-derived from control repo name: $GovernanceRepo" -ForegroundColor DarkGray
@@ -474,8 +509,8 @@ function Invoke-SetupWizard {
     $script:GovernancePath = Read-WithDefault -Prompt "Local clone path" -Default $GovernancePath
     Write-Host ""
 
-    # -- Step 5: Review & Confirm ---------------------------------------------
-    Write-Host "Step 5: Review & Confirm" -ForegroundColor White
+    # -- Step 6: Review & Confirm ---------------------------------------------
+    Write-Host "Step 6: Review & Confirm" -ForegroundColor White
     Write-Host ""
     Write-Host "  Configuration summary:" -ForegroundColor White
     Write-Host ""
@@ -503,6 +538,7 @@ function Invoke-SetupWizard {
 # =============================================================================
 
 $hasParamArgs = $PSBoundParameters.ContainsKey("Org") -or
+$PSBoundParameters.ContainsKey("ControlDir") -or
 $PSBoundParameters.ContainsKey("ReleaseOrg") -or
 $PSBoundParameters.ContainsKey("GovernanceOrg") -or
 $PSBoundParameters.ContainsKey("ReleaseRepo") -or

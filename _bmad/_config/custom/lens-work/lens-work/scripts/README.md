@@ -159,11 +159,12 @@ The wizard walks you through:
 
 | Step | What It Asks | Default |
 |---|---|---|
-| 1. GitHub Account | Your GitHub org or username | Auto-detected via `gh` or `git config` |
-| 2. GitHub Server | Use github.com or enterprise URL | `https://github.com` |
-| 3. Release Repository | Repo name, branch, owner | `bmad.lens.release`, `beta`, your org |
-| 4. Governance Repository | Repo name, branch, owner, local path | Auto-derived from control repo name |
-| 5. Review & Confirm | Summary of all settings | Proceed |
+| 1. Control Repo Directory | Where to set up the control repo | Current git root or script location |
+| 2. GitHub Account | Your GitHub org or username | Auto-detected via `gh` or `git config` |
+| 3. GitHub Server | Use github.com or enterprise URL | `https://github.com` |
+| 4. Release Repository | Repo name, branch, owner | `bmad.lens.release`, `beta`, your org |
+| 5. Governance Repository | Repo name, branch, owner, local path | Auto-derived from control repo name |
+| 6. Review & Confirm | Summary of all settings | Proceed |
 
 ### 3. Store your GitHub PAT
 
@@ -214,6 +215,7 @@ If you use Cursor, Claude Code, or Codex in addition to GitHub Copilot:
 | Flag | Description | Default |
 |---|---|---|
 | `--org <name>` | Default GitHub org/user for all repos | *(wizard auto-detects)* |
+| `--control-dir <path>` | Directory to set up as the control repo | Current git root or script location |
 | `--release-org <name>` | Release repo owner | Uses `--org` |
 | `--release-repo <name>` | Release repo name | `bmad.lens.release` |
 | `--release-branch <name>` | Release repo branch | `beta` |
@@ -230,6 +232,7 @@ If you use Cursor, Claude Code, or Codex in addition to GitHub Copilot:
 | Parameter | Description | Default |
 |---|---|---|
 | `-Org <name>` | Default GitHub org/user for all repos | *(wizard auto-detects)* |
+| `-ControlDir <path>` | Directory to set up as the control repo | Current git root or script location |
 | `-ReleaseOrg <name>` | Release repo owner | Uses `-Org` |
 | `-ReleaseRepo <name>` | Release repo name | `bmad.lens.release` |
 | `-ReleaseBranch <name>` | Release repo branch | `beta` |

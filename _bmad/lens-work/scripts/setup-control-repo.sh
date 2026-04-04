@@ -22,6 +22,7 @@
 #     ./setup-control-repo.sh --help
 #
 # OPTIONS:
+#   --control-dir <path>       Directory to set up as the control repo (default: current git root or script location)
 #   --org <name>               Default GitHub org/user for all repos (falls back if specific org not set)
 #   --release-org <name>       Release repo owner (default: uses --org)
 #   --release-repo <name>      Release repo name (default: bmad.lens.release)
@@ -60,6 +61,7 @@ GOVERNANCE_REPO=""
 GOVERNANCE_BRANCH="main"
 GOVERNANCE_PATH=""
 BASE_URL="https://github.com"
+CONTROL_DIR=""
 DRY_RUN=false
 WIZARD_MODE=false
 HAS_PARAM_ARGS=false
@@ -82,6 +84,11 @@ show_help() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --control-dir)
+      shift
+      CONTROL_DIR="$1"
+      HAS_PARAM_ARGS=true
+      ;;
     --org)
       shift
       ORG="$1"
@@ -144,6 +151,15 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+# -- Apply --control-dir override if provided --------------------------------
+if [[ -n "$CONTROL_DIR" ]]; then
+  # Resolve to absolute path
+  if [[ ! "$CONTROL_DIR" = /* ]]; then
+    CONTROL_DIR="$(cd "$(pwd)" && cd "$CONTROL_DIR" 2>/dev/null && pwd)" || CONTROL_DIR="$(pwd)/$CONTROL_DIR"
+  fi
+  PROJECT_ROOT="$CONTROL_DIR"
+fi
 
 # -- Derive governance defaults from control repo name ----------------------
 CONTROL_REPO_NAME="$(basename "$PROJECT_ROOT")"
@@ -437,8 +453,31 @@ run_wizard() {
   echo -e "  ${DIM}Press Enter to accept defaults shown in [brackets].${RESET}"
   echo ""
 
+  # -- Control Repo Directory ------------------------------------------------
+  echo -e "${BOLD}Step 1: Control Repo Directory${RESET}"
+  echo ""
+  echo -e "  ${DIM}The directory where your control repo will be set up.${RESET}"
+  local wizard_dir
+  prompt_with_default "Control repo directory" "$PROJECT_ROOT" wizard_dir
+  if [[ -n "$wizard_dir" && "$wizard_dir" != "$PROJECT_ROOT" ]]; then
+    # Resolve to absolute path
+    if [[ ! "$wizard_dir" = /* ]]; then
+      wizard_dir="$(cd "$(pwd)" && cd "$wizard_dir" 2>/dev/null && pwd)" || wizard_dir="$(pwd)/$wizard_dir"
+    fi
+    PROJECT_ROOT="$wizard_dir"
+    # Re-derive governance defaults from new directory
+    CONTROL_REPO_NAME="$(basename "$PROJECT_ROOT")"
+    DERIVED_CONTROL_NAME="$CONTROL_REPO_NAME"
+    if [[ "$DERIVED_CONTROL_NAME" =~ \.src$ ]]; then
+      DERIVED_CONTROL_NAME="${DERIVED_CONTROL_NAME%.src}.bmad"
+    fi
+    GOVERNANCE_REPO="${DERIVED_CONTROL_NAME}.governance"
+    GOVERNANCE_PATH="TargetProjects/lens/${GOVERNANCE_REPO}"
+  fi
+  echo ""
+
   # -- Detect environment ---------------------------------------------------
-  echo -e "${BOLD}Step 1: GitHub Account${RESET}"
+  echo -e "${BOLD}Step 2: GitHub Account${RESET}"
   echo ""
 
   local detected_user
@@ -453,7 +492,7 @@ run_wizard() {
   echo ""
 
   # -- Base URL -------------------------------------------------------------
-  echo -e "${BOLD}Step 2: GitHub Server${RESET}"
+  echo -e "${BOLD}Step 3: GitHub Server${RESET}"
   echo ""
   if prompt_yes_no "Use github.com?" "y"; then
     BASE_URL="https://github.com"
@@ -463,7 +502,7 @@ run_wizard() {
   echo ""
 
   # -- Release Repo ---------------------------------------------------------
-  echo -e "${BOLD}Step 3: Release Repository${RESET}"
+  echo -e "${BOLD}Step 4: Release Repository${RESET}"
   echo ""
   echo -e "  ${DIM}The release repo contains the LENS module (read-only dependency).${RESET}"
   prompt_with_default "Release repo name" "$RELEASE_REPO" RELEASE_REPO
@@ -474,7 +513,7 @@ run_wizard() {
   echo ""
 
   # -- Governance Repo ------------------------------------------------------
-  echo -e "${BOLD}Step 4: Governance Repository${RESET}"
+  echo -e "${BOLD}Step 5: Governance Repository${RESET}"
   echo ""
   echo -e "  ${DIM}The governance repo holds constitutional rules for your organization.${RESET}"
   echo -e "  ${DIM}Auto-derived from control repo name: ${GOVERNANCE_REPO}${RESET}"
@@ -491,7 +530,7 @@ run_wizard() {
   echo ""
 
   # -- Dry run option -------------------------------------------------------
-  echo -e "${BOLD}Step 5: Review & Confirm${RESET}"
+  echo -e "${BOLD}Step 6: Review & Confirm${RESET}"
   echo ""
   echo -e "  ${BOLD}Configuration summary:${RESET}"
   echo ""
