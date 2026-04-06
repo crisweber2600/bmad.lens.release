@@ -302,7 +302,7 @@ func test_save_load_resource():
   "should_exit": true,
   "should_exit_on_success": true,
   "log_level": 1,
-  "junit_xml_file": "results.yaml",
+  "junit_xml_file": "results.xml",
   "font_size": 16
 }
 ```
@@ -322,7 +322,7 @@ godot --headless -s addons/gut/gut_cmdln.gd \
 
 # With JUnit output
 godot --headless -s addons/gut/gut_cmdln.gd \
-  -gjunit_xml_file=results.yaml
+  -gjunit_xml_file=results.xml
 ```
 
 ### GitHub Actions
@@ -338,12 +338,12 @@ test:
     - name: Run Tests
       run: |
         godot --headless -s addons/gut/gut_cmdln.gd \
-          -gjunit_xml_file=results.yaml
+          -gjunit_xml_file=results.xml
 
     - name: Publish Results
       uses: mikepenz/action-junit-report@v4
       with:
-        report_paths: results.yaml
+        report_paths: results.xml
 ```
 
 ## Best Practices

@@ -45,7 +45,7 @@ Determine execution mode, verify framework readiness, and load the necessary art
 
 - Scan `{project-root}` for project manifests:
   - **Frontend indicators**: `package.json` with react/vue/angular/next dependencies, `playwright.config.*`, `vite.config.*`, `webpack.config.*`
-  - **Backend indicators**: `pyproject.toml`, `pom.yaml`/`build.gradle`, `go.mod`, `*.csproj`/`*.sln`, `Gemfile`, `Cargo.toml`
+  - **Backend indicators**: `pyproject.toml`, `pom.xml`/`build.gradle`, `go.mod`, `*.csproj`/`*.sln`, `Gemfile`, `Cargo.toml`
   - **Both present** = `fullstack`; only frontend = `frontend`; only backend = `backend`
 - Explicit `test_stack_type` config value overrides auto-detection
 - **Backward compatibility**: if `test_stack_type` is not in config, treat as `"auto"` (preserves current frontend behavior for existing installs)

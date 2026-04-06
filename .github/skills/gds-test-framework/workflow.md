@@ -311,7 +311,7 @@ test_framework: "auto"               # auto | gut (godot) | unity-test-framework
      "should_exit": true,
      "should_exit_on_success": true,
      "log_level": 1,
-     "junit_xml_file": "results.yaml"
+     "junit_xml_file": "results.xml"
    }
    ```
 

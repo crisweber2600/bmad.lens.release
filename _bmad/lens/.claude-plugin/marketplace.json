@@ -1,0 +1,37 @@
+{
+  "plugins": [
+    {
+      "name": "lens",
+      "displayName": "Lens",
+      "description": "AI-guided lifecycle orchestration with feature-first branching and streamlined governance",
+      "version": "1.0.0",
+      "skills": [
+        "skills/bmad-lens-complete",
+        "skills/bmad-lens-constitution",
+        "skills/bmad-lens-dashboard",
+        "skills/bmad-lens-feature-yaml",
+        "skills/bmad-lens-git-orchestration",
+        "skills/bmad-lens-git-state",
+        "skills/bmad-lens-help",
+        "skills/bmad-lens-init-feature",
+        "skills/bmad-lens-log-problem",
+        "skills/bmad-lens-migrate",
+        "skills/bmad-lens-move-feature",
+        "skills/bmad-lens-next",
+        "skills/bmad-lens-onboard",
+        "skills/bmad-lens-pause-resume",
+        "skills/bmad-lens-quickplan",
+        "skills/bmad-lens-retrospective",
+        "skills/bmad-lens-setup",
+        "skills/bmad-lens-split-feature",
+        "skills/bmad-lens-status",
+        "skills/bmad-lens-switch",
+        "skills/bmad-lens-theme"
+      ],
+      "dependencies": [
+        "core"
+      ],
+      "setup": "bmad-lens-setup"
+    }
+  ]
+}

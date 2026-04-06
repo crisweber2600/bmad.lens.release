@@ -550,7 +550,7 @@ Unity may be the wrong choice when:
 
 ## Platform-Specific Caveats
 
-- **iOS:** IL2CPP is mandatory for App Store submission. IL2CPP code stripping can remove code used via reflection — configure `link.yaml` to preserve types. Metal shader compilation adds to build time
+- **iOS:** IL2CPP is mandatory for App Store submission. IL2CPP code stripping can remove code used via reflection — configure `link.xml` to preserve types. Metal shader compilation adds to build time
 - **Android:** Minimum API level requirements change yearly. Vulkan support varies by device — always test on low-end Android hardware. App Bundle size limits (200MB AAB) may require Play Asset Delivery
 - **WebGL:** No threading support (no `Task.Run`). Memory is limited by browser tab. Many .NET APIs unavailable. Build sizes can be large — enable compression
 - **Consoles:** Require platform-specific SDK access (PlayStation Partners, Nintendo Developer, ID@Xbox). Built-in console export but certification testing is extensive. Each platform has unique TRC/TFR requirements

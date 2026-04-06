@@ -1,0 +1,71 @@
+code: lens
+name: "Lens"
+description: "AI-guided lifecycle orchestration with feature-first branching and streamlined governance"
+module_version: 1.0.0
+default_selected: false
+module_greeting: >
+  Welcome to Lens! Your AI-guided feature lifecycle system is now configured.
+  To get started, run @lens onboard to set up your governance repository, or
+  @lens init-feature <featureId> to create your first feature.
+  Run this setup again anytime to update your configuration.
+
+github_pat:
+  prompt: "GitHub Personal Access Token (with repo scope)"
+  default: ""
+  user_setting: true
+  required: true
+
+username:
+  prompt: "Your GitHub username"
+  default: ""
+  user_setting: true
+  required: true
+
+default_ide:
+  prompt: "Default IDE"
+  default: "cursor"
+  single-select:
+    - value: cursor
+      label: "Cursor"
+    - value: vscode
+      label: "VS Code"
+    - value: windsurf
+      label: "Windsurf"
+
+target_repos:
+  prompt: "Target control repo URL(s) — comma-separated (e.g. https://github.com/org/repo)"
+  default: ""
+  user_setting: true
+
+default_track:
+  prompt: "Default planning track"
+  default: "full"
+  single-select:
+    - value: full
+      label: "Full (business + tech + sprint plan)"
+    - value: quickplan
+      label: "Quickplan (tech + sprint plan only)"
+    - value: hotfix
+      label: "Hotfix (minimal planning)"
+    - value: express
+      label: "Express (sprint plan only)"
+
+theme:
+  prompt: "Lens theme"
+  default: "default"
+  single-select:
+    - value: default
+      label: "Default"
+    - value: minimal
+      label: "Minimal"
+    - value: technical
+      label: "Technical"
+
+activation_mode:
+  prompt: "Activation mode"
+  default: "auto"
+  single-select:
+    - value: auto
+      label: "Auto (activates on @lens mention)"
+    - value: explicit
+      label: "Explicit (activates only on /lens command)"

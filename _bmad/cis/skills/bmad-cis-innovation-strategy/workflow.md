@@ -1,7 +1,7 @@
 ---
 name: bmad-cis-innovation-strategy
 description: 'Identify disruption opportunities and architect business model innovation. Use when the user says "lets create an innovation strategy" or "I want to find disruption opportunities"'
-main_config: '{project-root}/_bmad/cis/bmadconfig.yaml'
+main_config: '{project-root}/_bmad/cis/config.yaml'
 ---
 
 # Innovation Strategy Workflow

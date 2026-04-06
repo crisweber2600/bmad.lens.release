@@ -1,0 +1,7 @@
+{
+  "name": "bmad-lens-module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lens custom module package for bmad-method install",
+  "license": "UNLICENSED"
+}

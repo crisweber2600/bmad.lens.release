@@ -331,12 +331,12 @@ public IEnumerator Player_FallsToGround()
 # Run Edit Mode tests
 Unity -runTests -batchmode -projectPath . \
   -testPlatform EditMode \
-  -testResults results.yaml
+  -testResults results.xml
 
 # Run Play Mode tests
 Unity -runTests -batchmode -projectPath . \
   -testPlatform PlayMode \
-  -testResults results.yaml
+  -testResults results.xml
 ```
 
 ### GitHub Actions

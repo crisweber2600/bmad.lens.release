@@ -51,7 +51,7 @@ If unclear, ask the user.
 Read `test_stack_type` from `{config_source}`. If `"auto"` or not configured, infer `{detected_stack}` by scanning `{project-root}`:
 
 - **Frontend indicators**: `playwright.config.*`, `cypress.config.*`, `package.json` with react/vue/angular
-- **Backend indicators**: `pyproject.toml`, `pom.yaml`/`build.gradle`, `go.mod`, `*.csproj`, `Gemfile`, `Cargo.toml`
+- **Backend indicators**: `pyproject.toml`, `pom.xml`/`build.gradle`, `go.mod`, `*.csproj`, `Gemfile`, `Cargo.toml`
 - **Both present** → `fullstack`; only frontend → `frontend`; only backend → `backend`
 - Explicit `test_stack_type` overrides auto-detection
 

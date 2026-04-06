@@ -1,0 +1,98 @@
+topics:
+  - id: init-feature
+    command: /init-feature
+    description: Initialize a new feature with branches, YAML, and PR
+    phases: [preplan]
+    tracks: [all]
+    category: lifecycle
+
+  - id: quickplan
+    command: /quickplan
+    description: Run end-to-end planning pipeline (business plan → stories)
+    phases: [businessplan, techplan, sprintplan]
+    tracks: [quickplan, full]
+    category: planning
+
+  - id: log-problem
+    command: /log-problem
+    description: Log a problem with phase and category tags
+    phases: [all]
+    tracks: [all]
+    category: tracking
+
+  - id: status
+    command: /status
+    description: Show current feature status and portfolio overview
+    phases: [all]
+    tracks: [all]
+    category: navigation
+
+  - id: next
+    command: /next
+    description: Get contextual suggestion for what to do next
+    phases: [all]
+    tracks: [all]
+    category: navigation
+
+  - id: switch
+    command: /switch
+    description: Switch active feature context
+    phases: [all]
+    tracks: [all]
+    category: navigation
+
+  - id: help
+    command: /help
+    description: Show contextual help for current state
+    phases: [all]
+    tracks: [all]
+    category: navigation
+
+  - id: pause
+    command: /pause
+    description: Pause a feature and preserve state
+    phases: [all]
+    tracks: [all]
+    category: lifecycle
+
+  - id: resume
+    command: /resume
+    description: Resume a paused feature
+    phases: [all]
+    tracks: [all]
+    category: lifecycle
+
+  - id: retrospective
+    command: /retrospective
+    description: Run root cause analysis on feature problems
+    phases: [dev, complete]
+    tracks: [all]
+    category: lifecycle
+
+  - id: complete
+    command: /complete
+    description: Finalize a feature — retrospective, documentation, archive
+    phases: [dev]
+    tracks: [all]
+    category: lifecycle
+
+  - id: move-feature
+    command: /move-feature
+    description: Move feature to different domain/service
+    phases: [all]
+    tracks: [all]
+    category: reorganization
+
+  - id: split-feature
+    command: /split-feature
+    description: Split feature scope or stories into two features
+    phases: [businessplan, techplan, sprintplan]
+    tracks: [all]
+    category: reorganization
+
+  - id: dashboard
+    command: /dashboard
+    description: Generate HTML cross-feature dashboard
+    phases: [all]
+    tracks: [all]
+    category: reporting

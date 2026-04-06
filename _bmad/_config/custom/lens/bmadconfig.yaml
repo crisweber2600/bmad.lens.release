@@ -1,0 +1,16 @@
+# Lens module runtime defaults
+# Created by bmad-method install or module setup
+
+module_code: lens
+module_name: "Lens"
+
+# Lens defaults
+default_track: "full"
+theme: "default"
+activation_mode: "auto"
+
+# Shared core-compatible defaults
+user_name: "User"
+communication_language: "English"
+document_output_language: "English"
+output_folder: "{project-root}/_bmad-output"

@@ -53,7 +53,7 @@ This uses **step-file architecture** for disciplined execution:
 
 ### 1. Configuration Loading
 
-Load and read full config from {project-root}/\_bmad/tea/bmadconfig.yaml (or module config if TEA module installed) and resolve:
+Load and read full config from {project-root}/\_bmad/tea/config.yaml (or module config if TEA module installed) and resolve:
 
 - `project_name`, `user_name`, `communication_language`, `test_artifacts`
 - TEA module variables: `test_artifacts` (base output folder for test-related artifacts)

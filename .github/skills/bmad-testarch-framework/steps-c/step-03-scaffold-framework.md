@@ -167,7 +167,7 @@ Use TypeScript if `use_typescript: true`.
 Create the idiomatic test config for the detected framework:
 
 - **pytest**: `pyproject.toml` `[tool.pytest.ini_options]` or `pytest.ini` with markers, test paths, coverage settings
-- **JUnit**: `build.gradle`/`pom.yaml` test configuration with JUnit 5 dependencies, Surefire/Failsafe plugins
+- **JUnit**: `build.gradle`/`pom.xml` test configuration with JUnit 5 dependencies, Surefire/Failsafe plugins
 - **Go test**: no config file needed (Go convention); optionally create `Makefile` test targets
 - **xUnit**: `.csproj` test project with xUnit and coverlet dependencies
 - **RSpec**: `.rspec` config file with `spec_helper.rb` and `rails_helper.rb` (if Rails)
