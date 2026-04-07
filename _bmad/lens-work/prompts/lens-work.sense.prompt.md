@@ -11,7 +11,7 @@ Run cross-initiative overlap detection for the current initiative.
 
 ## Routing
 
-1. **Preflight**: Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+1. **Preflight**: Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 2. Use `git-state` skill → `current-initiative` to confirm the current initiative context.
 3. Execute `workflows/governance/cross-initiative/workflow.md`.
 

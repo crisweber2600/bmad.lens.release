@@ -7,7 +7,7 @@
 #   Checks for conflicts, uncommitted changes, and current scope.
 #
 # USAGE:
-#   ./_bmad/lens-work/scripts/validate-feature-move.sh \
+#   ./lens.core/_bmad/lens-work/scripts/validate-feature-move.sh \
 #       --feature <name> --old-domain <d> --old-service <s> \
 #       --new-domain <d> --new-service <s> \
 #       --initiatives-root <path> [--json]

@@ -17,11 +17,11 @@ Routes the `/help` command to the help workflow, which displays all available co
 
 ### Step 0: Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Execute Workflow
 
-Run the help workflow at `{project-root}/_bmad/lens-work/workflows/utility/help/`.
+Run the help workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/utility/help/`.
 
 The workflow handles:
 - Reading module-help.csv for command registry

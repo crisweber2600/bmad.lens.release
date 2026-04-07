@@ -27,6 +27,17 @@ if initiative_roots == null:
   initiative_roots = []
 
 initiative_roots = filter(initiative_roots, root -> root != null and root != "" and root != "main" and root != "develop")
+
+# v3.4: Augment with feature-index.yaml entries for cross-feature visibility
+lifecycle = load("lifecycle.yaml")
+features_registry = lifecycle.features_registry || {}
+if features_registry.enabled:
+  feature_index = load_from_branch("main", features_registry.file || "feature-index.yaml")
+  if feature_index != null and feature_index.features != null:
+    for entry in feature_index.features:
+      if entry.feature not in initiative_roots:
+        initiative_roots.append(entry.feature)
+
 initiative_roots = unique(initiative_roots)
 
 if initiative_roots.length == 0:

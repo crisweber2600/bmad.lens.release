@@ -17,7 +17,7 @@ Formally ends an initiative lifecycle by validating close eligibility, collectin
 
 ### Step 0: Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Capture Close Variant
 
@@ -33,7 +33,7 @@ If no flag is provided, prompt the user to choose a close variant before proceed
 
 ### Step 2: Execute Workflow
 
-Run the close workflow at `{project-root}/_bmad/lens-work/workflows/router/close/`.
+Run the close workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/router/close/`.
 
 The workflow handles:
 - Validating the initiative is active and eligible for closure

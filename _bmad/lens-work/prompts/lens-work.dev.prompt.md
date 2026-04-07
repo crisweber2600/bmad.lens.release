@@ -23,7 +23,7 @@ The implementation target is the **TargetProject repo** — resolved from `initi
 
 ## Execution
 
-1. **Preflight** (health check only — `{release_repo_root}` is NOT the implementation target): Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+1. **Preflight** (health check only — `{release_repo_root}` is NOT the implementation target): Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 2. Load `lifecycle.yaml` from the lens-work module (read from `{release_repo_root}` — read-only)
 3. Invoke phase routing for `dev`:
    - Validate dev-ready milestone has been reached (sprintplan completed and promoted)

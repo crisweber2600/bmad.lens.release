@@ -9,8 +9,8 @@
     Never relies on 'gh' CLI — always uses API via PAT or provides manual instructions.
 
 .USAGE
-    .\_bmad\lens-work\scripts\create-pr.ps1 -SourceBranch my-feature -TargetBranch main -Title "My PR" -Body "PR description"
-    .\_bmad\lens-work\scripts\create-pr.ps1 -SourceBranch preplan-phase -TargetBranch small-audience -Title "[PHASE] PrePlan complete"
+    .\lens.core\_bmad\lens-work\scripts\create-pr.ps1 -SourceBranch my-feature -TargetBranch main -Title "My PR" -Body "PR description"
+    .\lens.core\_bmad\lens-work\scripts\create-pr.ps1 -SourceBranch preplan-phase -TargetBranch small-audience -Title "[PHASE] PrePlan complete"
 
 .PARAMETER SourceBranch
     The source branch to merge from (required)

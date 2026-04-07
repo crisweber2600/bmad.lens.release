@@ -30,46 +30,67 @@ params:
   phase: techplan
   artifacts: ${artifact_list}
 
-invoke: git-orchestration.commit-artifacts
-params:
-  file_paths:
-    - ${docs_path}
-    - ${initiative_state.state_path}
-  phase: "PHASE:TECHPLAN:COMPLETE"
-  initiative: ${initiative.initiative_root}
-  description: "techplan artifacts complete"
-  commit_body: |
-    Artifacts:
-    ${artifact_list.join('\n    - ')}
+# v3.4: 2-branch topology uses commit-and-publish, skips milestone branch + PR
+if session.feature_yaml_context != null and session.feature_yaml_context.enabled == true:
+  invoke: git-orchestration.commit-and-publish
+  params:
+    file_paths:
+      - ${docs_path}
+      - ${initiative_state.state_path}
+    phase: "PHASE:TECHPLAN:COMPLETE"
+    initiative: ${initiative.initiative_root}
+    description: "techplan artifacts complete"
+    commit_body: |
+      Artifacts:
+      ${artifact_list.join('\n    - ')}
 
-invoke: git-orchestration.push
+  output: |
+    ✅ /techplan complete (2-branch topology)
+    ├── Artifacts committed to plan branch, summary published to main
+    ├── No milestone branch created (2-branch model)
+    └── Next: Run `/devproposal` to continue planning.
 
-# v3: Create the techplan milestone branch from current HEAD
-milestone_branch = "${initiative.initiative_root}-techplan"
+else:
+  invoke: git-orchestration.commit-artifacts
+  params:
+    file_paths:
+      - ${docs_path}
+      - ${initiative_state.state_path}
+    phase: "PHASE:TECHPLAN:COMPLETE"
+    initiative: ${initiative.initiative_root}
+    description: "techplan artifacts complete"
+    commit_body: |
+      Artifacts:
+      ${artifact_list.join('\n    - ')}
 
-invoke: git-orchestration.create-milestone-branch
-params:
-  milestone: "techplan"
-  initiative_root: ${initiative.initiative_root}
-  source_branch: ${initiative.initiative_root}
-  new_branch: ${milestone_branch}
+  invoke: git-orchestration.push
 
-invoke: git-orchestration.update-milestone-promote
-params:
-  milestone: techplan
+  # v3: Create the techplan milestone branch from current HEAD
+  milestone_branch = "${initiative.initiative_root}-techplan"
 
-# Create PR from milestone branch for review
-pr_result = invoke: script
-script: "{createPrScript}"
-params:
-  SourceBranch: ${milestone_branch}
-  TargetBranch: main
-  Title: "[MILESTONE] ${initiative.initiative_root} - TechPlan milestone"
-  Body: "TechPlan milestone for ${initiative.initiative_root}. Review architecture, technical decisions, and constitution compliance before merging."
+  invoke: git-orchestration.create-milestone-branch
+  params:
+    milestone: "techplan"
+    initiative_root: ${initiative.initiative_root}
+    source_branch: ${initiative.initiative_root}
+    new_branch: ${milestone_branch}
 
-output: |
-  ✅ /techplan complete
-  ├── Branch: ${milestone_branch} (milestone branch created)
-  ├── PR: ${pr_result.Url || pr_result.url || "manual creation required"}
-  └── Next: Run `/devproposal` on the techplan milestone branch after PR review.
+  invoke: git-orchestration.update-milestone-promote
+  params:
+    milestone: techplan
+
+  # Create PR from milestone branch for review
+  pr_result = invoke: script
+  script: "{createPrScript}"
+  params:
+    SourceBranch: ${milestone_branch}
+    TargetBranch: main
+    Title: "[MILESTONE] ${initiative.initiative_root} - TechPlan milestone"
+    Body: "TechPlan milestone for ${initiative.initiative_root}. Review architecture, technical decisions, and constitution compliance before merging."
+
+  output: |
+    ✅ /techplan complete
+    ├── Branch: ${milestone_branch} (milestone branch created)
+    ├── PR: ${pr_result.Url || pr_result.url || "manual creation required"}
+    └── Next: Run `/devproposal` on the techplan milestone branch after PR review.
 ```

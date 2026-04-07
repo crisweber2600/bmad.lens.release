@@ -15,7 +15,7 @@ nextStepFile: './step-04-closeout.md'
 ### 1. Run Architecture And Technical Design
 
 ```yaml
-read_and_follow: "_bmad/bmm/workflows/3-solutioning/bmad-create-architecture/workflow.md"
+read_and_follow: "lens.core/_bmad/bmm/workflows/3-solutioning/bmad-create-architecture/workflow.md"
 params:
   context:
     product_brief: "${docs_path}/product-brief.md"
@@ -43,7 +43,7 @@ if include_api_contracts:
 ### 2. Run Readiness Validation
 
 ```yaml
-read_and_follow: "_bmad/bmm/workflows/3-solutioning/bmad-check-implementation-readiness/workflow.md"
+read_and_follow: "lens.core/_bmad/bmm/workflows/3-solutioning/bmad-check-implementation-readiness/workflow.md"
 params:
   architecture: "${docs_path}/architecture.md"
   prd: "${docs_path}/prd.md"

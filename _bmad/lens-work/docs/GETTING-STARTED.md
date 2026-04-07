@@ -109,7 +109,7 @@ Governance constitutions can enable `collapse_gates` to auto-advance devproposal
 
 ## Configuration
 
-LENS reads defaults from `{release_repo_root}/_bmad/lens-work/bmadconfig.yaml`:
+LENS reads defaults from `{release_repo_root}/lens.core/_bmad/lens-work/bmadconfig.yaml`:
 
 ```yaml
 user_name: "Your Name"

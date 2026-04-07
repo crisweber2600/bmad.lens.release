@@ -1,6 +1,6 @@
 # Source-to-Release Promotion Pipeline
 
-**Purpose:** Build a full BMAD release with the lens-work custom module embedded, then promote to `bmad.lens.release` (alpha → beta PR).
+**Purpose:** Build a full BMAD release with the lens-work custom module embedded, then promote to `lens.core` (alpha → beta PR).
 
 ## Workflow Location
 
@@ -11,7 +11,7 @@ bmad.lens.bmad/.github/workflows/promote-to-release.yml
 ## Pipeline Flow
 
 ```
-push to master (bmad.lens.src/_bmad/lens-work/**)
+push to master (bmad.lens.src/lens.core/_bmad/lens-work/**)
   │
   ├─ 1.  Validate declarative-only constraint
   ├─ 2.  Validate required files exist
@@ -25,8 +25,8 @@ push to master (bmad.lens.src/_bmad/lens-work/**)
   │       modules: core, bmm, cis, gds, tea + custom BMB
   │       IDEs:    github-copilot, cursor, claude-code
   │
-  ├─ 8.  Overlay lens-work custom module into build-output/_bmad/lens-work/
-  │       (also registered in build-output/_bmad/_config/custom/lens-work/)
+  ├─ 8.  Overlay lens-work custom module into build-output/lens.core/_bmad/lens-work/
+  │       (also registered in build-output/lens.core/_bmad/_config/custom/lens-work/)
   │
   ├─ 9.  Run lens-work _module-installer to generate IDE adapters
   │       (.github/agents/, .github/prompts/, .github/skills/)
@@ -49,7 +49,7 @@ push to master (bmad.lens.src/_bmad/lens-work/**)
 
 | Trigger | Action |
 |---------|--------|
-| Push to `master` changing `bmad.lens.src/_bmad/lens-work/**` | Validate + full build + promote to alpha + open PR to beta |
+| Push to `master` changing `bmad.lens.src/lens.core/_bmad/lens-work/**` | Validate + full build + promote to alpha + open PR to beta |
 | Push to `master` changing `.github/workflows/promote-to-release.yml` | Same |
 | Manual `workflow_dispatch` | Same as above |
 
@@ -68,7 +68,7 @@ The pipeline installs a complete BMAD framework (not just lens-work) into a clea
 |-----------|--------|
 | Core + standard modules | `npx bmad-method@6.2.0` (npm) |
 | BMB module | `bmad-builder@latest` npm package (`/src/`) |
-| lens-work module | `bmad.lens.src/_bmad/lens-work/` in this repo |
+| lens-work module | `bmad.lens.src/lens.core/_bmad/lens-work/` in this repo |
 
 The lens-work module is overlaid on top of the installed framework, then its `_module-installer/installer.js` generates IDE-specific adapter files.
 
@@ -76,7 +76,7 @@ The lens-work module is overlaid on top of the installed framework, then its `_m
 
 | Build output | Release (`alpha` branch) |
 |-------------|--------------------------|
-| `build-output/_bmad/` | `bmad.lens.release/_bmad/` |
+| `build-output/lens.core/_bmad/` | `lens.core/_bmad/` |
 | `build-output/.github/` | `.github/` |
 | `build-output/.github/agents/` | `.github/agents/` |
 | `build-output/.github/skills/` | `.github/skills/` |
@@ -84,9 +84,9 @@ The lens-work module is overlaid on top of the installed framework, then its `_m
 
 ### Included in promotion:
 All output from the BMAD installer + lens-work overlay, including:
-- `bmad.lens.release/_bmad/lens-work/` — full module source
-- `bmad.lens.release/_bmad/_config/` — manifest, agent configs
-- `bmad.lens.release/_bmad/core/`, `bmad.lens.release/_bmad/bmm/`, `bmad.lens.release/_bmad/cis/`, `bmad.lens.release/_bmad/gds/`, `bmad.lens.release/_bmad/tea/` — standard modules
+- `lens.core/_bmad/lens-work/` — full module source
+- `lens.core/_bmad/_config/` — manifest, agent configs
+- `lens.core/_bmad/core/`, `lens.core/_bmad/bmm/`, `lens.core/_bmad/cis/`, `lens.core/_bmad/gds/`, `lens.core/_bmad/tea/` — standard modules
 - `.github/agents/`, `.github/skills/`, `.github/prompts/` — IDE-ready adapter stubs
 
 ### Excluded from promotion:
@@ -114,7 +114,7 @@ The pipeline is idempotent — re-running produces the same result. The clean `b
 
 ## Security
 
-- Release repo push requires `RELEASE_REPO_TOKEN` secret (PAT with `repo` scope on `bmad.lens.release`)
+- Release repo push requires `RELEASE_REPO_TOKEN` secret (PAT with `repo` scope on `lens.core`)
 - Pipeline runs as `github-actions[bot]` — no human credentials in git history
 - Executable file scan enforces the declarative-only constraint at CI level
 - Token is never logged; used only in `git remote` auth and GitHub REST API calls
@@ -123,4 +123,4 @@ The pipeline is idempotent — re-running produces the same result. The clean `b
 
 | Secret | Purpose |
 |--------|---------|
-| `RELEASE_REPO_TOKEN` | PAT with `repo` scope on `bmad.lens.release` — enables clone, push, and PR creation |
+| `RELEASE_REPO_TOKEN` | PAT with `repo` scope on `lens.core` — enables clone, push, and PR creation |

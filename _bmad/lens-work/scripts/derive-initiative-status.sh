@@ -8,7 +8,7 @@
 #   JSON so the LLM step only consumes the result, not the derivation logic.
 #
 # USAGE:
-#   ./_bmad/lens-work/scripts/derive-initiative-status.sh \
+#   ./lens.core/_bmad/lens-work/scripts/derive-initiative-status.sh \
 #       --root <initiative-root> \
 #       --lifecycle <lifecycle.yaml-path> \
 #       [--track <track-name>] \

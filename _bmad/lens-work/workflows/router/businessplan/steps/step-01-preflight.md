@@ -69,6 +69,18 @@ params:
   phase: "PHASE:BUSINESSPLAN:START"
   initiative: ${initiative_root}
   description: "businessplan phase started"
+
+# v3.4: Load user insights for risk awareness (if available)
+governance_path = session.governance_repo_path || ""
+if governance_path != "":
+  username = invoke: git-state.current-user
+  insights_path = "${governance_path}/users/${username}/insights.md"
+  if file_exists(insights_path):
+    session.user_insights = load(insights_path)
+    output: |
+      📋 Loaded user insights from previous retrospectives.
+      Patterns to watch for during planning:
+      ${extract_recent_patterns(session.user_insights)}
 ```
 
 ---

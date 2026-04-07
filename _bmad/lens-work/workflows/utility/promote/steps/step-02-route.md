@@ -11,6 +11,26 @@ description: 'Exit at the final audience or delegate to core audience-promotion'
 
 ## EXECUTION SEQUENCE
 
+### 0. Check Topology (v3.4)
+
+```yaml
+# 2-branch topology uses plan→root PR instead of audience promotion
+if session.feature_yaml_context != null and session.feature_yaml_context.enabled == true:
+  topology = session.feature_yaml_context.topology  # "2-branch"
+  plan_branch = session.feature_yaml_context.plan_branch
+  root_branch = initiative_state.initiative_root
+
+  output: |
+    🔀 **2-Branch Topology** — This initiative uses a plan→root PR model.
+
+    Milestone and audience promotion are not applicable.
+
+    **Next action:** When planning is complete on `${plan_branch}`, create a PR from `${plan_branch}` → `${root_branch}` to consolidate all planning artifacts.
+
+    Use `/close` when the initiative is ready to finalize.
+  exit: 0
+```
+
 ### 1. Exit Or Route
 
 ```yaml

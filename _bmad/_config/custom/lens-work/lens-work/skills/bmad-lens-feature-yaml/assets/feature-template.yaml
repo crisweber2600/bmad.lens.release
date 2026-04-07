@@ -1,0 +1,57 @@
+# Feature YAML Template
+# Single source of truth for feature identity and lifecycle state
+# Location: {governance-repo}/features/{domain}/{service}/{featureId}/feature.yaml
+
+# --- Feature Identity ---
+name: ""
+description: ""
+featureId: ""
+
+# --- Organization ---
+domain: ""
+service: ""
+
+# --- Lifecycle ---
+phase: "preplan"
+# Valid phases: preplan, businessplan, techplan, sprintplan, dev, complete, paused
+track: "quickplan"
+# Valid tracks: quickplan, full, feature, hotfix, hotfix-express, express, spike, tech-change
+
+milestones:
+  businessplan: null
+  techplan: null
+  sprintplan: null
+  dev-ready: null
+  dev-complete: null
+# Each milestone is null (not reached) or an ISO 8601 timestamp (completed)
+
+# --- Team ---
+team: []
+# Each entry: { username: "", role: "" }
+# Roles: lead, contributor, reviewer
+
+# --- Dependencies ---
+dependencies:
+  depends_on: []
+  depended_by: []
+# Lists of featureIds
+
+# --- Target Repos ---
+target_repos: []
+# Each entry: { url: "", branch: "" }
+
+# --- Links ---
+links:
+  retrospective: null
+  issues: []
+  pull_request: null
+
+# --- Priority ---
+priority: "medium"
+# Valid: critical, high, medium, low
+
+# --- Timestamps ---
+created: ""
+updated: ""
+phase_transitions: []
+# Each entry: { phase: "", timestamp: "", user: "" }

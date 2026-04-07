@@ -32,7 +32,7 @@ if current_initiative_root != null:
   target_roots = [current_initiative_root]
 else:
   scope = "all"
-  target_roots = invoke_command("./_bmad/lens-work/scripts/scan-active-initiatives.sh --json")
+  target_roots = invoke_command("./lens.core/_bmad/lens-work/scripts/scan-active-initiatives.sh --json")
                    | parse_json | map(r => r.root)
 ```
 

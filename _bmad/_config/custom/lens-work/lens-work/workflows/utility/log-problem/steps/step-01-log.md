@@ -33,6 +33,12 @@ current_phase = initiative_state.current_phase || "unknown"
 problem_log_path = lifecycle.problem_logging.file_pattern
   .replace("{domain}", initiative.domain || "default")
   .replace("{service}", initiative.service || "default")
+
+# v3.4: 2-branch topology writes to governance repo feature directory
+if session.feature_yaml_context != null and session.feature_yaml_context.enabled == true:
+  governance_path = session.governance_repo_path || ""
+  if governance_path != "":
+    problem_log_path = "${governance_path}/features/${initiative.domain}/${initiative.service}/${initiative_root}/problems.md"
 ```
 
 ### 2. Collect Problem Details

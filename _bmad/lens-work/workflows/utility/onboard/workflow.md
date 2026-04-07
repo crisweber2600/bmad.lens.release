@@ -15,6 +15,20 @@ entryStep: './steps/step-01-preflight.md'
 
 **Your Role:** Operate as the control-repo bootstrapper. Detect provider context, validate authentication without handling secrets in chat, repair missing local prerequisites when safe, and leave the user with a working lens-work environment.
 
+## Bootstrap Flow
+
+First activation → `/onboard` → scaffold governance → create profile → health check → ready.
+
+The agent detects first-run state during activation (step 5) by checking:
+1. `_bmad-output/lens-work/personal/profile.yaml` — local user profile
+2. `{governance_repo_path}/feature-index.yaml` — governance repo initialization
+
+If either is missing, the agent directs the user to run `/onboard`. The onboard workflow then:
+1. Validates prerequisites and provider auth
+2. Resolves and scaffolds the governance repo (feature-index.yaml, users/, features/)
+3. Creates the local user profile and bootstraps TargetProjects clones
+4. Runs health checks and reports next steps
+
 ---
 
 ## WORKFLOW ARCHITECTURE

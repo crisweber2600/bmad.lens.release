@@ -7,10 +7,10 @@
 #   optionally creates a PR, and cleans up merged branches locally/remotely.
 #
 # USAGE:
-#   ./_bmad/lens-work/scripts/promote-branch.sh
-#   ./_bmad/lens-work/scripts/promote-branch.sh -s my-initiative-small
-#   ./_bmad/lens-work/scripts/promote-branch.sh -s my-initiative-small --cleanup
-#   ./_bmad/lens-work/scripts/promote-branch.sh -s my-initiative-small -t my-initiative-medium --cleanup --cleanup-children
+#   ./lens.core/_bmad/lens-work/scripts/promote-branch.sh
+#   ./lens.core/_bmad/lens-work/scripts/promote-branch.sh -s my-initiative-small
+#   ./lens.core/_bmad/lens-work/scripts/promote-branch.sh -s my-initiative-small --cleanup
+#   ./lens.core/_bmad/lens-work/scripts/promote-branch.sh -s my-initiative-small -t my-initiative-medium --cleanup --cleanup-children
 #
 # OPTIONS:
 #   -s, --source              Source branch name (defaults to current branch)

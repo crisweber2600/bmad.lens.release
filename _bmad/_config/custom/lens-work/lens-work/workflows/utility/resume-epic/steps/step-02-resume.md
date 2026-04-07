@@ -70,7 +70,7 @@ invoke_command("git add '{state_file}'")
 invoke_command("git commit -m 'resume: {current_initiative_root} at phase {paused_phase}'")
 
 # Derive next action
-next_action = invoke_command("./_bmad/lens-work/scripts/derive-next-action.sh '{current_initiative_root}' --json")
+next_action = invoke_command("./lens.core/_bmad/lens-work/scripts/derive-next-action.sh '{current_initiative_root}' --json")
   | parse_json
 
 output: |

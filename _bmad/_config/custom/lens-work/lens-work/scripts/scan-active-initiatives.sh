@@ -8,9 +8,9 @@
 #   agent reasoning with deterministic file enumeration.
 #
 # USAGE:
-#   ./_bmad/lens-work/scripts/scan-active-initiatives.sh
-#   ./_bmad/lens-work/scripts/scan-active-initiatives.sh --domain foo
-#   ./_bmad/lens-work/scripts/scan-active-initiatives.sh --json
+#   ./lens.core/_bmad/lens-work/scripts/scan-active-initiatives.sh
+#   ./lens.core/_bmad/lens-work/scripts/scan-active-initiatives.sh --domain foo
+#   ./lens.core/_bmad/lens-work/scripts/scan-active-initiatives.sh --json
 #
 # OPTIONS:
 #   --domain <name>   Filter initiatives by domain

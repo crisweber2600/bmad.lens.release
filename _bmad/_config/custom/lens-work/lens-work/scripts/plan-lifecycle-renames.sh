@@ -8,7 +8,7 @@
 #   field changes required for migration.
 #
 # USAGE:
-#   ./_bmad/lens-work/scripts/plan-lifecycle-renames.sh [--dry-run] [--json]
+#   ./lens.core/_bmad/lens-work/scripts/plan-lifecycle-renames.sh [--dry-run] [--json]
 #
 # OPTIONS:
 #   --dry-run              Only compute the plan, don't apply (default)

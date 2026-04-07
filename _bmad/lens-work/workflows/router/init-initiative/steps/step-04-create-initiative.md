@@ -55,31 +55,84 @@ if scope == "service":
 ### 2. Create Branch Topology, Commit, And Push
 
 ```yaml
-invoke: git-orchestration.create-branch
-params:
-  branch_name: ${initiative_root}
+# v3.4: Resolve topology from track config
+track_config = lifecycle.tracks[track] || {}
+topology = track_config.topology || "legacy"
 
-invoke: git-orchestration.commit-artifacts
-params:
-  file_paths:
-    - ${config_path}
-  phase: INIT
-  initiative: ${initiative_root}
-  description: ${commit_description}
-
-invoke: git-orchestration.push
-params:
-  branch: ${initiative_root}
-
-if scope == "feature":
+if topology == "2-branch":
+  # --- 2-BRANCH TOPOLOGY ---
+  # Create featureId branch (code branch)
   invoke: git-orchestration.create-branch
   params:
-    branch_name: "${initiative_root}-small"
-    parent_branch: ${initiative_root}
+    branch_name: ${initiative_root}
+
+  # Create feature.yaml on the code branch
+  feature_yaml = {
+    feature: initiative_root,
+    domain: domain,
+    service: service,
+    track: track,
+    status: "draft",
+    owner: user_name,
+    current_milestone: track_config.milestones[0] || "techplan",
+    current_phase: track_config.start_phase,
+    created: now_iso8601(),
+    updated_at: now_iso8601()
+  }
+  write_yaml("feature.yaml", feature_yaml)
+
+  invoke: git-orchestration.commit-artifacts
+  params:
+    file_paths:
+      - ${config_path}
+      - feature.yaml
+    phase: INIT
+    initiative: ${initiative_root}
+    description: ${commit_description}
 
   invoke: git-orchestration.push
   params:
-    branch: "${initiative_root}-small"
+    branch: ${initiative_root}
+
+  # Create featureId-plan branch (planning branch)
+  invoke: git-orchestration.create-branch
+  params:
+    branch_name: "${initiative_root}-plan"
+    parent_branch: ${initiative_root}
+
+  # Create drafts/ directory on plan branch
+  ensure_directory("drafts/")
+  invoke: git-orchestration.push
+  params:
+    branch: "${initiative_root}-plan"
+
+else:
+  # --- LEGACY TOPOLOGY ---
+  invoke: git-orchestration.create-branch
+  params:
+    branch_name: ${initiative_root}
+
+  invoke: git-orchestration.commit-artifacts
+  params:
+    file_paths:
+      - ${config_path}
+    phase: INIT
+    initiative: ${initiative_root}
+    description: ${commit_description}
+
+  invoke: git-orchestration.push
+  params:
+    branch: ${initiative_root}
+
+  if scope == "feature":
+    invoke: git-orchestration.create-branch
+    params:
+      branch_name: "${initiative_root}-small"
+      parent_branch: ${initiative_root}
+
+    invoke: git-orchestration.push
+    params:
+      branch: "${initiative_root}-small"
 ```
 
 ### 3. Register In Feature Index And Create Summary Stub On Main *(v3.3)*
@@ -87,6 +140,8 @@ if scope == "feature":
 When `features_registry.enabled` is true, atomically register the new feature in
 `feature-index.yaml` on main and create a stub `summary.md`. This ensures the feature
 is visible to all other features from the moment of creation.
+
+For 2-branch topology features, `feature_yaml: true` is also registered.
 
 ```yaml
 features_registry_config = load("lifecycle.yaml").features_registry
@@ -106,6 +161,8 @@ if features_registry_config.enabled:
     status: draft
     owner: ${user_name}
     plan_branch: "${initiative_root}-plan"
+    topology: ${topology}
+    feature_yaml: ${track_config.feature_yaml || false}
     summary: "New initiative — ${commit_description}"
     relationships:
       depends_on: []
@@ -132,6 +189,30 @@ if features_registry_config.enabled:
 
   # 3e. Return to working branch
   git checkout ${CURRENT_BRANCH}
+```
+
+### 4. Scaffold Governance Feature Directory (v3.4)
+
+When the governance repo is available and this is a 2-branch topology feature,
+create the feature directory with a problems.md template in the governance repo.
+
+```yaml
+governance_path = session.governance_repo_path || ""
+
+if governance_path != "" and topology == "2-branch":
+  feature_dir = "${governance_path}/features/${domain}/${service}/${initiative_root}"
+  ensure_directory(feature_dir)
+
+  # Create problems.md from template
+  problems_path = "${feature_dir}/problems.md"
+  if not file_exists(problems_path):
+    template = load("../../assets/templates/problems-template.md")
+    rendered = template
+      .replace("{featureId}", initiative_root)
+      .replace("{domain}", domain)
+      .replace("{service}", service)
+      .replace("{created_date}", now_iso8601())
+    write_file(problems_path, rendered)
 ```
 
 ---

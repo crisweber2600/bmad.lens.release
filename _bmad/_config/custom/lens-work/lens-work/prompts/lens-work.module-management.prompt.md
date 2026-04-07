@@ -17,11 +17,11 @@ Reports the currently installed lens-work module version, compares it to the rel
 
 ### Step 0: Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Execute Workflow
 
-Run the module-management workflow at `{project-root}/_bmad/lens-work/workflows/utility/module-management/`.
+Run the module-management workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/utility/module-management/`.
 
 The workflow handles:
 - Loading version metadata from the local and release module manifests

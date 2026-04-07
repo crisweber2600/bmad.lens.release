@@ -8,8 +8,8 @@
 #   workflows/utility/next/steps/step-02-derive-action.md.
 #
 # USAGE:
-#   ./_bmad/lens-work/scripts/derive-next-action.sh <initiative-root>
-#   ./_bmad/lens-work/scripts/derive-next-action.sh <initiative-root> --json
+#   ./lens.core/_bmad/lens-work/scripts/derive-next-action.sh <initiative-root>
+#   ./lens.core/_bmad/lens-work/scripts/derive-next-action.sh <initiative-root> --json
 #
 # INPUTS:
 #   initiative-root   Path to a directory containing initiative-state.yaml

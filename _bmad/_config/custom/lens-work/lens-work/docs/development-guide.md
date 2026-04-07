@@ -24,29 +24,29 @@
 
 ```bash
 # From control repo root
-bash _bmad/lens-work/scripts/install.sh
+bash lens.core/_bmad/lens-work/scripts/install.sh
 ```
 
 ### Multi-IDE Installation
 
 ```bash
 # Install for specific IDE
-bash _bmad/lens-work/scripts/install.sh --ide cursor
+bash lens.core/_bmad/lens-work/scripts/install.sh --ide cursor
 
 # Install for all supported IDEs
-bash _bmad/lens-work/scripts/install.sh --all-ides
+bash lens.core/_bmad/lens-work/scripts/install.sh --all-ides
 ```
 
 ### Update Existing Installation
 
 ```bash
-bash _bmad/lens-work/scripts/install.sh --update
+bash lens.core/_bmad/lens-work/scripts/install.sh --update
 ```
 
 ### Dry Run (Preview)
 
 ```bash
-bash _bmad/lens-work/scripts/install.sh --dry-run
+bash lens.core/_bmad/lens-work/scripts/install.sh --dry-run
 ```
 
 **Supported IDEs:** `github-copilot` (default), `cursor`, `claude`, `codex`
@@ -67,10 +67,10 @@ bash _bmad/lens-work/scripts/install.sh --dry-run
 
 ```bash
 # Unix
-bash _bmad/lens-work/scripts/store-github-pat.sh
+bash lens.core/_bmad/lens-work/scripts/store-github-pat.sh
 
 # Windows
-powershell _bmad/lens-work/scripts/store-github-pat.ps1
+powershell lens.core/_bmad/lens-work/scripts/store-github-pat.ps1
 ```
 
 Sets `GITHUB_PAT`, `GH_TOKEN`, and `GH_ENTERPRISE_TOKEN` in environment + shell profile.
@@ -79,7 +79,7 @@ Sets `GITHUB_PAT`, `GH_TOKEN`, and `GH_ENTERPRISE_TOKEN` in environment + shell 
 
 ```bash
 # Clone governance and release repos into TargetProjects
-bash _bmad/lens-work/scripts/setup-control-repo.sh
+bash lens.core/_bmad/lens-work/scripts/setup-control-repo.sh
 ```
 
 Options: `--org`, `--release-org`, `--release-repo`, `--release-branch`, `--base-url`, `--dry-run`
@@ -187,15 +187,15 @@ cat tests/contracts/sensing.md           # Overlap detection scenarios
 ### Source → Release Pipeline
 
 ```
-bmad.lens.src/_bmad/lens-work/    (source)
-    ↓ push to master (changes in _bmad/lens-work/**)
+bmad.lens.src/lens.core/_bmad/lens-work/    (source)
+    ↓ push to master (changes in lens.core/_bmad/lens-work/**)
 CI/CD: promote-to-release.yml
     ↓ build → overlay → package
 _module-installer/installer.js    (called by pipeline)
     ↓ generate IDE adapter stubs
-bmad.lens.release (alpha branch)
+lens.core (alpha branch)
     ↓ auto PR
-bmad.lens.release (beta branch)
+lens.core (beta branch)
 ```
 
 See [pipeline-source-to-release.md](./pipeline-source-to-release.md) for details.

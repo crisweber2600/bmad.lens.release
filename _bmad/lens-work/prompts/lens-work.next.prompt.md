@@ -17,11 +17,11 @@ Routes the `/next` command to the next workflow, which derives the current state
 
 ### Step 0: Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Execute Workflow
 
-Run the next workflow at `{project-root}/_bmad/lens-work/workflows/utility/next/`.
+Run the next workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/utility/next/`.
 
 The workflow handles:
 - Running `/status` internally to derive current state

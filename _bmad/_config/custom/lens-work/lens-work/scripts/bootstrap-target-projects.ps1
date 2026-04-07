@@ -6,7 +6,7 @@
 #   repo-inventory.yaml file into TargetProjects.
 #
 # USAGE:
-#   .\_bmad\lens-work\scripts\bootstrap-target-projects.ps1 -InventoryPath path [-Json]
+#   .\lens.core\_bmad\lens-work\scripts\bootstrap-target-projects.ps1 -InventoryPath path [-Json]
 #
 # =============================================================================
 

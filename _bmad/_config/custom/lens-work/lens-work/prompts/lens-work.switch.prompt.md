@@ -21,11 +21,11 @@ Routes the `/switch` command to the switch workflow, which performs a safe `git 
 
 ### Step 0: Run Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Execute Workflow
 
-Run the switch workflow at `{project-root}/_bmad/lens-work/workflows/utility/switch/`.
+Run the switch workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/utility/switch/`.
 
 The workflow handles:
 - Listing all initiative roots if no argument provided, including remote-tracking branches on `origin`

@@ -3,8 +3,8 @@
 #
 # PURPOSE:
 #   Bootstraps a new control repo by cloning all required authority domains:
-#   - bmad.lens.release   → Release module (read-only dependency)
-#   - .github             → Copied from bmad.lens.release/.github
+#   - lens.core   → Release module (read-only dependency)
+#   - .github             → Copied from lens.core/.github
 #   - governance repo     → Governance repo (constitutional authority)
 #
 #   Safe to re-run: pulls latest if repos already exist.
@@ -33,7 +33,7 @@ param(
 
     [string]$ReleaseOrg = "",
 
-    [string]$ReleaseRepo = "bmad.lens.release",
+    [string]$ReleaseRepo = "lens.core",
 
     [string]$ReleaseBranch = "beta",
 
@@ -370,7 +370,7 @@ function Ensure-GitIgnoreEntries {
     $entries = @(
         "_bmad-output/lens-work/personal/",
         ".github/",
-        "bmad.lens.release/",
+        "lens.core/",
         "TargetProjects/"
     )
 
@@ -636,7 +636,7 @@ if (-not $DryRun) {
     $lifecyclePath = Join-Path $ReleasePath "_bmad\lens-work\lifecycle.yaml"
 
     if (-not (Test-Path -Path $lifecyclePath)) {
-        throw "Unable to write LENS_VERSION: lifecycle file not found at '$lifecyclePath'. Ensure bmad.lens.release is correctly cloned and contains _bmad\lens-work\lifecycle.yaml."
+        throw "Unable to write LENS_VERSION: lifecycle file not found at '$lifecyclePath'. Ensure lens.core is correctly cloned and contains _bmad\lens-work\lifecycle.yaml."
     }
 
     $lifecycleContent = Get-Content -Path $lifecyclePath -ErrorAction Stop
@@ -679,14 +679,14 @@ Write-Host "GitHub Copilot adapter is installed from $ReleaseRepo/.github."
 Write-Host "No further setup is needed if GitHub Copilot is your only IDE."
 Write-Host ""
 Write-Host "For non-Copilot IDEs, run the module installer:"
-Write-Host "  .\_bmad\lens-work\scripts\install.ps1 -IDE cursor" -ForegroundColor Cyan
-Write-Host "  .\_bmad\lens-work\scripts\install.ps1 -AllIDEs" -ForegroundColor Cyan
+Write-Host "  .\lens.core\_bmad\lens-work\scripts\install.ps1 -IDE cursor" -ForegroundColor Cyan
+Write-Host "  .\lens.core\_bmad\lens-work\scripts\install.ps1 -AllIDEs" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Next Steps:" -ForegroundColor White
 Write-Host "  1. Store your GitHub PAT (run in terminal, " -NoNewline
 Write-Host "not in AI chat" -ForegroundColor Yellow -NoNewline
 Write-Host "):"
-Write-Host "     .\$ReleaseRepo\_bmad\lens-work\scripts\store-github-pat.ps1" -ForegroundColor Cyan
+Write-Host "     .\$ReleaseRepo\lens.core\_bmad\lens-work\scripts\store-github-pat.ps1" -ForegroundColor Cyan
 Write-Host "  2. Open VS Code + GitHub Copilot Chat and run:"
 Write-Host "     /onboard" -ForegroundColor Cyan
 Write-Host ""

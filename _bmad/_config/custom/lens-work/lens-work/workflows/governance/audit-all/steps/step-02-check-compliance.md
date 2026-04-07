@@ -15,7 +15,7 @@ nextStepFile: './step-03-render-report.md'
 ### 1. Load Lifecycle Rules
 
 ```yaml
-lifecycle = load: "{release_repo_root}/_bmad/lens-work/lifecycle.yaml"
+lifecycle = load: "{release_repo_root}/lens.core/_bmad/lens-work/lifecycle.yaml"
 phase_order = lifecycle.phases | keys
 ```
 
@@ -44,7 +44,7 @@ if state.milestone and state.milestone not in milestone_names:
   findings.append({ check: "valid-milestone", severity: "high", message: "Unknown milestone: ${state.milestone}" })
 
 # CHECK 4: Artifact completeness for current phase
-artifact_result = invoke_command("./_bmad/lens-work/scripts/validate-phase-artifacts.sh '${entry.root}' --phase '${state.phase}' --json")
+artifact_result = invoke_command("./lens.core/_bmad/lens-work/scripts/validate-phase-artifacts.sh '${entry.root}' --phase '${state.phase}' --json")
 artifact_check = parse_json(artifact_result)
 if artifact_check.missing and len(artifact_check.missing) > 0:
   findings.append({ check: "artifacts", severity: "medium", message: "Missing artifacts: ${artifact_check.missing | join(', ')}" })

@@ -194,7 +194,7 @@ workflow-name/
 | Domain | Location | Owner | Operations |
 |--------|----------|-------|------------|
 | Domain 1 (Control Repo) | `_bmad-output/lens-work/initiatives/` | `@lens` agent | Write initiative artifacts |
-| Domain 2 (Release Module) | `{release_repo_root}/_bmad/lens-work/` | Module builder only | Read-only at runtime |
+| Domain 2 (Release Module) | `{release_repo_root}/lens.core/_bmad/lens-work/` | Module builder only | Read-only at runtime |
 | Domain 3 (Copilot Adapter) | `.github/` | User only | Not modified during initiative work |
 | Domain 4 (Governance) | `TargetProjects/lens/lens-governance/` | Governance leads only | Cross-repo PRs |
 
@@ -255,10 +255,10 @@ All references are by **PATH** (not duplicated content), updated on module versi
 
 ```
 Source (bmad.lens.src)
-    ↓ [push to master changing bmad.lens.src/_bmad/lens-work/**]
+    ↓ [push to master changing bmad.lens.src/lens.core/_bmad/lens-work/**]
 CI/CD Pipeline (promote-to-release.yml)
     ↓ [build → overlay → package → installer.js]
-Release (bmad.lens.release) alpha branch
+Release (lens.core) alpha branch
     ↓ [auto PR]
 Release beta branch
 ```

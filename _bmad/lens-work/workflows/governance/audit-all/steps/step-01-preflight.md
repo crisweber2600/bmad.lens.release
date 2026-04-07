@@ -23,7 +23,7 @@ path: "{preflightInclude}"
 ### 2. Scan All Initiatives
 
 ```yaml
-scan_result = invoke_command("./_bmad/lens-work/scripts/scan-active-initiatives.sh --json")
+scan_result = invoke_command("./lens.core/_bmad/lens-work/scripts/scan-active-initiatives.sh --json")
 initiative_entries = parse_json(scan_result)
 
 if len(initiative_entries) == 0:

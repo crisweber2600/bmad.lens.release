@@ -21,7 +21,7 @@ Ensure the path is set to the root of the repository (the control repo you want 
 Clone the release module and checkout the appropriate branch:
 
 ```bash
-git clone https://github.com/crisweber2600/bmad.lens.release {release_repo_root}
+git clone https://github.com/crisweber2600/lens.core {release_repo_root}
 cd {release_repo_root}
 git checkout release/4.0.0   # or alpha/beta for pre-release
 cd ..
@@ -70,4 +70,4 @@ This will:
 
 - The `.github` folder syncs from `{release_repo_root}/.github/` during preflight
 - Future updates to agents/prompts will auto-sync when preflight detects changes
-- See `{project-root}/_bmad/lens-work/workflows/includes/preflight.md` for sync logic
+- See `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md` for sync logic

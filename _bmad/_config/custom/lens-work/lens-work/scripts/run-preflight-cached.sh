@@ -8,10 +8,10 @@
 #   configurable TTL (default 300 seconds / 5 minutes).
 #
 # USAGE:
-#   ./_bmad/lens-work/scripts/run-preflight-cached.sh [preflight-args...]
-#   ./_bmad/lens-work/scripts/run-preflight-cached.sh --ttl 600
-#   ./_bmad/lens-work/scripts/run-preflight-cached.sh --force
-#   ./_bmad/lens-work/scripts/run-preflight-cached.sh --json
+#   ./lens.core/_bmad/lens-work/scripts/run-preflight-cached.sh [preflight-args...]
+#   ./lens.core/_bmad/lens-work/scripts/run-preflight-cached.sh --ttl 600
+#   ./lens.core/_bmad/lens-work/scripts/run-preflight-cached.sh --force
+#   ./lens.core/_bmad/lens-work/scripts/run-preflight-cached.sh --json
 #
 # OPTIONS:
 #   --ttl <seconds>   Cache validity duration (default: 300)

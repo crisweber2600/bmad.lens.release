@@ -7,9 +7,9 @@
 #   agent reasoning with deterministic file enumeration.
 #
 # USAGE:
-#   .\_bmad\lens-work\scripts\scan-active-initiatives.ps1
-#   .\_bmad\lens-work\scripts\scan-active-initiatives.ps1 -Domain foo
-#   .\_bmad\lens-work\scripts\scan-active-initiatives.ps1 -Json
+#   .\lens.core\_bmad\lens-work\scripts\scan-active-initiatives.ps1
+#   .\lens.core\_bmad\lens-work\scripts\scan-active-initiatives.ps1 -Domain foo
+#   .\lens.core\_bmad\lens-work\scripts\scan-active-initiatives.ps1 -Json
 #
 # =============================================================================
 

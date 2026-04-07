@@ -6,7 +6,7 @@
 #   Checks for conflicts, uncommitted changes, and current scope.
 #
 # USAGE:
-#   .\_bmad\lens-work\scripts\validate-feature-move.ps1 `
+#   .\lens.core\_bmad\lens-work\scripts\validate-feature-move.ps1 `
 #       -Feature <name> -OldDomain <d> -OldService <s> `
 #       -NewDomain <d> -NewService <s> -InitiativesRoot <path> [-Json]
 #

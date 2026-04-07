@@ -16,19 +16,19 @@ nextStepFile: './step-04-closeout.md'
 
 ```yaml
 if contains(selected_workflows, "brainstorming"):
-  read_and_follow: "_bmad/core/skills/bmad-brainstorming/workflow.md"
+  read_and_follow: "lens.core/_bmad/core/skills/bmad-brainstorming/workflow.md"
   params:
     context: "${initiative.initiative_root} preplan"
 
 if contains(selected_workflows, "research"):
-  research_workflow = research_type == "market" ? "_bmad/bmm/workflows/1-analysis/research/bmad-market-research/workflow.md" : research_type == "domain" ? "_bmad/bmm/workflows/1-analysis/research/bmad-domain-research/workflow.md" : "_bmad/bmm/workflows/1-analysis/research/bmad-technical-research/workflow.md"
+  research_workflow = research_type == "market" ? "lens.core/_bmad/bmm/workflows/1-analysis/research/bmad-market-research/workflow.md" : research_type == "domain" ? "lens.core/_bmad/bmm/workflows/1-analysis/research/bmad-domain-research/workflow.md" : "lens.core/_bmad/bmm/workflows/1-analysis/research/bmad-technical-research/workflow.md"
   read_and_follow: ${research_workflow}
 ```
 
 ### 2. Always Run Product Brief
 
 ```yaml
-read_and_follow: "_bmad/bmm/workflows/1-analysis/bmad-create-product-brief/workflow.md"
+read_and_follow: "lens.core/_bmad/bmm/workflows/1-analysis/bmad-create-product-brief/workflow.md"
 params:
   output_path: "${output_path}/"
   context:

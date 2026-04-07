@@ -11,7 +11,7 @@ Check or resolve constitutional governance for the current initiative.
 
 ## Routing
 
-1. **Preflight**: Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+1. **Preflight**: Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 2. Use `git-state` skill → `current-initiative` to confirm on an initiative branch
 3. If not on an initiative branch: `❌ Not on an initiative branch. Use /switch to select an initiative first.`
 4. Parse domain and service from the current initiative root

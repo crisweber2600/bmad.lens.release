@@ -21,10 +21,10 @@ A step-by-step guide from zero to your first running initiative. Each section bu
 
 ```bash
 # macOS/Linux:
-./{release_repo_root}/_bmad/lens-work/scripts/store-github-pat.sh
+./{release_repo_root}/lens.core/_bmad/lens-work/scripts/store-github-pat.sh
 
 # Windows:
-powershell .\{release_repo_root}\_bmad\lens-work\scripts\store-github-pat.ps1
+powershell .\{release_repo_root}\lens.core\_bmad\lens-work\scripts\store-github-pat.ps1
 ```
 
 - [ ] Verify PAT is stored: the script will confirm `GITHUB_PAT` or `GH_TOKEN` is set
@@ -50,7 +50,7 @@ powershell .\setup-control-repo.ps1
 
 - [ ] Verify the output:
   - `TargetProjects/` folder exists with your code repos cloned
-  - `{release_repo_root}/_bmad/lens-work/` folder contains the module files
+  - `{release_repo_root}/lens.core/_bmad/lens-work/` folder contains the module files
   - No error messages in the script output
 
 > **Troubleshooting:**

@@ -11,7 +11,7 @@ Promote the current initiative from the current audience tier to the next.
 
 ## Routing
 
-1. **Preflight**: Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+1. **Preflight**: Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 2. Load `lifecycle.yaml` from the lens-work module
 3. Use `git-state` skill → `current-initiative` to confirm on an initiative branch
 4. Use `git-state` skill → `current-audience` to determine the current audience

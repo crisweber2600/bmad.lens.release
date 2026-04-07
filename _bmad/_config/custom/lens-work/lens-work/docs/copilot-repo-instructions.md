@@ -18,19 +18,19 @@ The top-level workspace. This is an **operational workspace**, not a code repo. 
 
 **Write rules:** Planning phase prompts write artifacts here (under `_bmad-output/lens-work/initiatives/`). The `/dev` prompt writes ONLY state-tracking files here (`_bmad-output/` sprint-status, state).
 
-### 2. Release Repo (`bmad.lens.release/`)
+### 2. Release Repo (`lens.core/`)
 
 A **git submodule** containing the BMAD framework release payload. This is the **authority** for all module definitions.
 
-- `bmad.lens.release/_bmad/lens-work/` — The lens-work module: lifecycle contract, skills, workflows, prompts, scripts, agents, docs
-- `bmad.lens.release/_bmad/bmm/`, `bmad.lens.release/_bmad/core/`, `bmad.lens.release/_bmad/cis/`, etc. — Other BMAD modules
-- `bmad.lens.release/_bmad/_config/` — Global manifests (agent, workflow, task, tool, files)
+- `lens.core/_bmad/lens-work/` — The lens-work module: lifecycle contract, skills, workflows, prompts, scripts, agents, docs
+- `lens.core/_bmad/bmm/`, `lens.core/_bmad/core/`, `lens.core/_bmad/cis/`, etc. — Other BMAD modules
+- `lens.core/_bmad/_config/` — Global manifests (agent, workflow, task, tool, files)
 
-**Write rules:** NEVER modify files in `bmad.lens.release/`. It is read-only reference material. All `_bmad/` path references in prompts and workflows resolve relative to `bmad.lens.release/`, NOT the workspace root.
+**Write rules:** NEVER modify files in `lens.core/`. It is read-only reference material. All `lens.core/_bmad/` path references in prompts and workflows resolve relative to `lens.core/`, NOT the workspace root.
 
 ### 3. TargetProjects
 
-Contains **cloned code repositories** organized by `{domain}/{service}/{repo}`. The base path is configured in `bmad.lens.release/_bmad/lens-work/bmadconfig.yaml` as `target_projects_path` (default: `../TargetProjects`).
+Contains **cloned code repositories** organized by `{domain}/{service}/{repo}`. The base path is configured in `lens.core/_bmad/lens-work/bmadconfig.yaml` as `target_projects_path` (default: `../TargetProjects`).
 
 Each subfolder is an independent git repo with its own `.git/`, branches, and remotes.
 
@@ -40,12 +40,12 @@ Each subfolder is an independent git repo with its own `.git/`, branches, and re
 
 | Reference Pattern | Resolves To |
 |---|---|
-| `_bmad/lens-work/...` in a prompt or workflow | `bmad.lens.release/_bmad/lens-work/...` |
-| `_bmad/_config/...` | `bmad.lens.release/_bmad/_config/...` |
+| `lens.core/_bmad/lens-work/...` in a prompt or workflow | `lens.core/_bmad/lens-work/...` |
+| `lens.core/_bmad/_config/...` | `lens.core/_bmad/_config/...` |
 | `_bmad-output/...` | Workspace root `_bmad-output/...` (control repo) |
 | `{target_projects_path}/{domain}/{service}/{repo}/` | The cloned code repo for that initiative |
-| `.github/prompts/lens-work.*.prompt.md` | Stub files — always follow the redirect to `bmad.lens.release/_bmad/lens-work/prompts/...` |
-| `.github/skills/lens-work-*/SKILL.md` | Stub files — always follow the redirect to `bmad.lens.release/_bmad/lens-work/skills/...` |
+| `.github/prompts/lens-work.*.prompt.md` | Stub files — always follow the redirect to `lens.core/_bmad/lens-work/prompts/...` |
+| `.github/skills/lens-work-*/SKILL.md` | Stub files — always follow the redirect to `lens.core/_bmad/lens-work/skills/...` |
 
 ## The `/dev` Prompt — Strict Write Scope
 
@@ -53,7 +53,7 @@ When `lens-work.dev.prompt.md` is executed:
 
 1. **Implementation code** (new files, edits, commits, branches, PRs) goes ONLY in the target repo under the configured `target_projects_path`
 2. **State tracking** (sprint-status, initiative state) goes ONLY in `_bmad-output/`
-3. **NEVER modify** the control repo root, `.github/`, `bmad.lens.release/`, or any other repo
+3. **NEVER modify** the control repo root, `.github/`, `lens.core/`, or any other repo
 
 This is enforced by the dev workflow's "Write Scope — Target Repo Only" rule: before implementing any task, verify the working directory is inside the target repo. If verification fails, implementation is blocked.
 
@@ -76,7 +76,7 @@ The lens-work module manages a 5-phase planning lifecycle with audience-based pr
 
 ## Key Conventions
 
-- All `.github/prompts/` and `.github/skills/` files are **stubs** that redirect to full implementations in `bmad.lens.release/`
+- All `.github/prompts/` and `.github/skills/` files are **stubs** that redirect to full implementations in `lens.core/`
 - Never duplicate module content into `.github/` — module updates propagate through path references
-- The `bmad.lens.release/` submodule branch matters: on `alpha`, run full preflight at most once per hour; on `beta`, run full preflight at most once every 3 hours
+- The `lens.core/` submodule branch matters: on `alpha`, run full preflight at most once per hour; on `beta`, run full preflight at most once every 3 hours
 - Initiative artifacts live at `_bmad-output/lens-work/initiatives/{domain}/{service}/{feature}.yaml`

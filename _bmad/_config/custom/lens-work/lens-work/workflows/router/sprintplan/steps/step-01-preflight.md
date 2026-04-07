@@ -3,7 +3,7 @@ name: 'step-01-preflight'
 description: 'Run pre-flight, validate devproposal prerequisite via initiative-state.yaml, and artifact checklist gating'
 nextStepFile: './step-02-readiness.md'
 preflightInclude: '../../includes/preflight.md'
-lifecycleContract: '{project-root}/_bmad/lens-work/lifecycle.yaml'
+lifecycleContract: '{project-root}/lens.core/_bmad/lens-work/lifecycle.yaml'
 ---
 
 # Step 1: Pre-Flight And Gate Checks

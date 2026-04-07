@@ -17,7 +17,7 @@ nextStepFile: './step-03-render-report.md'
 For each `root` in `target_roots`:
 
 ```yaml
-lifecycle = load: "{release_repo_root}/_bmad/lens-work/lifecycle.yaml"
+lifecycle = load: "{release_repo_root}/lens.core/_bmad/lens-work/lifecycle.yaml"
 milestones = lifecycle.milestones | keys
 
 for milestone in milestones:

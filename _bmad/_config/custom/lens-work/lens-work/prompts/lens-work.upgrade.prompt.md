@@ -21,12 +21,12 @@ Migrates the control repo from v2 (audience-named branches) to v3 (milestone-nam
 
 Instead, run a minimal preflight:
 1. Confirm the git remote is reachable (`git remote get-url origin`)
-2. Read `{release_repo_root}/_bmad/lens-work/lifecycle.yaml` to load `schema_version` and `migrations`
+2. Read `{release_repo_root}/lens.core/_bmad/lens-work/lifecycle.yaml` to load `schema_version` and `migrations`
 3. Read `LENS_VERSION` from the control repo root (may be missing — that is acceptable)
 
 ### Step 1: Execute Workflow
 
-Run the upgrade workflow at `{project-root}/_bmad/lens-work/workflows/utility/upgrade/`.
+Run the upgrade workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/utility/upgrade/`.
 
 The workflow handles:
 - Detecting current version state (missing, v2, or already v3)

@@ -2,7 +2,7 @@
 name: 'step-02-readiness'
 description: 'Resolve constitutional context, run readiness validation, and enforce compliance gating'
 nextStepFile: './step-03-sprint-planning.md'
-readinessWorkflow: '{project-root}/_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md'
+readinessWorkflow: '{project-root}/lens.core/_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md'
 ---
 
 # Step 2: Readiness And Compliance

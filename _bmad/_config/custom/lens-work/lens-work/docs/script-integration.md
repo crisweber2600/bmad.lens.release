@@ -29,7 +29,7 @@ Both `create-pr.*` and `promote-branch.*` resolve authentication in this order:
 
 ```bash
 # Bash
-./_bmad/lens-work/scripts/create-pr.sh \
+./lens.core/_bmad/lens-work/scripts/create-pr.sh \
   --source-branch "${phase_branch}" \
   --target-branch "${audience_branch}" \
   --title "[PHASE] ${initiative_id} — Phase Complete" \
@@ -38,7 +38,7 @@ Both `create-pr.*` and `promote-branch.*` resolve authentication in this order:
 
 ```powershell
 # PowerShell
-.\_bmad\lens-work\scripts\create-pr.ps1 `
+.\lens.core\_bmad\lens-work\scripts\create-pr.ps1 `
   -SourceBranch "${phase_branch}" `
   -TargetBranch "${audience_branch}" `
   -Title "[PHASE] ${initiative_id} — Phase Complete" `
@@ -56,7 +56,7 @@ Both `create-pr.*` and `promote-branch.*` resolve authentication in this order:
 `promote-branch.ps1/.sh` combines branch creation and PR in one operation:
 
 ```bash
-./_bmad/lens-work/scripts/promote-branch.sh \
+./lens.core/_bmad/lens-work/scripts/promote-branch.sh \
   --source-branch "${audience_branch}" \
   --target-branch "next-${audience_branch}" \
   --title "[PROMOTE] ${initiative_id} — ${audience} → ${next_audience}"
@@ -69,7 +69,7 @@ Phase-completing workflows invoke `create-pr` directly:
 ```yaml
 # Workflow step pattern (in steps/*.md)
 invoke: script
-script: "${PROJECT_ROOT}/_bmad/lens-work/scripts/create-pr.ps1"
+script: "${PROJECT_ROOT}/lens.core/_bmad/lens-work/scripts/create-pr.ps1"
 params:
   SourceBranch: ${phase_branch}
   TargetBranch: ${audience_branch}

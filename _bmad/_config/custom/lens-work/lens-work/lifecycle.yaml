@@ -1,5 +1,5 @@
 # =============================================================================
-# Lens-Work Lifecycle Contract v3.3
+# Lens-Work Lifecycle Contract v3.4
 # =============================================================================
 # The single source of truth for lens-work lifecycle behavior.
 # The @lens agent (with 5 skills) and all workflows import
@@ -9,9 +9,11 @@
 # Branch existence + PR metadata + committed artifacts = state.
 # v3.3: Cross-feature visibility — feature-index.yaml, commit-and-publish,
 #        relationship conflict detection, required frontmatter.
+# v3.4: 2-branch topology support — featureId + featureId-plan branches,
+#        feature.yaml as optional state source, per-track topology config.
 # =============================================================================
 
-schema_version: 3.3
+schema_version: 3.4
 close_states: [completed, abandoned, superseded]
 initiative_state_schema: initiative-state.yaml
 artifact_publication:
@@ -210,12 +212,16 @@ tracks:
     phases: [preplan, businessplan, techplan, devproposal, sprintplan]
     milestones: [techplan, devproposal, sprintplan, dev-ready]
     start_phase: preplan
+    topology: legacy                  # v3.4: legacy (milestone branches) | 2-branch (featureId + featureId-plan)
+    feature_yaml: false               # v3.4: use feature.yaml as optional state source
 
   feature:
     description: "Known business context — skip research, start at business plan"
     phases: [businessplan, techplan, devproposal, sprintplan]
     milestones: [techplan, devproposal, sprintplan, dev-ready]
     start_phase: businessplan
+    topology: legacy
+    feature_yaml: false
 
   tech-change:
     description: "Pure technical change — no business case needed"
@@ -223,6 +229,8 @@ tracks:
     milestones: [techplan, devproposal, sprintplan, dev-ready]
     constitution_controlled_gates: [devproposal, devproposal-to-sprintplan]
     start_phase: techplan
+    topology: legacy
+    feature_yaml: false
 
   hotfix:
     description: "Urgent fix — minimal planning, fast to execution"
@@ -230,22 +238,28 @@ tracks:
     milestones: [techplan, dev-ready]
     constitution_controlled_gates: [adversarial-review]
     start_phase: techplan
+    topology: legacy
+    feature_yaml: false
 
   hotfix-express:
     description: "Emergency fix — single promotion, constitution gate informational-only"
     phases: [techplan]
     milestones: [techplan, dev-ready]
     constitution_controlled_gates: [adversarial-review]
-    gate_mode: informational         # Gates produce reports but do not block
-    bypass_constitution_gate: true   # Constitution gate is advisory, not blocking
+    gate_mode: informational
+    bypass_constitution_gate: true
     start_phase: techplan
-    requires_constitution_permission: true  # Must be explicitly allowed in constitution
+    requires_constitution_permission: true
+    topology: legacy
+    feature_yaml: false
 
   spike:
     description: "Research only — no implementation"
     phases: [preplan]
     milestones: [techplan]
     start_phase: preplan
+    topology: legacy
+    feature_yaml: false
 
   quickdev:
     description: "Rapid execution — delegates to target-project agents"
@@ -253,18 +267,22 @@ tracks:
     milestones: [devproposal, dev-ready]
     constitution_controlled_gates: [adversarial-review]
     start_phase: devproposal
+    topology: legacy
+    feature_yaml: false
 
   express:
     description: "Lightweight single-phase planning — all artifacts in one session, no milestone branches, no PRs"
     phases: [expressplan]
     milestones: [dev-ready]
     constitution_controlled_gates: [adversarial-review]
-    gate_mode: informational         # Gates produce reports but do not block
-    bypass_constitution_gate: false   # Constitution gate runs but is advisory
+    gate_mode: informational
+    bypass_constitution_gate: false
     start_phase: expressplan
-    branch_model: single             # Only {initiative-root} branch, no milestone branches
-    pr_creation: disabled            # No PRs created during express workflow
-    requires_constitution_permission: true  # Must be permitted via permitted_tracks in constitution
+    branch_model: single
+    pr_creation: disabled
+    requires_constitution_permission: true
+    topology: legacy
+    feature_yaml: false
 
 # -----------------------------------------------------------------------------
 # PROMOTE SEMANTICS (v3.1 — approval-only model)
@@ -517,6 +535,51 @@ planning_repo:
   # v3: Lazy milestone branch creation
   milestone_branch_creation: lazy
   # Create `{root}` and `{root}-techplan` at init; higher milestone branches are created on-demand at promotion time
+
+# -----------------------------------------------------------------------------
+# BRANCH TOPOLOGY — 2-BRANCH MODEL (v3.4)
+# -----------------------------------------------------------------------------
+# Simplified branch topology for tracks with topology: 2-branch.
+# Replaces the 4-level milestone branch chain with two branches:
+#   - {featureId}       — code branch in governance repo (planning artifacts)
+#   - {featureId}-plan  — planning branch in governance repo (working drafts)
+# A single PR from {featureId} to main replaces the multi-PR promotion chain.
+# feature.yaml on the code branch is the authoritative state source.
+two_branch_topology:
+  branch_patterns:
+    code: "{featureId}"
+    plan: "{featureId}-plan"
+  merge_chain:
+    - source: "{featureId}"
+      target: main
+      type: feature-completion
+      gate: constitution-gate
+      description: "Single PR replaces multi-milestone promotion chain"
+  artifacts:
+    code_branch:
+      - feature.yaml                 # Authoritative feature state
+      - "artifacts/**"               # Published planning artifacts (approved)
+    plan_branch:
+      - "drafts/**"                  # Working draft artifacts
+      - "reviews/**"                 # Review reports
+  phase_mapping:
+    description: >
+      Existing phases map to the 2-branch model unchanged. Phases still execute
+      in sequence, but artifacts land on the plan branch as drafts and are
+      promoted to the code branch via commit-and-publish when approved.
+      Milestones become logical checkpoints in feature.yaml rather than branches.
+    preplan: { branch: plan, folder: "drafts/" }
+    businessplan: { branch: plan, folder: "drafts/" }
+    techplan: { branch: plan, folder: "drafts/" }
+    devproposal: { branch: plan, folder: "drafts/" }
+    sprintplan: { branch: plan, folder: "drafts/" }
+    expressplan: { branch: code, folder: "artifacts/" }
+  milestone_tracking:
+    description: >
+      Milestones are tracked as fields in feature.yaml instead of separate branches.
+      Phase completion updates the milestone field. No branch creation per milestone.
+    storage: feature.yaml
+    field: current_milestone
 
 # -----------------------------------------------------------------------------
 # BRANCH TOPOLOGY — TARGET PROJECTS (code repos)
@@ -902,3 +965,37 @@ migrations:
           - "Generate frontmatter from initiative-state.yaml and document content"
           - "Commit frontmatter additions to planning branches"
           - "Update feature-index.yaml summaries on main"
+
+  - from_version: 3.3
+    to_version: 3.4
+    breaking: false
+    migration_command: "/lens-upgrade --from 3.3 --to 3.4"
+    branch_rename_required: false
+    changes:
+      - type: add_field
+        path: tracks.*.topology
+        value: "legacy"
+        description: "Per-track topology declaration — legacy (milestone branches) or 2-branch"
+      - type: add_field
+        path: tracks.*.feature_yaml
+        value: false
+        description: "Per-track feature.yaml support flag"
+      - type: add_section
+        path: two_branch_topology
+        description: "2-branch model definition — featureId + featureId-plan branches"
+      - type: add_capability
+        path: constitution.capabilities
+        value: topology_override
+        description: "Constitution can override track topology per domain/service"
+    optional_migrations:
+      - name: migrate-to-2-branch
+        description: "Migrate active initiatives from milestone branches to 2-branch topology"
+        prerequisite: "Set topology: 2-branch on the desired track"
+        steps:
+          - "Scan active initiatives on the target track"
+          - "For each initiative: create {featureId} and {featureId}-plan branches"
+          - "Migrate initiative-state.yaml → feature.yaml on {featureId} branch"
+          - "Move planning artifacts from milestone branches to {featureId}-plan/drafts/"
+          - "Move approved artifacts to {featureId}/artifacts/"
+          - "Update feature-index.yaml on main"
+          - "Archive old milestone branches with -archived suffix"

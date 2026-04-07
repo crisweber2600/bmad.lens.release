@@ -17,8 +17,8 @@ invoke: git-orchestration.start-workflow
 params:
   workflow_name: code-review
 
-agent_persona: "_bmad/bmm/agents/qa.md"
-read_and_follow: "_bmad/bmm/workflows/4-implementation/code-review/workflow.yaml"
+agent_persona: "lens.core/_bmad/bmm/agents/qa.md"
+read_and_follow: "lens.core/_bmad/bmm/workflows/4-implementation/code-review/workflow.yaml"
 params:
   target_repo: "${target_path}"
   branch: "${session.story_branch}"
@@ -77,7 +77,7 @@ if code_review_compliance.fail_count > 0 and enforcement_mode == "enforced":
     gate_stage: "post-review-compliance-legacy"
   halt: true
 
-read_and_follow: "_bmad/core/skills/bmad-party-mode/workflow.md"
+read_and_follow: "lens.core/_bmad/core/skills/bmad-party-mode/workflow.md"
 params:
   input_file: ${code_review_path}
   artifacts_path: ${target_path}

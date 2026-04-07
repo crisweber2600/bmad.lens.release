@@ -4,8 +4,8 @@
 #
 # PURPOSE:
 #   Bootstraps a new control repo by cloning all required authority domains:
-#   - bmad.lens.release   → Release module (read-only dependency)
-#   - .github             → Copied from bmad.lens.release/.github
+#   - lens.core   → Release module (read-only dependency)
+#   - .github             → Copied from lens.core/.github
 #   - governance repo     → Governance repo (constitutional authority)
 #
 #   Safe to re-run: pulls latest if repos already exist.
@@ -25,7 +25,7 @@
 #   --control-dir <path>       Directory to set up as the control repo (default: current git root or script location)
 #   --org <name>               Default GitHub org/user for all repos (falls back if specific org not set)
 #   --release-org <name>       Release repo owner (default: uses --org)
-#   --release-repo <name>      Release repo name (default: bmad.lens.release)
+#   --release-repo <name>      Release repo name (default: lens.core)
 #   --release-branch <name>    Release repo branch (default: beta)
 #   --governance-org <name>    Governance repo owner (default: uses --org)
 #   --governance-repo <name>   Governance repo name (default: auto-derived from control repo name)
@@ -54,7 +54,7 @@ RESET='\033[0m'
 # -- Defaults ---------------------------------------------------------------
 ORG=""
 RELEASE_ORG=""
-RELEASE_REPO="bmad.lens.release"
+RELEASE_REPO="lens.core"
 RELEASE_BRANCH="beta"
 GOVERNANCE_ORG=""
 GOVERNANCE_REPO=""
@@ -73,7 +73,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if GIT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)"; then
   PROJECT_ROOT="$GIT_ROOT"
 else
-  # Fallback: this script lives at _bmad/lens-work/scripts/
+  # Fallback: this script lives at lens.core/_bmad/lens-work/scripts/
   PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 fi
 
@@ -396,7 +396,7 @@ ensure_gitignore_entries() {
   local entries=(
     "_bmad-output/lens-work/personal/"
     ".github/"
-    "bmad.lens.release/"
+    "lens.core/"
     "TargetProjects/"
   )
 
@@ -630,7 +630,7 @@ fi
 
 # -- 5. Write LENS_VERSION ---------------------------------------------------
 if [[ "$DRY_RUN" != true ]]; then
-  LIFECYCLE_PATH="${RELEASE_PATH}/_bmad/lens-work/lifecycle.yaml"
+  LIFECYCLE_PATH="${RELEASE_PATH}/lens.core/_bmad/lens-work/lifecycle.yaml"
   if [[ ! -f "$LIFECYCLE_PATH" ]]; then
     log_err "Unable to write LENS_VERSION: lifecycle file not found at '${LIFECYCLE_PATH}'"
     exit 1
@@ -664,12 +664,12 @@ echo -e "GitHub Copilot adapter is installed from ${RELEASE_REPO}/.github."
 echo -e "No further setup is needed if GitHub Copilot is your only IDE."
 echo ""
 echo -e "For non-Copilot IDEs (cursor, claude, codex), run the module installer:"
-echo -e "  ${CYAN}./_bmad/lens-work/scripts/install.sh --ide cursor${RESET}"
-echo -e "  ${CYAN}./_bmad/lens-work/scripts/install.sh --all-ides${RESET}"
+echo -e "  ${CYAN}./lens.core/_bmad/lens-work/scripts/install.sh --ide cursor${RESET}"
+echo -e "  ${CYAN}./lens.core/_bmad/lens-work/scripts/install.sh --all-ides${RESET}"
 echo ""
 echo -e "${BOLD}Next Steps:${RESET}"
 echo -e "  1. Store your GitHub PAT (run in terminal, ${YELLOW}not in AI chat${RESET}):"
-echo -e "     ${CYAN}bash ${RELEASE_REPO}/_bmad/lens-work/scripts/store-github-pat.sh${RESET}"
+echo -e "     ${CYAN}bash ${RELEASE_REPO}/lens.core/_bmad/lens-work/scripts/store-github-pat.sh${RESET}"
 echo -e "  2. Open VS Code + GitHub Copilot Chat and run:"
 echo -e "     ${CYAN}/onboard${RESET}"
 echo ""

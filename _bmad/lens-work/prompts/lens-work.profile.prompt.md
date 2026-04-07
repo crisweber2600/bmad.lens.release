@@ -17,8 +17,8 @@ Routes the `/profile` command to the profile workflow, which displays the curren
 
 ### Step 0: Run Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Execute Workflow
 
-Run the profile workflow at `{project-root}/_bmad/lens-work/workflows/utility/profile/`.
+Run the profile workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/utility/profile/`.

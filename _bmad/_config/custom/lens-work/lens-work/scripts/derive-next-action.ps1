@@ -7,7 +7,7 @@
 #   workflows/utility/next/steps/step-02-derive-action.md.
 #
 # USAGE:
-#   .\_bmad\lens-work\scripts\derive-next-action.ps1 -InitiativeRoot path [-Json]
+#   .\lens.core\_bmad\lens-work\scripts\derive-next-action.ps1 -InitiativeRoot path [-Json]
 #
 # OUTPUT FIELDS:
 #   next_command  - The command to run (null when gated)

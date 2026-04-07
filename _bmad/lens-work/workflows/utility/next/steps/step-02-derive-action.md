@@ -19,7 +19,18 @@ next_command = null
 gate_message = null
 hard_gate = false
 
-if current_row == null:
+# v3.4: When feature.yaml state is available, use it for phase resolution
+if session.feature_yaml_state != null and session.feature_yaml_state.available == true:
+  feature_state = session.feature_yaml_state
+
+  if feature_state.status == "complete" or feature_state.status == "archived":
+    gate_message = "✅ This initiative is ${feature_state.status}. No further actions."
+  else if feature_state.current_phase != null:
+    next_command = "/" + feature_state.current_phase
+  else:
+    gate_message = "✅ All caught up. The initiative is ready for execution."
+
+else if current_row == null:
   gate_message = "ℹ️ Not currently on an initiative branch. Run `/status` or `/switch`."
 else if current_row.audience == null and current_context.scope == "domain":
   next_command = "/new-service"

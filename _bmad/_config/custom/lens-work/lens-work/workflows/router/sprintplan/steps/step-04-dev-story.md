@@ -2,9 +2,9 @@
 name: 'step-04-dev-story'
 description: 'Batch-create dev-ready story artifacts for all stories in the sprint backlog for the target epic'
 nextStepFile: './step-05-closeout.md'
-workflowXml: '{project-root}/_bmad/core/tasks/workflow.yaml'
-scrumMasterAgent: '{project-root}/_bmad/bmm/agents/sm.md'
-devStoryWorkflow: '{project-root}/_bmad/bmm/workflows/4-implementation/dev-story/workflow.yaml'
+workflowXml: '{project-root}/lens.core/_bmad/core/tasks/workflow.yaml'
+scrumMasterAgent: '{project-root}/lens.core/_bmad/bmm/agents/sm.md'
+devStoryWorkflow: '{project-root}/lens.core/_bmad/bmm/workflows/4-implementation/dev-story/workflow.yaml'
 ---
 
 # Step 4: Batch-Create Dev-Ready Stories

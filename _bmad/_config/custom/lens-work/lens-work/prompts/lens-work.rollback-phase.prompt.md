@@ -17,11 +17,11 @@ Routes the `/rollback-phase` command to the rollback-phase workflow, which safel
 
 ### Step 0: Run Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Execute Workflow
 
-Run the rollback-phase workflow at `{project-root}/_bmad/lens-work/workflows/utility/rollback-phase/`.
+Run the rollback-phase workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/utility/rollback-phase/`.
 
 The workflow handles:
 - Validating rollback eligibility (not at first phase, no open PRs)

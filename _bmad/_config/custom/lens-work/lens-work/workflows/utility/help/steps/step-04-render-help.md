@@ -21,11 +21,25 @@ description: 'Render grouped help output and command recovery guidance'
 ```yaml
 help_sections = []
 
+# v3.4: Phase-aware progressive disclosure
+current_phase = session.current_phase || null
+
 for group_name in ["lifecycle", "navigation", "governance", "utility"]:
   rows = grouped_commands[group_name] || []
   if rows.length > 0:
-    rendered_rows = map(rows, row -> "- " + row.user_command + " — " + row.description)
-    help_sections.append(group_name.toUpperCase() + "\n" + rendered_rows.join("\n"))
+    if current_phase != null:
+      # Split into phase-relevant and other commands
+      relevant = filter(rows, row -> row.phase == "anytime" or row.phase == current_phase)
+      other = filter(rows, row -> row.phase != "anytime" and row.phase != current_phase)
+      rendered_relevant = map(relevant, row -> "- " + row.user_command + " — " + row.description)
+      rendered_other = map(other, row -> "- " + row.user_command + " — " + row.description)
+      section = group_name.toUpperCase() + "\n" + rendered_relevant.join("\n")
+      if other.length > 0:
+        section += "\n\n  _Other " + group_name + " commands:_\n" + rendered_other.join("\n")
+      help_sections.append(section)
+    else:
+      rendered_rows = map(rows, row -> "- " + row.user_command + " — " + row.description)
+      help_sections.append(group_name.toUpperCase() + "\n" + rendered_rows.join("\n"))
 
 output: |
   📖 @lens Command Reference

@@ -17,11 +17,11 @@ Routes the `/pause-epic` command to the pause-epic workflow, which records the p
 
 ### Step 0: Run Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Execute Workflow
 
-Run the pause-epic workflow at `{project-root}/_bmad/lens-work/workflows/utility/pause-epic/`.
+Run the pause-epic workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/utility/pause-epic/`.
 
 The workflow handles:
 - Validating the initiative is active and can be paused

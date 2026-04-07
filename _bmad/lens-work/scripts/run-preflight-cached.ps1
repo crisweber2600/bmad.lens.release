@@ -7,10 +7,10 @@
 #   configurable TTL (default 300 seconds / 5 minutes).
 #
 # USAGE:
-#   .\_bmad\lens-work\scripts\run-preflight-cached.ps1
-#   .\_bmad\lens-work\scripts\run-preflight-cached.ps1 -TTL 600
-#   .\_bmad\lens-work\scripts\run-preflight-cached.ps1 -Force
-#   .\_bmad\lens-work\scripts\run-preflight-cached.ps1 -Json
+#   .\lens.core\_bmad\lens-work\scripts\run-preflight-cached.ps1
+#   .\lens.core\_bmad\lens-work\scripts\run-preflight-cached.ps1 -TTL 600
+#   .\lens.core\_bmad\lens-work\scripts\run-preflight-cached.ps1 -Force
+#   .\lens.core\_bmad\lens-work\scripts\run-preflight-cached.ps1 -Json
 #
 # =============================================================================
 

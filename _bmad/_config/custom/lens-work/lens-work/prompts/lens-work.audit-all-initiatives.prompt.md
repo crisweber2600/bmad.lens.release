@@ -17,11 +17,11 @@ Routes the `/audit-all-initiatives` command to the audit-all workflow, which sca
 
 ### Step 0: Run Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Execute Workflow
 
-Run the audit-all workflow at `{project-root}/_bmad/lens-work/workflows/governance/audit-all/`.
+Run the audit-all workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/governance/audit-all/`.
 
 The workflow handles:
 - Scanning all active initiatives via scan-active-initiatives script

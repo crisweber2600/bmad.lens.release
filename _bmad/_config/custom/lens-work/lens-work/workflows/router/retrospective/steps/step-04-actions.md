@@ -84,7 +84,27 @@ if user_chose_github_issues:
     output_manual_issue_instructions(selected_items)
 ```
 
-### 5. Final Summary
+### 5. Curate Insights (v3.4)
+
+Write pattern data to user insights for future planning risk awareness.
+
+```yaml
+# Invoke the retrospective skill's update-insights operation
+governance_path = session.governance_repo_path || ""
+if governance_path != "":
+  username = invoke: git-state.current-user
+  insights_path = "${governance_path}/users/${username}/insights.md"
+
+  invoke: bmad-lens-retrospective.update-insights
+  params:
+    feature: ${session.initiative_root}
+    problems_data: ${session.analysis_result}
+    insights_path: ${insights_path}
+
+  output: "📝 Insights updated at ${insights_path}"
+```
+
+### 6. Final Summary
 
 ```
 ✅ Retrospective Complete

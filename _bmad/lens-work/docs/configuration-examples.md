@@ -9,13 +9,13 @@ Sample `bmadconfig.yaml` configurations for different team sizes, git providers,
 The simplest setup — one developer, one repo, express track by default.
 
 ```yaml
-# _bmad/lens-work/bmadconfig.yaml
+# lens.core/_bmad/lens-work/bmadconfig.yaml
 user_name: "Alice"
 communication_language: "english"
 output_folder: "_bmad-output"
 target_projects_path: "../TargetProjects"
 default_git_remote: "github"
-lifecycle_contract: "_bmad/lens-work/lifecycle.yaml"
+lifecycle_contract: "lens.core/_bmad/lens-work/lifecycle.yaml"
 initiative_output_folder: "_bmad-output/lens-work/initiatives"
 personal_output_folder: "_bmad-output/lens-work/personal"
 ```
@@ -37,13 +37,13 @@ collapse_gates:
 Standard setup with feature tracks and PR-based review gates.
 
 ```yaml
-# _bmad/lens-work/bmadconfig.yaml
+# lens.core/_bmad/lens-work/bmadconfig.yaml
 user_name: "Bob"
 communication_language: "english"
 output_folder: "_bmad-output"
 target_projects_path: "../TargetProjects"
 default_git_remote: "github"
-lifecycle_contract: "_bmad/lens-work/lifecycle.yaml"
+lifecycle_contract: "lens.core/_bmad/lens-work/lifecycle.yaml"
 initiative_output_folder: "_bmad-output/lens-work/initiatives"
 personal_output_folder: "_bmad-output/lens-work/personal"
 ```
@@ -68,13 +68,13 @@ collapse_gates:
 Full governance with mandatory stakeholder approval and all gates enforced.
 
 ```yaml
-# _bmad/lens-work/bmadconfig.yaml
+# lens.core/_bmad/lens-work/bmadconfig.yaml
 user_name: "Carol"
 communication_language: "english"
 output_folder: "_bmad-output"
 target_projects_path: "../TargetProjects"
 default_git_remote: "github"
-lifecycle_contract: "_bmad/lens-work/lifecycle.yaml"
+lifecycle_contract: "lens.core/_bmad/lens-work/lifecycle.yaml"
 initiative_output_folder: "_bmad-output/lens-work/initiatives"
 personal_output_folder: "_bmad-output/lens-work/personal"
 ```
@@ -98,13 +98,13 @@ enable_parallel_phases: false
 Same module — different git provider target.
 
 ```yaml
-# _bmad/lens-work/bmadconfig.yaml
+# lens.core/_bmad/lens-work/bmadconfig.yaml
 user_name: "Dave"
 communication_language: "english"
 output_folder: "_bmad-output"
 target_projects_path: "../TargetProjects"
 default_git_remote: "azure-devops"
-lifecycle_contract: "_bmad/lens-work/lifecycle.yaml"
+lifecycle_contract: "lens.core/_bmad/lens-work/lifecycle.yaml"
 initiative_output_folder: "_bmad-output/lens-work/initiatives"
 personal_output_folder: "_bmad-output/lens-work/personal"
 ```
@@ -116,13 +116,13 @@ personal_output_folder: "_bmad-output/lens-work/personal"
 ## GitLab Setup
 
 ```yaml
-# _bmad/lens-work/bmadconfig.yaml
+# lens.core/_bmad/lens-work/bmadconfig.yaml
 user_name: "Eve"
 communication_language: "english"
 output_folder: "_bmad-output"
 target_projects_path: "../TargetProjects"
 default_git_remote: "gitlab"
-lifecycle_contract: "_bmad/lens-work/lifecycle.yaml"
+lifecycle_contract: "lens.core/_bmad/lens-work/lifecycle.yaml"
 initiative_output_folder: "_bmad-output/lens-work/initiatives"
 personal_output_folder: "_bmad-output/lens-work/personal"
 ```
@@ -136,7 +136,7 @@ personal_output_folder: "_bmad-output/lens-work/personal"
 If your team uses multiple editors, install adapters for all of them:
 
 ```bash
-./_bmad/lens-work/scripts/install.sh --all-ides
+./lens.core/_bmad/lens-work/scripts/install.sh --all-ides
 ```
 
 This generates adapter files for:

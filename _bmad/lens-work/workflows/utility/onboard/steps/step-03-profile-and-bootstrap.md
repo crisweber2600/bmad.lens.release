@@ -34,6 +34,25 @@ profile_data = {
 write_yaml(profile_path, profile_data)
 ```
 
+### 1b. Create Governance User Profile (v3.4)
+
+```yaml
+# Write user profile to governance repo for cross-feature visibility
+if governance_repo_path != null and governance_repo_path != "":
+  username = invoke: git-state.current-user
+  gov_profile_path = "${governance_repo_path}/users/${username}.md"
+
+  if not file_exists(gov_profile_path):
+    template = load("../../assets/templates/user-profile-template.md")
+    rendered = template
+      .replace("{username}", username)
+      .replace("{provider}", provider)
+      .replace("{created_date}", now_iso8601())
+
+    ensure_directory(dirname(gov_profile_path))
+    write_file(gov_profile_path, rendered)
+```
+
 ### 2. Bootstrap Inventory Clones
 
 ```yaml

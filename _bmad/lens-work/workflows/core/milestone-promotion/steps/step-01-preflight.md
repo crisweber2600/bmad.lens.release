@@ -20,6 +20,11 @@ lifecycleContract: '../../../lifecycle.yaml'
 invoke: include
 path: "{preflightInclude}"
 
+# v3.4: 2-branch topology does not have milestones
+if session.feature_yaml_context != null and session.feature_yaml_context.enabled == true:
+  output: "ℹ️ This initiative uses 2-branch topology — milestone promotion is not applicable. Use `/promote` for the plan→root PR model."
+  exit: 0
+
 initiative_state = invoke: git-state.current-initiative
 initiative_config = load(initiative_state.config_path)
 lifecycle = load("{lifecycleContract}")

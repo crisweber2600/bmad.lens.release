@@ -94,6 +94,61 @@ for root in initiative_roots:
   if initiative_config == null:
     initiative_config = {}
 
+  # v3.4: Check for feature.yaml-based state (2-branch topology)
+  track_config = (initiative_config.track != null and lifecycle.tracks[initiative_config.track] != null) ? lifecycle.tracks[initiative_config.track] : {}
+  use_feature_yaml = track_config.feature_yaml == true
+
+  if use_feature_yaml:
+    # Read feature.yaml from the feature branch for authoritative state
+    raw_feature_yaml = invoke_command("git show origin/${root}:feature.yaml 2>/dev/null")
+    if raw_feature_yaml != null and raw_feature_yaml != "":
+      feature_state = parse_yaml(raw_feature_yaml)
+
+      # For 2-branch topology, phase/milestone comes from feature.yaml
+      current_audience = null   # 2-branch has no audience concept
+      current_phase = feature_state.current_phase
+      current_milestone_label = feature_state.current_milestone
+
+      # Check for a single PR from featureId to main
+      pr_state = invoke: git-orchestration.query-pr-status
+      params:
+        head: ${root}
+        base: main
+      pr_summary = pr_state.state == "open" ? "1 ⏳" : (pr_state.state == "merged" ? "1 ✅" : "0")
+
+      # Derive action from feature.yaml status
+      if feature_state.status == "complete" or feature_state.status == "archived":
+        pending_action = "Completed"
+      else if pr_state.state == "open":
+        pending_action = pr_state.review_decision == "approved" ? "Awaiting merge" : "Awaiting review"
+      else if current_phase != null:
+        pending_action = "Continue /" + current_phase
+      else:
+        pending_action = "Ready for execution"
+
+      status_row = {
+        initiative: root,
+        is_current: root == current_initiative_root,
+        audience: "(2-branch)",
+        phase: current_phase,
+        prs: pr_summary,
+        action: pending_action,
+        completed_phases: [],
+        track: initiative_config.track,
+        blocked_reason: null,
+        health_status: "healthy",
+        stuck_reason: null,
+        completeness_badge: feature_state.current_milestone || "—",
+        stories_badge: null
+      }
+
+      status_rows.append(status_row)
+      if detail_initiative == root or initiative_roots.length == 1:
+        detail_rows.append(status_row)
+
+      continue   # Skip legacy state derivation for this initiative
+
+  # --- LEGACY STATE DERIVATION (unchanged) ---
   current_audience = null
   current_phase = null
   pr_summary = "0"

@@ -2,9 +2,9 @@
 name: 'step-03-sprint-planning'
 description: 'Run the scrum-master sprint planning workflow and generate the sprint backlog'
 nextStepFile: './step-04-dev-story.md'
-workflowXml: '{project-root}/_bmad/core/tasks/workflow.yaml'
-scrumMasterAgent: '{project-root}/_bmad/bmm/agents/sm.md'
-sprintPlanningWorkflow: '{project-root}/_bmad/bmm/workflows/4-implementation/sprint-planning/workflow.yaml'
+workflowXml: '{project-root}/lens.core/_bmad/core/tasks/workflow.yaml'
+scrumMasterAgent: '{project-root}/lens.core/_bmad/bmm/agents/sm.md'
+sprintPlanningWorkflow: '{project-root}/lens.core/_bmad/bmm/workflows/4-implementation/sprint-planning/workflow.yaml'
 ---
 
 # Step 3: Sprint Planning

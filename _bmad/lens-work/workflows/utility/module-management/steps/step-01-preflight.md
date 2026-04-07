@@ -4,7 +4,7 @@ description: 'Run shared preflight and load local and release module manifests'
 nextStepFile: './step-02-compare-report.md'
 preflightInclude: '../../../includes/preflight.md'
 localModulePath: '../../../../module.yaml'
-releaseModulePath: '{release_repo_root}/_bmad/lens-work/module.yaml'
+releaseModulePath: '{release_repo_root}/lens.core/_bmad/lens-work/module.yaml'
 ---
 
 # Step 1: Preflight And Version Sources

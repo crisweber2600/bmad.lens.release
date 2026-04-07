@@ -423,9 +423,9 @@ A comprehensive quality scan identified 379 issues (4 critical, 62 high, 293 med
 
 ### Critical & High Fixes
 
-- **Path convention enforcement** — `{project-root}` used for `_bmad/` paths; release module references now use `{release_repo_root}` variable (defined in `bmadconfig.yaml`, defaults to `bmad.lens.release`); `_bmad-output/` is workspace-relative
-- **Bare `_bmad` references** — Fixed 20+ documentation references that omitted the required repo prefix (`bmad.lens.release/` or `bmad.lens.src/`)
-- **Configurable release repo path** — Added `release_repo_root` to `bmadconfig.yaml`; all prompts, workflows, skills, and docs now reference `{release_repo_root}` instead of hardcoded `bmad.lens.release/`
+- **Path convention enforcement** — `{project-root}` used for `lens.core/_bmad/` paths; release module references now use `{release_repo_root}` variable (defined in `bmadconfig.yaml`, defaults to `lens.core`); `_bmad-output/` is workspace-relative
+- **Bare `_bmad` references** — Fixed 20+ documentation references that omitted the required repo prefix (`lens.core/` or `bmad.lens.src/`)
+- **Configurable release repo path** — Added `release_repo_root` to `bmadconfig.yaml`; all prompts, workflows, skills, and docs now reference `{release_repo_root}` instead of hardcoded `lens.core/`
 - **Agent activation refactored** — Replaced defensive padding (caps, emoji, negation patterns) in `lens.agent.md` step 2 with direct outcome-focused language
 - **Shell lint** — Fixed SC2034 (`export SKIP_CONSTITUTION` for cross-script consumption), SC2043 (shellcheck directive for intentional single-item loop), SC2168 (`local` outside function scope)
 

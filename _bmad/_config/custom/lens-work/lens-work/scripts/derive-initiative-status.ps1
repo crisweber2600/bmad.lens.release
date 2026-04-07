@@ -6,8 +6,8 @@
 #   by scanning branch topology. Outputs structured JSON or human-readable text.
 #
 # USAGE:
-#   .\_bmad\lens-work\scripts\derive-initiative-status.ps1 -Root <initiative-root> -LifecyclePath <path>
-#   .\_bmad\lens-work\scripts\derive-initiative-status.ps1 -Root <root> -LifecyclePath <path> -Track <t> -Json
+#   .\lens.core\_bmad\lens-work\scripts\derive-initiative-status.ps1 -Root <initiative-root> -LifecyclePath <path>
+#   .\lens.core\_bmad\lens-work\scripts\derive-initiative-status.ps1 -Root <root> -LifecyclePath <path> -Track <t> -Json
 #
 # =============================================================================
 

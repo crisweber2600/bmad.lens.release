@@ -1122,8 +1122,8 @@ fi
 **If auth fails:** Guide user to set up PAT:
 ```
 No PAT found. Run the store-github-pat script outside of this chat:
-  Windows: .\_bmad\lens-work\scripts\store-github-pat.ps1
-  macOS/Linux: ./_bmad/lens-work/scripts/store-github-pat.sh
+  Windows: .\lens.core\_bmad\lens-work\scripts\store-github-pat.ps1
+  macOS/Linux: ./lens.core/_bmad/lens-work/scripts/store-github-pat.sh
 Then restart your terminal and try again.
 ```
 
@@ -1141,7 +1141,7 @@ Create a pull request via the `promote-branch` script or direct REST API call.
 **Preferred method — promote-branch script:**
 ```bash
 # The script handles PAT resolution, branch push, PR creation, and cleanup
-./_bmad/lens-work/scripts/promote-branch.sh \
+./lens.core/_bmad/lens-work/scripts/promote-branch.sh \
   -s "${SOURCE_BRANCH}" \
   -t "${TARGET_BRANCH}"
 ```

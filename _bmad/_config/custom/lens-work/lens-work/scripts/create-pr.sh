@@ -8,8 +8,8 @@
 #   Never relies on 'gh' CLI — always uses API via PAT or provides manual instructions.
 #
 # USAGE:
-#   ./_bmad/lens-work/scripts/create-pr.sh -s my-feature -t main -T "My PR" -b "PR description"
-#   ./_bmad/lens-work/scripts/create-pr.sh --source preplan-phase --target small-audience --title "[PHASE] PrePlan complete"
+#   ./lens.core/_bmad/lens-work/scripts/create-pr.sh -s my-feature -t main -T "My PR" -b "PR description"
+#   ./lens.core/_bmad/lens-work/scripts/create-pr.sh --source preplan-phase --target small-audience --title "[PHASE] PrePlan complete"
 #
 # OPTIONS:
 #   -s, --source              Source branch name (required)

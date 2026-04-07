@@ -39,6 +39,45 @@ Finish SprintPlan by committing the phase complete marker, creating the `{initia
 
 ## MANDATORY SEQUENCE
 
+### 0. Topology Check (v3.4)
+
+```yaml
+# 2-branch topology: commit-and-publish replaces milestone branch + PR
+if session.feature_yaml_context != null and session.feature_yaml_context.enabled == true:
+
+  invoke: git-orchestration.update-phase-complete
+  params:
+    initiative_id: ${initiative.id || initiative_root}
+    phase: "sprintplan"
+    branch: ${current_branch}
+    commit_message: |
+      [PHASE:SPRINTPLAN:COMPLETE] SprintPlan artifacts finalized
+      Artifacts: sprint-backlog.md, dev-story files
+    artifacts:
+      - sprint-backlog.md
+      - dev-story files
+
+  invoke: git-orchestration.commit-and-publish
+  params:
+    file_paths:
+      - ${docs_path}
+      - ${initiative_state.state_path}
+    phase: "PHASE:SPRINTPLAN:COMPLETE"
+    initiative: ${initiative_root}
+    description: "sprintplan artifacts complete"
+
+  # Skip sections 2-5 (milestone branch, gate updates, event logging, state commit)
+  # Jump directly to handoff
+
+  output: |
+    ✅ /sprintplan complete (2-branch topology)
+    ├── Artifacts committed to plan branch, summary published to main
+    ├── No milestone branch created (2-branch model)
+    └── Ready for `/dev` handoff
+
+  # Proceed to Section 6 (handoff) and skip Section 7 (promotion check handled by topology guard)
+```
+
 ### 1. Phase Complete Marker
 
 Commit the phase complete marker on the current branch:

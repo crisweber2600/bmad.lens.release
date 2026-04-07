@@ -10,7 +10,7 @@ The `{command}` segment maps directly to the slash-command name and the agent me
 
 ## Prompt→Workflow Mapping
 
-Each prompt routes to a workflow by referencing `{project-root}/_bmad/lens-work/workflows/{category}/{workflow-name}/workflow.md`. The prompt handles preflight invocation and parameter extraction; the workflow handles execution.
+Each prompt routes to a workflow by referencing `{project-root}/lens.core/_bmad/lens-work/workflows/{category}/{workflow-name}/workflow.md`. The prompt handles preflight invocation and parameter extraction; the workflow handles execution.
 
 ## Frontmatter
 

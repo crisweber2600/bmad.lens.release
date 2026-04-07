@@ -6,7 +6,7 @@
 #   Uses lifecycle.yaml as the single source of truth for required artifacts.
 #
 # USAGE:
-#   .\_bmad\lens-work\scripts\validate-phase-artifacts.ps1 -Phase preplan -LifecyclePath lifecycle.yaml -DocsRoot path
+#   .\lens.core\_bmad\lens-work\scripts\validate-phase-artifacts.ps1 -Phase preplan -LifecyclePath lifecycle.yaml -DocsRoot path
 #
 # =============================================================================
 

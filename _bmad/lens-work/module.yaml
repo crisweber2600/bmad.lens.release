@@ -1,10 +1,10 @@
-# LENS Workbench Module Configuration v3.2
-# Source repo — CI/CD promotes to bmad.lens.release
+# LENS Workbench Module Configuration v4.0
+# Source repo — CI/CD promotes to lens.core
 
-code: lens-work
+code: lens
 name: "LENS Workbench"
-module_version: "3.2.0"
-description: "Guided lifecycle router with git-orchestrated discipline. Phase-aware orchestration for BMAD workflows with automated branch topology."
+module_version: "4.0.0"
+description: "AI-guided lifecycle orchestration with feature-first branching and streamlined governance. Includes Lens Next skills alongside legacy lens-work workflows."
 header: "Guided lifecycle router with git-orchestrated discipline"
 subheader: "Phase-aware orchestration for BMAD workflows with automated branch topology"
 default_selected: false
@@ -50,6 +50,79 @@ skills:
   - id: dashboard
     file: workflows/utility/dashboard/SKILL.md
     description: "Cross-initiative status overview with Gantt timeline"
+
+  # Lens Next Skills (v4.0 — additive overlay)
+  - id: bmad-lens-feature-yaml
+    file: skills/bmad-lens-feature-yaml/SKILL.md
+    description: "Feature YAML lifecycle operations and validation"
+  - id: bmad-lens-git-state
+    file: skills/bmad-lens-git-state/SKILL.md
+    description: "Read-only git queries for the Lens 2-branch feature model"
+  - id: bmad-lens-git-orchestration
+    file: skills/bmad-lens-git-orchestration/SKILL.md
+    description: "Git write operations for the Lens 2-branch feature model"
+  - id: bmad-lens-constitution
+    file: skills/bmad-lens-constitution/SKILL.md
+    description: "Governance rules resolution with 4-level additive hierarchy"
+  - id: bmad-lens-theme
+    file: skills/bmad-lens-theme/SKILL.md
+    description: "Theme loading and persona overlay system"
+  - id: bmad-lens-init-feature
+    file: skills/bmad-lens-init-feature/SKILL.md
+    description: "Feature initialization with 2-branch topology, feature YAML, and PR"
+  - id: bmad-lens-quickplan
+    file: skills/bmad-lens-quickplan/SKILL.md
+    description: "End-to-end planning pipeline from business plan through story creation"
+  - id: bmad-lens-log-problem
+    file: skills/bmad-lens-log-problem/SKILL.md
+    description: "Problem capture and logging for Lens features"
+  - id: bmad-lens-status
+    file: skills/bmad-lens-status/SKILL.md
+    description: "Feature status and portfolio visibility"
+  - id: bmad-lens-next
+    file: skills/bmad-lens-next/SKILL.md
+    description: "Next-action recommendation based on feature state"
+  - id: bmad-lens-switch
+    file: skills/bmad-lens-switch/SKILL.md
+    description: "Feature context switcher"
+  - id: bmad-lens-help
+    file: skills/bmad-lens-help/SKILL.md
+    description: "Contextual help system for Lens"
+  - id: bmad-lens-pause-resume
+    file: skills/bmad-lens-pause-resume/SKILL.md
+    description: "Pause and resume features with state preservation"
+  - id: bmad-lens-retrospective
+    file: skills/bmad-lens-retrospective/SKILL.md
+    description: "Retrospective analyst for Lens features"
+  - id: bmad-lens-complete
+    file: skills/bmad-lens-complete/SKILL.md
+    description: "Feature lifecycle endpoint — retrospective, archive, and close"
+  - id: bmad-lens-move-feature
+    file: skills/bmad-lens-move-feature/SKILL.md
+    description: "Feature relocation to a new domain/service"
+  - id: bmad-lens-split-feature
+    file: skills/bmad-lens-split-feature/SKILL.md
+    description: "Feature splitting workflow"
+  - id: bmad-lens-dashboard
+    file: skills/bmad-lens-dashboard/SKILL.md
+    description: "Cross-feature dashboard generator with dependency graphs"
+  - id: bmad-lens-onboard
+    file: skills/bmad-lens-onboard/SKILL.md
+    description: "First-run governance repo setup for Lens"
+  - id: bmad-lens-migrate
+    file: skills/bmad-lens-migrate/SKILL.md
+    description: "Migration bridge between LENS v3 and Lens Next"
+  - id: bmad-lens-setup
+    file: skills/bmad-lens-setup/SKILL.md
+    description: "Module configuration installer and help registry"
+
+  # --- Planned skills (referenced by existing skills but not yet built) ---
+  # These are in the plan.md roadmap (phases 2-4) and referenced in cross-skill
+  # documentation tables. They will be added in future releases.
+  # - bmad-lens-businessplan: Business planning workflow for features
+  # - bmad-lens-techplan: Technical planning workflow for features
+  # - bmad-lens-dev-story: Story execution and development workflow
+  # - bmad-lens-document-project: Project documentation capture for features
 
 # Workflows
 workflows:
@@ -257,6 +330,29 @@ prompts:
   - lens-work.profile.prompt.md
   - lens-work.audit-all-initiatives.prompt.md
 
+  # Lens Next Prompts (v4.0)
+  - lens-complete.prompt.md
+  - lens-constitution.prompt.md
+  - lens-dashboard.prompt.md
+  - lens-feature-yaml.prompt.md
+  - lens-git-orchestration.prompt.md
+  - lens-git-state.prompt.md
+  - lens-help.prompt.md
+  - lens-init-feature.prompt.md
+  - lens-log-problem.prompt.md
+  - lens-migrate.prompt.md
+  - lens-move-feature.prompt.md
+  - lens-next.prompt.md
+  - lens-onboard.prompt.md
+  - lens-pause-resume.prompt.md
+  - lens-quickplan.prompt.md
+  - lens-retrospective.prompt.md
+  - lens-setup.prompt.md
+  - lens-split-feature.prompt.md
+  - lens-status.prompt.md
+  - lens-switch.prompt.md
+  - lens-theme.prompt.md
+
 # IDE Adapter Layers
 # Generated by _module-installer/installer.js (or standalone scripts/install.sh|install.ps1)
 # Each IDE gets thin stubs that reference module content by path
@@ -283,6 +379,28 @@ adapters:
       - .github/prompts/lens-work.techplan.prompt.md
       - .github/prompts/lens-work.devproposal.prompt.md
       - .github/prompts/lens-work.sprintplan.prompt.md
+      # Lens Next stub prompts
+      - .github/prompts/lens-complete.prompt.md
+      - .github/prompts/lens-constitution.prompt.md
+      - .github/prompts/lens-dashboard.prompt.md
+      - .github/prompts/lens-feature-yaml.prompt.md
+      - .github/prompts/lens-git-orchestration.prompt.md
+      - .github/prompts/lens-git-state.prompt.md
+      - .github/prompts/lens-help.prompt.md
+      - .github/prompts/lens-init-feature.prompt.md
+      - .github/prompts/lens-log-problem.prompt.md
+      - .github/prompts/lens-migrate.prompt.md
+      - .github/prompts/lens-move-feature.prompt.md
+      - .github/prompts/lens-next.prompt.md
+      - .github/prompts/lens-onboard.prompt.md
+      - .github/prompts/lens-pause-resume.prompt.md
+      - .github/prompts/lens-quickplan.prompt.md
+      - .github/prompts/lens-retrospective.prompt.md
+      - .github/prompts/lens-setup.prompt.md
+      - .github/prompts/lens-split-feature.prompt.md
+      - .github/prompts/lens-status.prompt.md
+      - .github/prompts/lens-switch.prompt.md
+      - .github/prompts/lens-theme.prompt.md
   cursor:
     dir: .cursor/
     commands:

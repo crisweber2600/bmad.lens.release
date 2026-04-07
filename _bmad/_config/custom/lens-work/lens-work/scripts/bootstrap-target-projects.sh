@@ -7,7 +7,7 @@
 #   repo-inventory.yaml file into TargetProjects.
 #
 # USAGE:
-#   ./_bmad/lens-work/scripts/bootstrap-target-projects.sh \
+#   ./lens.core/_bmad/lens-work/scripts/bootstrap-target-projects.sh \
 #       --inventory <repo-inventory.yaml-path> [--json]
 #
 # OPTIONS:

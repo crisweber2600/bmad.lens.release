@@ -110,7 +110,7 @@ Apply migration descriptor field changes to the control repo's `lifecycle.yaml`:
 
 ```yaml
 if yaml_changes.length > 0:
-  lifecycle_content = read_file("_bmad/lens-work/lifecycle.yaml")
+  lifecycle_content = read_file("lens.core/_bmad/lens-work/lifecycle.yaml")
   yaml_doc = parse_yaml(lifecycle_content)
 
   for change in yaml_changes:
@@ -152,8 +152,8 @@ if yaml_changes.length > 0:
       if current == change.old_value:
         set_path(yaml_doc, change.path, change.value)
 
-  write_file("_bmad/lens-work/lifecycle.yaml", serialize_yaml(yaml_doc))
-  invoke_command("git add _bmad/lens-work/lifecycle.yaml")
+  write_file("lens.core/_bmad/lens-work/lifecycle.yaml", serialize_yaml(yaml_doc))
+  invoke_command("git add lens.core/_bmad/lens-work/lifecycle.yaml")
   invoke_command("git commit -m '[LENS:UPGRADE] apply lifecycle.yaml field migrations v${detected_version || 2} → v${target_version}'")
   output: "  ✅ Applied ${yaml_changes.length} YAML field changes to lifecycle.yaml"
 ```

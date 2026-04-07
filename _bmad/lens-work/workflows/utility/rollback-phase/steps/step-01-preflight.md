@@ -42,7 +42,7 @@ current_milestone = read_yaml(state_file, "milestone")
 ### 3. Load Phase Ordering
 
 ```yaml
-lifecycle = load: "{release_repo_root}/_bmad/lens-work/lifecycle.yaml"
+lifecycle = load: "{release_repo_root}/lens.core/_bmad/lens-work/lifecycle.yaml"
 phase_order = lifecycle.phases | keys  # ordered list of phase names
 
 current_index = phase_order.index(current_phase)

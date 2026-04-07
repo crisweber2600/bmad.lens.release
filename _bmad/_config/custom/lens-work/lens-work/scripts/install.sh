@@ -10,11 +10,11 @@
 #   - Safe to re-run: skips existing files unless --update is passed
 #
 # USAGE:
-#   ./_bmad/lens-work/scripts/install.sh
-#   ./_bmad/lens-work/scripts/install.sh --update
-#   ./_bmad/lens-work/scripts/install.sh --ide github-copilot
-#   ./_bmad/lens-work/scripts/install.sh --ide cursor --ide claude
-#   ./_bmad/lens-work/scripts/install.sh --all-ides
+#   ./lens.core/_bmad/lens-work/scripts/install.sh
+#   ./lens.core/_bmad/lens-work/scripts/install.sh --update
+#   ./lens.core/_bmad/lens-work/scripts/install.sh --ide github-copilot
+#   ./lens.core/_bmad/lens-work/scripts/install.sh --ide cursor --ide claude
+#   ./lens.core/_bmad/lens-work/scripts/install.sh --all-ides
 #
 # OPTIONS:
 #   --ide <name>    Install adapter for specific IDE (github-copilot, cursor, claude, codex)
@@ -164,10 +164,10 @@ description: '${description}'
 # ${name} (Stub)
 
 > **This is a stub.** Load and execute the full prompt from the release module.
-> All \`_bmad/\` paths in the full prompt are relative to \`bmad.lens.release/\` — do NOT resolve paths against the user's main project repo.
+> All \`lens.core/_bmad/\` paths in the full prompt are relative to \`lens.core/\` — do NOT resolve paths against the user's main project repo.
 
 \`\`\`
-Read and follow all instructions in: bmad.lens.release/_bmad/lens-work/prompts/${target_prompt}
+Read and follow all instructions in: lens.core/_bmad/lens-work/prompts/${target_prompt}
 \`\`\`
 ${extra}
 EOF
@@ -185,7 +185,7 @@ name: '${name}'
 description: '${description}'
 ---
 
-IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad.lens.release/_bmad/lens-work/${workflow_path}, READ its entire contents and follow its directions exactly!
+IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @lens.core/_bmad/lens-work/${workflow_path}, READ its entire contents and follow its directions exactly!
 EOF
 }
 
@@ -201,7 +201,7 @@ name: '${name}'
 description: '${description}'
 ---
 
-IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad.lens.release/_bmad/lens-work/${workflow_path}, READ its entire contents and follow its directions exactly!
+IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @lens.core/_bmad/lens-work/${workflow_path}, READ its entire contents and follow its directions exactly!
 EOF
 }
 
@@ -217,7 +217,7 @@ name: '${name}'
 description: '${description}'
 ---
 
-IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad.lens.release/_bmad/lens-work/${workflow_path}, READ its entire contents and follow its directions exactly!
+IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @lens.core/_bmad/lens-work/${workflow_path}, READ its entire contents and follow its directions exactly!
 EOF
 }
 
@@ -262,11 +262,11 @@ tools: ['read', 'edit', 'search', 'execute']
 You must fully embody this agent's persona and follow all activation instructions exactly as specified.
 
 <agent-activation CRITICAL=\"TRUE\">
-1. LOAD the module config from bmad.lens.release/_bmad/lens-work/module.yaml
-2. LOAD the FULL agent definition from bmad.lens.release/_bmad/lens-work/agents/lens.agent.md
+1. LOAD the module config from lens.core/_bmad/lens-work/module.yaml
+2. LOAD the FULL agent definition from lens.core/_bmad/lens-work/agents/lens.agent.md
 3. READ its entire contents - this contains the complete agent persona, skills, lifecycle routing, and phase-to-agent mapping
-4. LOAD the lifecycle contract from bmad.lens.release/_bmad/lens-work/lifecycle.yaml
-5. LOAD the module help index from bmad.lens.release/_bmad/lens-work/module-help.csv
+4. LOAD the lifecycle contract from lens.core/_bmad/lens-work/lifecycle.yaml
+5. LOAD the module help index from lens.core/_bmad/lens-work/module-help.csv
 6. FOLLOW every activation step in the agent definition precisely
 7. DISPLAY the welcome/greeting as instructed
 8. PRESENT the numbered menu from module-help.csv
@@ -370,24 +370,24 @@ You must fully embody this agent's persona and follow all activation instruction
 
 This control repo uses the LENS Workbench module from the release payload:
 
-- **Module path:** `bmad.lens.release/_bmad/lens-work/`
-- **Lifecycle contract:** `bmad.lens.release/_bmad/lens-work/lifecycle.yaml`
-- **Module version:** See `bmad.lens.release/_bmad/lens-work/module.yaml`
+- **Module path:** `lens.core/_bmad/lens-work/`
+- **Lifecycle contract:** `lens.core/_bmad/lens-work/lifecycle.yaml`
+- **Module version:** See `lens.core/_bmad/lens-work/module.yaml`
 
 ## Agent
 
 The `@lens` agent is defined at `.github/agents/bmad-agent-lens-work-lens.agent.md` and references
-the module agent at `bmad.lens.release/_bmad/lens-work/agents/lens.agent.md`.
+the module agent at `lens.core/_bmad/lens-work/agents/lens.agent.md`.
 
 ## Skills (by path reference)
 
 | Skill | Path |
 |-------|------|
-| git-state | `bmad.lens.release/_bmad/lens-work/skills/git-state/SKILL.md` |
-| git-orchestration | `bmad.lens.release/_bmad/lens-work/skills/git-orchestration/SKILL.md` |
-| constitution | `bmad.lens.release/_bmad/lens-work/skills/constitution/SKILL.md` |
-| sensing | `bmad.lens.release/_bmad/lens-work/skills/sensing/SKILL.md` |
-| checklist | `bmad.lens.release/_bmad/lens-work/skills/checklist/SKILL.md` |
+| git-state | `lens.core/_bmad/lens-work/skills/git-state/SKILL.md` |
+| git-orchestration | `lens.core/_bmad/lens-work/skills/git-orchestration/SKILL.md` |
+| constitution | `lens.core/_bmad/lens-work/skills/constitution/SKILL.md` |
+| sensing | `lens.core/_bmad/lens-work/skills/sensing/SKILL.md` |
+| checklist | `lens.core/_bmad/lens-work/skills/checklist/SKILL.md` |
 
 ## Important
 
@@ -617,32 +617,32 @@ This project uses the LENS Workbench module for lifecycle routing and git orches
 
 ## Module Reference
 
-- **Module path:** \`bmad.lens.release/_bmad/lens-work/\`
-- **Agent definition:** \`bmad.lens.release/_bmad/lens-work/agents/lens.agent.md\`
-- **Lifecycle contract:** \`bmad.lens.release/_bmad/lens-work/lifecycle.yaml\`
-- **Module config:** \`bmad.lens.release/_bmad/lens-work/module.yaml\`
+- **Module path:** \`lens.core/_bmad/lens-work/\`
+- **Agent definition:** \`lens.core/_bmad/lens-work/agents/lens.agent.md\`
+- **Lifecycle contract:** \`lens.core/_bmad/lens-work/lifecycle.yaml\`
+- **Module config:** \`lens.core/_bmad/lens-work/module.yaml\`
 
 ## Activation
 
-1. LOAD the module config from \`bmad.lens.release/_bmad/lens-work/module.yaml\`
-2. LOAD the FULL agent definition from \`bmad.lens.release/_bmad/lens-work/agents/lens.agent.md\`
+1. LOAD the module config from \`lens.core/_bmad/lens-work/module.yaml\`
+2. LOAD the FULL agent definition from \`lens.core/_bmad/lens-work/agents/lens.agent.md\`
 3. READ its entire contents — this contains the complete agent persona, skills, lifecycle routing, and phase-to-agent mapping
-4. LOAD the lifecycle contract from \`bmad.lens.release/_bmad/lens-work/lifecycle.yaml\`
+4. LOAD the lifecycle contract from \`lens.core/_bmad/lens-work/lifecycle.yaml\`
 5. FOLLOW every activation step in the agent definition precisely
 
 ## Available Commands
 
-See \`bmad.lens.release/_bmad/lens-work/module-help.csv\` for the complete command list.
+See \`lens.core/_bmad/lens-work/module-help.csv\` for the complete command list.
 
 ## Skills (path references)
 
 | Skill | Path |
 |-------|------|
-| git-state | \`bmad.lens.release/_bmad/lens-work/skills/git-state/SKILL.md\` |
-| git-orchestration | \`bmad.lens.release/_bmad/lens-work/skills/git-orchestration/SKILL.md\` |
-| constitution | \`bmad.lens.release/_bmad/lens-work/skills/constitution/SKILL.md\` |
-| sensing | \`bmad.lens.release/_bmad/lens-work/skills/sensing/SKILL.md\` |
-| checklist | \`bmad.lens.release/_bmad/lens-work/skills/checklist/SKILL.md\` |
+| git-state | \`lens.core/_bmad/lens-work/skills/git-state/SKILL.md\` |
+| git-orchestration | \`lens.core/_bmad/lens-work/skills/git-orchestration/SKILL.md\` |
+| constitution | \`lens.core/_bmad/lens-work/skills/constitution/SKILL.md\` |
+| sensing | \`lens.core/_bmad/lens-work/skills/sensing/SKILL.md\` |
+| checklist | \`lens.core/_bmad/lens-work/skills/checklist/SKILL.md\` |
 AGENTSEOF
 )"
 

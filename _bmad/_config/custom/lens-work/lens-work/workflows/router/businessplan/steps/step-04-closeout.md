@@ -30,23 +30,43 @@ params:
   phase: businessplan
   artifacts: ${artifact_list}
 
-invoke: git-orchestration.commit-artifacts
-params:
-  file_paths:
-    - ${docs_path}
-    - ${initiative_state.state_path}
-  phase: "PHASE:BUSINESSPLAN:COMPLETE"
-  initiative: ${initiative.initiative_root}
-  description: "businessplan artifacts complete"
-  commit_body: |
-    Artifacts:
-    ${artifact_list.join('\n    - ')}
+# v3.4: 2-branch topology uses commit-and-publish (artifacts to plan branch + summary to main)
+if session.feature_yaml_context != null and session.feature_yaml_context.enabled == true:
+  invoke: git-orchestration.commit-and-publish
+  params:
+    file_paths:
+      - ${docs_path}
+      - ${initiative_state.state_path}
+    phase: "PHASE:BUSINESSPLAN:COMPLETE"
+    initiative: ${initiative.initiative_root}
+    description: "businessplan artifacts complete"
+    commit_body: |
+      Artifacts:
+      ${artifact_list.join('\n    - ')}
 
-invoke: git-orchestration.push
+  output: |
+    ✅ /businessplan complete (2-branch topology)
+    ├── Artifacts committed to plan branch, summary published to main
+    └── Next: Run `/techplan` to continue planning.
 
-output: |
-  ✅ /businessplan complete
-  ├── Branch: ${initiative.initiative_root} (initiative root)
-  ├── Artifacts committed with [PHASE:BUSINESSPLAN:COMPLETE] marker
-  └── Next: Run `/techplan` to continue planning.
+else:
+  invoke: git-orchestration.commit-artifacts
+  params:
+    file_paths:
+      - ${docs_path}
+      - ${initiative_state.state_path}
+    phase: "PHASE:BUSINESSPLAN:COMPLETE"
+    initiative: ${initiative.initiative_root}
+    description: "businessplan artifacts complete"
+    commit_body: |
+      Artifacts:
+      ${artifact_list.join('\n    - ')}
+
+  invoke: git-orchestration.push
+
+  output: |
+    ✅ /businessplan complete
+    ├── Branch: ${initiative.initiative_root} (initiative root)
+    ├── Artifacts committed with [PHASE:BUSINESSPLAN:COMPLETE] marker
+    └── Next: Run `/techplan` to continue planning.
 ```

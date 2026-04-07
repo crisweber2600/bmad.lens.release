@@ -6,9 +6,9 @@
 #   Optionally resolve a fuzzy command match for invalid-command recovery.
 #
 # USAGE:
-#   .\_bmad\lens-work\scripts\load-command-registry.ps1 -CsvPath path\to\module-help.csv
-#   .\_bmad\lens-work\scripts\load-command-registry.ps1 -CsvPath path -Resolve "/bplan"
-#   .\_bmad\lens-work\scripts\load-command-registry.ps1 -CsvPath path -Json
+#   .\lens.core\_bmad\lens-work\scripts\load-command-registry.ps1 -CsvPath path\to\module-help.csv
+#   .\lens.core\_bmad\lens-work\scripts\load-command-registry.ps1 -CsvPath path -Resolve "/bplan"
+#   .\lens.core\_bmad\lens-work\scripts\load-command-registry.ps1 -CsvPath path -Json
 #
 # =============================================================================
 

@@ -74,8 +74,8 @@ After a successful run, your control repo will look like this:
 
 ```
 {control-repo}/
-├── bmad.lens.release/                          ← cloned release module
-│   └── _bmad/lens-work/...                     ← LENS module source
+├── lens.core/                          ← cloned release module
+│   └── lens.core/_bmad/lens-work/...                     ← LENS module source
 ├── .github/                                    ← IDE adapter (copied from release)
 │   ├── copilot-instructions.md
 │   └── prompts/...
@@ -116,7 +116,7 @@ This file is read by the preflight system and `/onboard` workflow to locate your
 3.2.0.0
 ```
 
-The version is extracted from `bmad.lens.release/_bmad/lens-work/lifecycle.yaml` (`schema_version` field) with `.0.0` appended. Preflight hard-stops if this doesn't match the module's expected version.
+The version is extracted from `lens.core/_bmad/lens-work/lifecycle.yaml` (`schema_version` field) with `.0.0` appended. Preflight hard-stops if this doesn't match the module's expected version.
 
 ### `.gitignore` Entries
 
@@ -125,7 +125,7 @@ The script ensures these entries exist in your `.gitignore`:
 ```
 _bmad-output/lens-work/personal/
 .github/
-bmad.lens.release/
+lens.core/
 TargetProjects/
 ```
 
@@ -146,13 +146,13 @@ cd myproject.src
 
 ```bash
 # The script is inside the release module (which you may not have yet).
-# If bmad.lens.release/ already exists locally, run directly:
-./bmad.lens.release/_bmad/lens-work/scripts/setup-control-repo.sh
+# If lens.core/ already exists locally, run directly:
+./lens.core/_bmad/lens-work/scripts/setup-control-repo.sh
 
 # If this is a brand-new repo with no release module yet,
 # clone it first, then run setup:
-git clone --branch beta https://github.com/your-username/bmad.lens.release.git
-./bmad.lens.release/_bmad/lens-work/scripts/setup-control-repo.sh
+git clone --branch beta https://github.com/your-username/lens.core.git
+./lens.core/_bmad/lens-work/scripts/setup-control-repo.sh
 ```
 
 The wizard walks you through:
@@ -162,7 +162,7 @@ The wizard walks you through:
 | 1. Control Repo Directory | Where to set up the control repo | Current git root or script location |
 | 2. GitHub Account | Your GitHub org or username | Auto-detected via `gh` or `git config` |
 | 3. GitHub Server | Use github.com or enterprise URL | `https://github.com` |
-| 4. Release Repository | Repo name, branch, owner | `bmad.lens.release`, `beta`, your org |
+| 4. Release Repository | Repo name, branch, owner | `lens.core`, `beta`, your org |
 | 5. Governance Repository | Repo name, branch, owner, local path | Auto-derived from control repo name |
 | 6. Review & Confirm | Summary of all settings | Proceed |
 
@@ -171,11 +171,11 @@ The wizard walks you through:
 > **Run this in your terminal, not in AI chat.** PATs should never be typed into a chat interface.
 
 ```bash
-bash bmad.lens.release/_bmad/lens-work/scripts/store-github-pat.sh
+bash lens.core/_bmad/lens-work/scripts/store-github-pat.sh
 ```
 
 ```powershell
-.\bmad.lens.release\_bmad\lens-work\scripts\store-github-pat.ps1
+.\lens.core\_bmad\lens-work\scripts\store-github-pat.ps1
 ```
 
 ### 4. Run `/onboard` in your IDE
@@ -197,13 +197,13 @@ The onboard workflow will:
 If you use Cursor, Claude Code, or Codex in addition to GitHub Copilot:
 
 ```bash
-./_bmad/lens-work/scripts/install.sh --ide cursor
-./_bmad/lens-work/scripts/install.sh --all-ides
+./lens.core/_bmad/lens-work/scripts/install.sh --ide cursor
+./lens.core/_bmad/lens-work/scripts/install.sh --all-ides
 ```
 
 ```powershell
-.\_bmad\lens-work\scripts\install.ps1 -IDE cursor
-.\_bmad\lens-work\scripts\install.ps1 -AllIDEs
+.\lens.core\_bmad\lens-work\scripts\install.ps1 -IDE cursor
+.\lens.core\_bmad\lens-work\scripts\install.ps1 -AllIDEs
 ```
 
 ---
@@ -217,7 +217,7 @@ If you use Cursor, Claude Code, or Codex in addition to GitHub Copilot:
 | `--org <name>` | Default GitHub org/user for all repos | *(wizard auto-detects)* |
 | `--control-dir <path>` | Directory to set up as the control repo | Current git root or script location |
 | `--release-org <name>` | Release repo owner | Uses `--org` |
-| `--release-repo <name>` | Release repo name | `bmad.lens.release` |
+| `--release-repo <name>` | Release repo name | `lens.core` |
 | `--release-branch <name>` | Release repo branch | `beta` |
 | `--governance-org <name>` | Governance repo owner | Uses `--org` |
 | `--governance-repo <name>` | Governance repo name | Auto-derived from control repo name |
@@ -234,7 +234,7 @@ If you use Cursor, Claude Code, or Codex in addition to GitHub Copilot:
 | `-Org <name>` | Default GitHub org/user for all repos | *(wizard auto-detects)* |
 | `-ControlDir <path>` | Directory to set up as the control repo | Current git root or script location |
 | `-ReleaseOrg <name>` | Release repo owner | Uses `-Org` |
-| `-ReleaseRepo <name>` | Release repo name | `bmad.lens.release` |
+| `-ReleaseRepo <name>` | Release repo name | `lens.core` |
 | `-ReleaseBranch <name>` | Release repo branch | `beta` |
 | `-GovernanceOrg <name>` | Governance repo owner | Uses `-Org` |
 | `-GovernanceRepo <name>` | Governance repo name | Auto-derived from control repo name |

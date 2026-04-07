@@ -17,7 +17,7 @@ Resolves the effective constitution for the active initiative, evaluates artifac
 
 ### Step 0: Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Capture Optional Overrides
 
@@ -30,7 +30,7 @@ Parse optional flags from the command input:
 
 ### Step 2: Execute Workflow
 
-Run the compliance-check workflow at `{project-root}/_bmad/lens-work/workflows/governance/compliance-check/`.
+Run the compliance-check workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/governance/compliance-check/`.
 
 The workflow handles:
 - Deriving initiative and phase context from git-state

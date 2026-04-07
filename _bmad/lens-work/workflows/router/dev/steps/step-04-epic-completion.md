@@ -2,8 +2,8 @@
 name: 'step-04-epic-completion'
 description: 'Run epic-level review gates, create the epic PR, and stop until the epic merge completes'
 nextStepFile: './step-05-closeout.md'
-implementationReadinessWorkflow: '{project-root}/_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md'
-partyModeWorkflow: '{project-root}/_bmad/core/workflows/party-mode/workflow.md'
+implementationReadinessWorkflow: '{project-root}/lens.core/_bmad/bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md'
+partyModeWorkflow: '{project-root}/lens.core/_bmad/core/workflows/party-mode/workflow.md'
 ---
 
 # Step 4: Epic Completion Gate

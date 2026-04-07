@@ -10,7 +10,7 @@
 #
 # USAGE:
 #   cd <project-root>
-#   bash bmad.lens.release/_bmad/lens-work/scripts/store-github-pat.sh
+#   bash lens.core/_bmad/lens-work/scripts/store-github-pat.sh
 #
 # OUTPUT:
 #   Environment variables set for current session: GITHUB_PAT, GH_ENTERPRISE_TOKEN

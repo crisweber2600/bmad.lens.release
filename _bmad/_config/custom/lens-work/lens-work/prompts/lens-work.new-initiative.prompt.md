@@ -25,7 +25,7 @@ Routes `/new-domain`, `/new-service`, and `/new-feature` commands to the init-in
 
 ### Step 0: Run Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Determine Scope and Collect Parameters
 
@@ -39,7 +39,7 @@ Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt i
 
 ### Step 2: Execute Workflow
 
-Run the init-initiative workflow at `{project-root}/_bmad/lens-work/workflows/router/init-initiative/`.
+Run the init-initiative workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/router/init-initiative/`.
 
 The workflow handles:
 - Slug-safe name validation

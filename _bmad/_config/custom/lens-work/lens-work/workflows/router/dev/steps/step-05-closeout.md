@@ -1,8 +1,8 @@
 ---
 name: 'step-05-closeout'
 description: 'Run the optional retrospective, persist dev state, and finalize initiative completion when applicable'
-workflowXml: '{project-root}/_bmad/core/tasks/workflow.yaml'
-retrospectiveWorkflow: '{project-root}/_bmad/bmm/workflows/4-implementation/retrospective/workflow.yaml'
+workflowXml: '{project-root}/lens.core/_bmad/core/tasks/workflow.yaml'
+retrospectiveWorkflow: '{project-root}/lens.core/_bmad/bmm/workflows/4-implementation/retrospective/workflow.yaml'
 ---
 
 # Step 5: Closeout And Initiative State

@@ -8,10 +8,10 @@
     prints a PR URL, and optionally cleans up merged branches locally and remotely.
 
 .USAGE
-    .\_bmad\lens-work\scripts\promote-branch.ps1
-    .\_bmad\lens-work\scripts\promote-branch.ps1 -SourceBranch my-initiative-small
-    .\_bmad\lens-work\scripts\promote-branch.ps1 -SourceBranch my-initiative-small-techplan -Cleanup
-    .\_bmad\lens-work\scripts\promote-branch.ps1 -SourceBranch my-initiative-small -TargetBranch my-initiative-medium -Cleanup -CleanupChildren
+    .\lens.core\_bmad\lens-work\scripts\promote-branch.ps1
+    .\lens.core\_bmad\lens-work\scripts\promote-branch.ps1 -SourceBranch my-initiative-small
+    .\lens.core\_bmad\lens-work\scripts\promote-branch.ps1 -SourceBranch my-initiative-small-techplan -Cleanup
+    .\lens.core\_bmad\lens-work\scripts\promote-branch.ps1 -SourceBranch my-initiative-small -TargetBranch my-initiative-medium -Cleanup -CleanupChildren
 #>
 
 [CmdletBinding(SupportsShouldProcess = $true)]

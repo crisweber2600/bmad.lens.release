@@ -7,7 +7,7 @@
 #   Uses lifecycle.yaml as the single source of truth for required artifacts.
 #
 # USAGE:
-#   ./_bmad/lens-work/scripts/validate-phase-artifacts.sh \
+#   ./lens.core/_bmad/lens-work/scripts/validate-phase-artifacts.sh \
 #       --phase <phase-name> \
 #       --lifecycle <lifecycle.yaml-path> \
 #       --docs-root <planning-artifacts-path> \

@@ -17,11 +17,11 @@ Routes the `/discover` command to the discover workflow, which scans `TargetProj
 
 ### Step 0: Preflight
 
-Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 
 ### Step 1: Execute Workflow
 
-Run the discover workflow at `{project-root}/_bmad/lens-work/workflows/router/discover/workflow.md`.
+Run the discover workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/router/discover/workflow.md`.
 
 The workflow handles:
 - Resolving the active initiative context (domain, service, governance path)

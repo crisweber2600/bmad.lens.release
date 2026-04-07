@@ -9,7 +9,7 @@ description: "Start DevProposal phase — epics, stories, and readiness check"
 
 Route to the devproposal phase workflow via the @lens phase router.
 
-1. **Preflight**: Execute `{project-root}/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+1. **Preflight**: Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
 2. Load `lifecycle.yaml` from the lens-work module
 3. Invoke phase routing for `devproposal`:
    - Validate techplan milestone promotion is complete

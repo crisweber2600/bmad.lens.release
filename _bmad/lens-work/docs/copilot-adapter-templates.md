@@ -18,24 +18,24 @@ Template for the `.github/copilot-instructions.md` file installed by the `/onboa
 
 This control repo uses the LENS Workbench module from the release payload:
 
-- **Module path:** `bmad.lens.release/_bmad/lens-work/`
-- **Lifecycle contract:** `bmad.lens.release/_bmad/lens-work/lifecycle.yaml`
-- **Module version:** See `bmad.lens.release/_bmad/lens-work/module.yaml`
+- **Module path:** `lens.core/_bmad/lens-work/`
+- **Lifecycle contract:** `lens.core/_bmad/lens-work/lifecycle.yaml`
+- **Module version:** See `lens.core/_bmad/lens-work/module.yaml`
 
 ## Agent
 
 The `@lens` agent is defined at `.github/agents/bmad-agent-lens-work-lens.agent.md` and references
-the module agent at `bmad.lens.release/_bmad/lens-work/agents/lens.agent.md`.
+the module agent at `lens.core/_bmad/lens-work/agents/lens.agent.md`.
 
 ## Skills (by path reference)
 
 | Skill | Path |
 |-------|------|
-| git-state | `bmad.lens.release/_bmad/lens-work/skills/git-state/SKILL.md` |
-| git-orchestration | `bmad.lens.release/_bmad/lens-work/skills/git-orchestration/SKILL.md` |
-| constitution | `bmad.lens.release/_bmad/lens-work/skills/constitution/SKILL.md` |
-| sensing | `bmad.lens.release/_bmad/lens-work/skills/sensing/SKILL.md` |
-| checklist | `bmad.lens.release/_bmad/lens-work/skills/checklist/SKILL.md` |
+| git-state | `lens.core/_bmad/lens-work/skills/git-state/SKILL.md` |
+| git-orchestration | `lens.core/_bmad/lens-work/skills/git-orchestration/SKILL.md` |
+| constitution | `lens.core/_bmad/lens-work/skills/constitution/SKILL.md` |
+| sensing | `lens.core/_bmad/lens-work/skills/sensing/SKILL.md` |
+| checklist | `lens.core/_bmad/lens-work/skills/checklist/SKILL.md` |
 
 ## Important
 
@@ -65,24 +65,24 @@ Thin adapter that activates the LENS Workbench agent from the release module.
 ## Module Agent Reference
 
 The full agent definition lives at:
-`bmad.lens.release/_bmad/lens-work/agents/lens.agent.yaml`
+`lens.core/_bmad/lens-work/agents/lens.agent.yaml`
 
 ## Available Commands
 
-See `bmad.lens.release/_bmad/lens-work/module-help.csv` for the complete command list.
+See `lens.core/_bmad/lens-work/module-help.csv` for the complete command list.
 
 ## Skills (path references)
 
-- [git-state](bmad.lens.release/_bmad/lens-work/skills/git-state/SKILL.md)
-- [git-orchestration](bmad.lens.release/_bmad/lens-work/skills/git-orchestration/SKILL.md)
-- [constitution](bmad.lens.release/_bmad/lens-work/skills/constitution/SKILL.md)
-- [sensing](bmad.lens.release/_bmad/lens-work/skills/sensing/SKILL.md)
-- [checklist](bmad.lens.release/_bmad/lens-work/skills/checklist/SKILL.md)
+- [git-state](lens.core/_bmad/lens-work/skills/git-state/SKILL.md)
+- [git-orchestration](lens.core/_bmad/lens-work/skills/git-orchestration/SKILL.md)
+- [constitution](lens.core/_bmad/lens-work/skills/constitution/SKILL.md)
+- [sensing](lens.core/_bmad/lens-work/skills/sensing/SKILL.md)
+- [checklist](lens.core/_bmad/lens-work/skills/checklist/SKILL.md)
 
 ## Lifecycle Contract
 
 All lifecycle semantics are defined in:
-`bmad.lens.release/_bmad/lens-work/lifecycle.yaml`
+`lens.core/_bmad/lens-work/lifecycle.yaml`
 
 This agent does NOT hardcode any lifecycle rules — everything is derived from the contract.
 ```
@@ -104,18 +104,18 @@ Template for `.github/lens-work-instructions.md` — lens-work-specific Copilot 
 All lens-work commands are available via prompt stubs in `.github/prompts/`.
 Type the command (e.g. `/onboard`, `/status`, `/preplan`) to activate.
 
-Full command reference: `bmad.lens.release/_bmad/lens-work/module-help.csv`
+Full command reference: `lens.core/_bmad/lens-work/module-help.csv`
 
 ## Path Resolution
 
-When any prompt or skill references `_bmad/lens-work/...`, resolve it as:
-`bmad.lens.release/_bmad/lens-work/...`
+When any prompt or skill references `lens.core/_bmad/lens-work/...`, resolve it as:
+`lens.core/_bmad/lens-work/...`
 
 ## Write Scope
 
 - Planning artifacts → `_bmad-output/lens-work/initiatives/`
 - Personal profile → `_bmad-output/lens-work/personal/`
 - Implementation code → target repos under the configured `target_projects_path`
-- DO NOT modify `bmad.lens.release/`, `.github/`, or the control repo root
+- DO NOT modify `lens.core/`, `.github/`, or the control repo root
 <!-- /LENS-WORK INSTRUCTIONS -->
 ```

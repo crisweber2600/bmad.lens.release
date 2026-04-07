@@ -6,7 +6,7 @@
 #   rename plan. Outputs rename map, phase branch advisories, and initiative roots.
 #
 # USAGE:
-#   .\_bmad\lens-work\scripts\plan-lifecycle-renames.ps1 [-Apply] [-Json]
+#   .\lens.core\_bmad\lens-work\scripts\plan-lifecycle-renames.ps1 [-Apply] [-Json]
 #
 # =============================================================================
 

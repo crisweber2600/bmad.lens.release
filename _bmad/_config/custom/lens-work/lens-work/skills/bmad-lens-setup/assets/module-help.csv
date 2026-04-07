@@ -1,0 +1,47 @@
+module,skill,display-name,menu-code,description,action,args,phase,after,before,required,output-location,outputs
+Lens,bmad-lens-feature-yaml,manage-feature-yaml,FY,Read/write feature.yaml files atomically,read,[subcommand] [--feature-id] [--dry-run],anytime,,,false,,feature.yaml
+Lens,bmad-lens-git-state,read-git-state,GS,Read branch commit and working tree state,feature-state,[--governance-dir] [--feature-id],anytime,,,false,,git state JSON
+Lens,bmad-lens-git-orchestration,orchestrate-git,GO,Execute multi-step git workflows atomically,create-feature-branches,[subcommand] [--feature-id] [--dry-run],anytime,,,false,,git operations log
+Lens,bmad-lens-constitution,load-constitution,CO,Load governance rules and workflow defaults,resolve,[--governance-dir],anytime,,,false,,constitution YAML
+Lens,bmad-lens-theme,apply-theme,TH,Apply visual theme to Lens output,load,[--theme] [--dry-run],anytime,,,false,,theme config
+Lens,bmad-lens-init-feature,init-feature,IF,Initialize a new feature with 2-branch topology and governance entries,create,<featureId> [--domain] [--service] [--track] [--dry-run],anytime,bmad-lens-onboard:scaffold,bmad-lens-quickplan:plan,false,,"feature.yaml, feature-index.yaml entry, git commands"
+Lens,bmad-lens-init-feature,pull-context,PC,Pull cross-feature context (summaries deps constitution) for a feature,fetch-context,<featureId> [--governance-dir],anytime,bmad-lens-init-feature:create,,false,,context JSON
+Lens,bmad-lens-quickplan,plan,PL,Run full planning pipeline (business→tech→sprint) with adversarial review,plan,<featureId> [--track] [--dry-run],anytime,bmad-lens-init-feature:create,bmad-lens-status:feature,false,,"business-plan.md, tech-plan.md, sprint-plan.md"
+Lens,bmad-lens-quickplan,validate-plan,VP,Validate frontmatter and plan state for a feature,validate-frontmatter,<featureId> [--governance-dir],anytime,,,false,,validation JSON
+Lens,bmad-lens-log-problem,log-problem,LP,Capture a problem or blocker in the feature's problem log,log,<featureId> <description> [--phase] [--category] [--dry-run],anytime,,,false,,problems.md entry
+Lens,bmad-lens-status,feature-status,FS,Show current phase branch state and activity for a feature,feature,[featureId] [--governance-dir],anytime,bmad-lens-init-feature:create,,false,,status JSON
+Lens,bmad-lens-status,domain-status,DS,Show all features in a domain with status from feature-index.yaml,domain,<domain> [--governance-dir],anytime,,,false,,domain summary JSON
+Lens,bmad-lens-status,portfolio-status,PS,Show all active features across the portfolio from feature-index.yaml,portfolio,[--governance-dir],anytime,,,false,,portfolio summary JSON
+Lens,bmad-lens-next,next-action,NA,Suggest the context-aware next action for the current feature,suggest,[featureId] [--governance-dir],anytime,,,false,,next action recommendation
+Lens,bmad-lens-switch,switch-feature,SF,Switch active feature context loading paths and related deps,switch,<featureId> [--governance-dir],anytime,,,false,,context paths JSON
+Lens,bmad-lens-switch,list-features,LF,List all features with status and staleness info,list,[--status] [--governance-dir],anytime,,,false,,features list JSON
+Lens,bmad-lens-help,contextual-help,HE,Show phase-filtered help for the current lifecycle state,contextual,[--phase] [--track],anytime,,,false,,help table
+Lens,bmad-lens-help,search-help,SH,Search help topics by keyword,search,--query <text>,anytime,,,false,,ranked help results
+Lens,bmad-lens-help,all-help,AH,Show all available help topics grouped by category,all,,anytime,,,false,,full help table
+Lens,bmad-lens-pause-resume,pause,PA,Pause the current feature preserving state,pause,<featureId> --reason <text> [--dry-run],anytime,,bmad-lens-pause-resume:resume,false,,feature.yaml paused state
+Lens,bmad-lens-pause-resume,resume,RE,Resume a paused feature restoring context,resume,<featureId> [--dry-run],anytime,bmad-lens-pause-resume:pause,,false,,feature.yaml active state
+Lens,bmad-lens-pause-resume,pause-status,PT,Check pause state and reason for a feature,status,<featureId>,anytime,,,false,,pause status JSON
+Lens,bmad-lens-retrospective,analyze-problems,AP,Analyze problem log patterns and frequencies,analyze,<featureId> [--governance-dir],anytime,bmad-lens-log-problem:log,,false,,analysis JSON
+Lens,bmad-lens-retrospective,generate-report,GR,Generate a narrative retrospective report,generate-report,<featureId> [--governance-dir],anytime,bmad-lens-retrospective:analyze,,false,,retrospective-report.md
+Lens,bmad-lens-retrospective,update-insights,UI,Append lessons learned to the governance insights store,update-insights,<featureId> [--governance-dir] [--dry-run],anytime,bmad-lens-retrospective:generate-report,,false,,insights.md entry
+Lens,bmad-lens-complete,document-project,DP,Ensure required project documentation exists before archival,check-preconditions,<featureId> [--governance-dir],anytime,bmad-lens-quickplan:plan,bmad-lens-complete:finalize,false,,documentation checklist
+Lens,bmad-lens-complete,finalize-feature,FF,Confirm gate and archive a completed feature,finalize,<featureId> [--dry-run],anytime,bmad-lens-complete:check-preconditions,,false,,archived feature
+Lens,bmad-lens-move-feature,move-feature,MF,Relocate a feature to a new domain/service with reference patching,move,<featureId> --target-domain <d> [--target-service <s>] [--dry-run],anytime,,,false,,"moved feature, updated references"
+Lens,bmad-lens-move-feature,list-references,LR,List all cross-references to a feature across the governance repo,list-references,<featureId> [--governance-dir],anytime,,,false,,references list JSON
+Lens,bmad-lens-split-feature,validate-split,VS,Validate story IDs for splitting blocking on in-progress stories,validate-split,<featureId> --story-ids <ids> [--governance-dir],anytime,,bmad-lens-split-feature:create-split-feature,false,,validation JSON
+Lens,bmad-lens-split-feature,split-feature,SP,Create a new feature from a subset of stories,create-split-feature,<featureId> --new-feature-id <id> --story-ids <ids> [--dry-run],anytime,bmad-lens-split-feature:validate-split,,false,,"new feature.yaml, index entry"
+Lens,bmad-lens-split-feature,move-stories,MS,Move story files from source to split feature,move-stories,<source> --target <id> --story-ids <ids> [--dry-run],anytime,bmad-lens-split-feature:create-split-feature,,false,,moved story files
+Lens,bmad-lens-dashboard,collect-data,CD,Collect cross-feature data from feature-index.yaml,collect,[--governance-dir],anytime,,bmad-lens-dashboard:generate,false,,features data JSON
+Lens,bmad-lens-dashboard,dependency-graph,DG,Build dependency graph data for all features,dependency-data,[--governance-dir],anytime,,bmad-lens-dashboard:generate,false,,dependency graph JSON
+Lens,bmad-lens-dashboard,generate-dashboard,GD,Generate self-contained HTML dashboard for all features,generate,[--governance-dir] --output <path>,anytime,bmad-lens-dashboard:collect,,false,output_folder,dashboard.html
+Lens,bmad-lens-onboard,preflight,PF,Check prerequisites before governance repo setup,preflight,--governance-dir <path>,anytime,,bmad-lens-onboard:scaffold,true,,preflight check results
+Lens,bmad-lens-onboard,onboard,OB,Scaffold governance repo and write initial config,scaffold,--governance-dir <path> --owner <username> [--dry-run],anytime,bmad-lens-onboard:preflight,bmad-lens-init-feature:create,true,,governance repo structure
+Lens,bmad-lens-onboard,write-config,WC,Write user preferences to user-profile.md and config.user.yaml,write-config,--governance-dir <path> --username <n> [--dry-run],anytime,bmad-lens-onboard:scaffold,,false,,"user-profile.md, config.user.yaml"
+Lens,bmad-lens-migrate,scan-legacy,SL,Scan for legacy LENS v3 branches and build migration plan,scan,[--governance-dir],anytime,,bmad-lens-migrate:migrate-feature,false,,migration plan JSON
+Lens,bmad-lens-migrate,migrate-feature,MI,Migrate a single legacy feature to the new 2-branch topology,migrate-feature,<featureId> [--governance-dir] [--dry-run],anytime,bmad-lens-migrate:scan,,false,,"migrated feature, index entry"
+Lens,bmad-lens-migrate,check-conflicts,CC,Check for naming conflicts before migration,check-conflicts,[--governance-dir],anytime,bmad-lens-migrate:scan,bmad-lens-migrate:migrate-feature,false,,conflicts JSON
+Lens,bmad-lens-log-problem,resolve-problem,RS,Mark a logged problem as resolved,resolve,<featureId> --problem-id <id> [--resolution <text>] [--dry-run],anytime,bmad-lens-log-problem:log,,false,,resolved problem entry
+Lens,bmad-lens-log-problem,list-problems,LL,List logged problems for a feature with status filter,list,<featureId> [--status open|resolved] [--governance-dir],anytime,,,false,,problems list JSON
+Lens,bmad-lens-complete,archive-status,AS,Check whether a feature has been archived,archive-status,<featureId> [--governance-dir],anytime,bmad-lens-complete:finalize,,false,,archive status JSON
+Lens,bmad-lens-move-feature,patch-references,PR,Patch cross-references to a feature after it has been moved,patch-references,<featureId> --old-path <p> --new-path <p> [--dry-run],anytime,bmad-lens-move-feature:move,,false,,patched reference count
+Lens,bmad-lens-setup,setup-lens,SU,Install or update Lens module configuration and help registry,configure,"{-H: headless mode}|{inline values: skip prompts with provided values}",anytime,,,false,{project-root}/_bmad,"bmadconfig.yaml, config.user.yaml, module-help.csv"
