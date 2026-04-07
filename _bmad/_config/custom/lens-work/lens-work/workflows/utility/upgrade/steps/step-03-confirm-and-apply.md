@@ -17,7 +17,7 @@ nextStepFile: './step-04-write-version.md'
 ```yaml
 total_changes = rename_plan.length + yaml_changes.length + init_state_plan.length
 
-if total_changes == 0:
+if total_changes == 0 and informational_changes.length == 0:
   output: "ℹ️  No v2 branches or fields detected. Only LENS_VERSION will be written."
 else:
   output: |
@@ -33,15 +33,24 @@ else:
     ${phase_branch_notes.length > 0 ? "### ⚠️  Phase Branch Advisories (not renamed)\n\n" +
       phase_branch_notes.map(n => `- \`${n.branch}\` — ${n.note}`).join('\n') : ""}
 
-    ### YAML Field Changes (${yaml_changes.length})
+    ### YAML Field Changes — Auto-Apply (${yaml_changes.length})
 
     ${yaml_changes.length > 0 ?
       yaml_changes.map(c =>
         c.type == "rename_key" || c.type == "rename_field" ?
           `- ${c.type}: \`${c.path}\` → \`${c.new_path}\`` :
+        c.type == "evolve_schema" ?
+          `- ${c.type}: \`${c.path}\` — ${c.description}` :
+        c.type == "change_default" ?
+          `- ${c.type}: \`${c.path}\` from ${JSON.stringify(c.old_value)} → ${JSON.stringify(c.value)}` :
           `- ${c.type}: \`${c.path}\` = ${JSON.stringify(c.value)}`
       ).join('\n')
       : "No YAML field changes."}
+
+    ${informational_changes.length > 0 ?
+      "### New Capabilities Available (informational — no auto-apply)\n\n" +
+      informational_changes.map(c => `- ${c.type}: \`${c.path}\` — ${c.description || c.value}`).join('\n')
+      : ""}
 
     ### Initiative-State Files (${init_state_plan.length})
 
@@ -52,6 +61,15 @@ else:
     ### Version File
 
     - Write LENS_VERSION: ${target_version}.0.0
+
+    ${optional_migrations && optional_migrations.length > 0 ?
+      "### Optional Migrations\n\n" +
+      "These can be run after the upgrade completes:\n\n" +
+      optional_migrations.map(m =>
+        `- **${m.name}**: ${m.description}\n` +
+        (m.steps ? m.steps.map(s => `  - ${s}`).join('\n') : '')
+      ).join('\n\n')
+      : ""}
 
     **Current branch:** ${invoke_command("git branch --show-current")}
 
@@ -112,6 +130,27 @@ if yaml_changes.length > 0:
       # Add a new top-level field if it doesn't exist
       if yaml_doc[change.path] == undefined:
         yaml_doc[change.path] = change.value
+
+    elif change.type == "evolve_schema":
+      # Evolve an existing section with new schema fields
+      # Preserves existing values, adds new fields from change.value
+      existing = resolve_path(yaml_doc, change.path)
+      if existing != undefined and change.value != null:
+        for key, val in change.value:
+          if existing[key] == undefined:
+            existing[key] = val
+        # Handle legacy_file → file migration if specified
+        if change.value.legacy_file and change.value.file:
+          if existing.file == change.value.legacy_file:
+            existing.file = change.value.file
+      elif existing == undefined and change.value != null:
+        set_path(yaml_doc, change.path, change.value)
+
+    elif change.type == "change_default":
+      # Change a field's value only if it currently matches old_value
+      current = resolve_path(yaml_doc, change.path)
+      if current == change.old_value:
+        set_path(yaml_doc, change.path, change.value)
 
   write_file("_bmad/lens-work/lifecycle.yaml", serialize_yaml(yaml_doc))
   invoke_command("git add _bmad/lens-work/lifecycle.yaml")

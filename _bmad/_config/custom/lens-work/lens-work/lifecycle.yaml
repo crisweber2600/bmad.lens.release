@@ -1,5 +1,5 @@
 # =============================================================================
-# Lens-Work Lifecycle Contract v3.1
+# Lens-Work Lifecycle Contract v3.3
 # =============================================================================
 # The single source of truth for lens-work lifecycle behavior.
 # The @lens agent (with 5 skills) and all workflows import
@@ -7,9 +7,11 @@
 #
 # v3 redesign: Git-derived state replaces legacy file-based state entirely.
 # Branch existence + PR metadata + committed artifacts = state.
+# v3.3: Cross-feature visibility — feature-index.yaml, commit-and-publish,
+#        relationship conflict detection, required frontmatter.
 # =============================================================================
 
-schema_version: 3.2
+schema_version: 3.3
 close_states: [completed, abandoned, superseded]
 initiative_state_schema: initiative-state.yaml
 artifact_publication:
@@ -665,23 +667,86 @@ credentials:
   enforcement: "Scanning all git-tracked files for credential patterns must find nothing"
 
 # -----------------------------------------------------------------------------
-# FEATURES REGISTRY (v3.2)
+# REQUIRED FRONTMATTER (v3.3)
+# -----------------------------------------------------------------------------
+# Every planning document MUST have YAML frontmatter with these fields.
+# Enforced at creation by phase workflows and validated by checklist skill.
+# Frontmatter is the source for mechanical summary extraction (no LLM needed).
+required_frontmatter:
+  enforcement: warn              # warn | hard — "warn" logs advisory, "hard" blocks commit
+  fields:
+    feature:
+      type: string
+      required: true
+      description: "Feature identifier matching feature-index.yaml"
+    doc_type:
+      type: enum
+      required: true
+      values: [product-brief, prd, tech-plan, ux-design, architecture, epics, sprint-plan, story]
+      description: "Document type for classification"
+    status:
+      type: enum
+      required: true
+      values: [draft, in-review, approved]
+      description: "Document review status"
+    goal:
+      type: string
+      required: true
+      description: "One-line goal statement — used as summary in feature-index.yaml"
+    key_decisions:
+      type: list
+      required: false
+      description: "Major decisions made in this document"
+    open_questions:
+      type: list
+      required: false
+      description: "Unresolved questions — surfaced in cross-feature context"
+    depends_on:
+      type: list
+      required: false
+      description: "Features this document's feature depends on"
+    blocks:
+      type: list
+      required: false
+      description: "Features blocked by this document's feature"
+    updated_at:
+      type: iso8601
+      required: true
+      description: "Last modification timestamp — set automatically by commit-and-publish"
+
+# -----------------------------------------------------------------------------
+# FEATURES REGISTRY (v3.2, evolved v3.3)
 # -----------------------------------------------------------------------------
 # Optional feature-to-domain/service mapping for simplified branch naming
 # and feature mobility. When enabled, branch names use {feature} only;
 # domain/service classification lives in this registry + folder structure.
+#
+# v3.3: Evolved from thin features.yaml to feature-index.yaml with cross-feature
+# visibility fields (relationships, summaries, timestamps). The feature-index.yaml
+# file lives on main and is updated atomically with every artifact commit.
+# Backward compatible — existing features.yaml fields are preserved.
 features_registry:
   enabled: false                    # Opt-in — enable via constitution or /lens-upgrade
-  file: "_bmad-output/lens-work/features.yaml"
+  file: "_bmad-output/lens-work/feature-index.yaml"
+  legacy_file: "_bmad-output/lens-work/features.yaml"  # v3.2 compatibility fallback
   schema:
     features:
       "{feature-name}":
         domain: "{domain}"
         service: "{service}"
-        status: active | closed
+        status: draft | planning | dev | review | complete | archived  # v3.3: expanded from active|closed
+        owner: "{username}"                   # v3.3: feature owner for portfolio views
         branch: "{feature-name}"
+        plan_branch: "{feature-name}-plan"    # v3.3: planning branch reference
         track: "{track}"
         created: "{ISO-8601}"
+        updated_at: "{ISO-8601}"              # v3.3: bumped atomically with every artifact commit
+        summary: "{one-line-summary}"         # v3.3: mechanically extracted from frontmatter
+        relationships:                        # v3.3: cross-feature visibility
+          depends_on: []                      # features this feature depends on
+          blocks: []                          # features this feature blocks
+          related: []                         # loosely related features
+  summary_file_pattern: "_bmad-output/lens-work/initiatives/{domain}/{service}/{feature}/summary.md"
 
 # -----------------------------------------------------------------------------
 # PROBLEM LOGGING (v3.2)
@@ -787,3 +852,53 @@ migrations:
           - "Create features.yaml entries mapping feature→domain/service"
           - "Update any open PRs (close old, create new with same body)"
           - "Old branches preserved with -archived suffix until user confirms cleanup"
+
+  - from_version: 3.2
+    to_version: 3.3
+    breaking: false
+    migration_command: "/lens-upgrade --from 3.2 --to 3.3"
+    branch_rename_required: false
+    changes:
+      - type: evolve_schema
+        path: features_registry
+        description: "Evolve features.yaml → feature-index.yaml with cross-feature visibility"
+        value:
+          file: "_bmad-output/lens-work/feature-index.yaml"
+          legacy_file: "_bmad-output/lens-work/features.yaml"
+          new_fields: [owner, plan_branch, updated_at, summary, relationships]
+          status_values: [draft, planning, dev, review, complete, archived]
+      - type: add_capability
+        path: constitution.capabilities
+        value: cross_feature_visibility
+      - type: add_capability
+        path: constitution.capabilities
+        value: required_frontmatter
+      - type: add_section
+        path: frontmatter_schema
+        description: "Required YAML frontmatter for planning documents"
+      - type: add_field
+        path: initiative_state_schema.context
+        value: { last_pulled: null, stale: false }
+      - type: add_operation
+        path: git-orchestration
+        value: commit-and-publish
+        description: "Atomic two-phase write: plan branch commit + main visibility update"
+      - type: add_query
+        path: git-state
+        value: cross-feature-context
+        description: "Read feature-index.yaml from main, classify relationships, fetch context"
+    optional_migrations:
+      - name: populate-feature-index
+        description: "Populate feature-index.yaml on main from existing initiative-state.yaml files"
+        steps:
+          - "Scan all active initiative-state.yaml files"
+          - "Extract domain, service, feature, status, track"
+          - "Create feature-index.yaml on main with entries for each active feature"
+          - "Create stub summary.md files on main for each feature"
+      - name: backfill-frontmatter
+        description: "Add required YAML frontmatter to existing planning documents"
+        steps:
+          - "Scan all planning branches for documents without frontmatter"
+          - "Generate frontmatter from initiative-state.yaml and document content"
+          - "Commit frontmatter additions to planning branches"
+          - "Update feature-index.yaml summaries on main"

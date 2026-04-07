@@ -82,6 +82,58 @@ if scope == "feature":
     branch: "${initiative_root}-small"
 ```
 
+### 3. Register In Feature Index And Create Summary Stub On Main *(v3.3)*
+
+When `features_registry.enabled` is true, atomically register the new feature in
+`feature-index.yaml` on main and create a stub `summary.md`. This ensures the feature
+is visible to all other features from the moment of creation.
+
+```yaml
+features_registry_config = load("lifecycle.yaml").features_registry
+if features_registry_config.enabled:
+
+  # 3a. Switch to main
+  CURRENT_BRANCH = git symbolic-ref --short HEAD
+  git checkout main
+  git pull origin main
+
+  # 3b. Register in feature-index.yaml
+  invoke: git-orchestration.update-feature-index
+  params:
+    feature: ${initiative_root}
+    domain: ${domain}
+    service: ${service}
+    status: draft
+    owner: ${user_name}
+    plan_branch: "${initiative_root}-plan"
+    summary: "New initiative — ${commit_description}"
+    relationships:
+      depends_on: []
+      blocks: []
+      related: []
+    updated_at: now_iso8601()
+
+  # 3c. Create stub summary.md on main
+  summary_path = resolve_summary_path(domain, service, initiative_root)
+  mkdir -p $(dirname ${summary_path})
+  write "${summary_path}":
+    "# ${initiative_root} — Summary\n\n"
+    "**Status:** draft\n"
+    "**Goal:** ${commit_description}\n"
+    "**Updated:** ${now_iso8601()}\n\n"
+    "## Key Decisions\n\n_None yet_\n\n"
+    "## Open Questions\n\n_None yet_\n\n"
+    "## Dependencies\n\n- **Depends on:** none\n- **Blocks:** none\n"
+
+  # 3d. Commit and push visibility update
+  git add "${feature_index_path}" "${summary_path}"
+  git commit -m "[VISIBILITY] ${initiative_root} — initiative created"
+  git push origin main
+
+  # 3e. Return to working branch
+  git checkout ${CURRENT_BRANCH}
+```
+
 ---
 
 ## NEXT STEP DIRECTIVE

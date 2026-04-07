@@ -199,6 +199,143 @@ initiatives:
     scope: service
 ```
 
+---
+
+### `cross-feature-context(initiative_root)` *(v3.3)*
+
+Read `feature-index.yaml` from main, resolve relationships for the current feature, and fetch the appropriate depth of cross-feature context. This is the core capability powering Pain Point 5 (Cross-Feature Visibility).
+
+**Design principle:** Relationship type drives fetch depth automatically. No user action required.
+
+**Algorithm:**
+```bash
+# 1. Read feature-index.yaml from main (no checkout, no local state change)
+FEATURE_INDEX=$(git show origin/main:_bmad-output/lens-work/feature-index.yaml 2>/dev/null)
+if [ -z "$FEATURE_INDEX" ]:
+  return { status: "unavailable", reason: "feature-index.yaml not found on main" }
+
+# 2. Look up the current feature in the index
+CURRENT_FEATURE = parse_yaml(FEATURE_INDEX).features[initiative_root]
+if CURRENT_FEATURE is null:
+  return { status: "not_indexed", reason: "Feature '${initiative_root}' not in feature-index.yaml" }
+
+# 3. Classify relationships and determine fetch depth
+CONTEXT = { related: [], depends_on: [], blocks: [] }
+
+for rel_type in [depends_on, blocks, related]:
+  for target_feature in CURRENT_FEATURE.relationships[rel_type]:
+    TARGET_ENTRY = parse_yaml(FEATURE_INDEX).features[target_feature]
+    if TARGET_ENTRY is null:
+      CONTEXT[rel_type].append({
+        feature: target_feature,
+        status: "unknown",
+        warning: "Referenced feature not found in feature-index.yaml"
+      })
+      continue
+
+    if rel_type == "related":
+      # Fetch summary only from main — lightweight
+      SUMMARY = git show origin/main:${summary_file_pattern(TARGET_ENTRY)} 2>/dev/null || "No summary available"
+      CONTEXT.related.append({
+        feature: target_feature,
+        domain: TARGET_ENTRY.domain,
+        service: TARGET_ENTRY.service,
+        status: TARGET_ENTRY.status,
+        updated_at: TARGET_ENTRY.updated_at,
+        summary: SUMMARY
+      })
+
+    if rel_type in ["depends_on", "blocks"]:
+      # Fetch FULL planning docs from plan branch — proactive, zero user action
+      PLAN_BRANCH = TARGET_ENTRY.plan_branch || "${target_feature}-plan"
+      DOCS = {}
+      for doc_type in ["tech-plan.md", "architecture.md", "prd.md", "product-brief.md"]:
+        DOC_PATH = "_bmad-output/lens-work/initiatives/${TARGET_ENTRY.domain}/${TARGET_ENTRY.service}/"
+        DOC_CONTENT = git show origin/${PLAN_BRANCH}:${DOC_PATH}${doc_type} 2>/dev/null
+        if DOC_CONTENT is not null:
+          DOCS[doc_type] = DOC_CONTENT
+      CONTEXT[rel_type].append({
+        feature: target_feature,
+        domain: TARGET_ENTRY.domain,
+        service: TARGET_ENTRY.service,
+        status: TARGET_ENTRY.status,
+        updated_at: TARGET_ENTRY.updated_at,
+        plan_branch: PLAN_BRANCH,
+        docs: DOCS
+      })
+```
+
+**Output:**
+```yaml
+cross_feature_context:
+  feature: auth-refresh
+  index_read_at: "{timestamp}"
+  relationships:
+    depends_on:
+      - feature: token-rotation
+        domain: platform
+        service: identity
+        status: dev
+        updated_at: "2026-04-03T10:00:00Z"
+        plan_branch: token-rotation-plan
+        docs:
+          tech-plan.md: "{full document content}"
+          architecture.md: "{full document content}"
+    blocks:
+      - feature: session-mgmt
+        domain: platform
+        service: identity
+        status: planning
+        updated_at: "2026-04-01T08:00:00Z"
+        plan_branch: session-mgmt-plan
+        docs:
+          prd.md: "{full document content}"
+    related:
+      - feature: user-profile
+        domain: platform
+        service: identity
+        status: dev
+        updated_at: "2026-04-04T12:00:00Z"
+        summary: "User profile management — avatar upload, display name, email preferences"
+  staleness:
+    context_last_pulled: "2026-04-03T10:00:00Z"    # from initiative-state.yaml
+    stale_features: ["token-rotation"]               # features updated since last pull
+    is_stale: true
+```
+
+**Relationship fetch depth:**
+
+| Relationship | What is fetched | Source |
+|---|---|---|
+| `related` | Summary only | `git show origin/main:...summary.md` |
+| `depends_on` | Full planning docs | `git show origin/{plan_branch}:...` |
+| `blocks` | Full planning docs of blocked feature | `git show origin/{plan_branch}:...` |
+
+**Staleness detection (v3.3):**
+```yaml
+# After fetching context, compare against initiative-state.yaml context.last_pulled
+STATE = read("initiative-state.yaml")
+LAST_PULLED = STATE.context.last_pulled || null
+
+stale_features = []
+for rel_type in [depends_on, blocks, related]:
+  for entry in CONTEXT[rel_type]:
+    if LAST_PULLED is null or entry.updated_at > LAST_PULLED:
+      stale_features.append(entry.feature)
+
+if stale_features.length > 0:
+  staleness.is_stale = true
+  staleness.stale_features = stale_features
+  warning: "?? Cross-feature context is stale. Features updated since last pull: ${stale_features.join(', ')}"
+```
+
+**Edge cases:**
+- `feature-index.yaml` not found on main: return `{ status: "unavailable" }` — non-fatal
+- Feature not in index: return `{ status: "not_indexed" }` — non-fatal, likely new feature
+- Related feature's plan branch doesn't exist: skip doc fetch, include summary from main only
+- No relationships defined: return empty context with `is_stale: false`
+- Governance repo not configured: read from current repo's main branch instead
+
 **Segment parsing:**
 - 1 segment: domain-only initiative (scope: domain, service: null)
 - 2 segments: service-level initiative (scope: service)

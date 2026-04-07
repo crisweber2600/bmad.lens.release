@@ -280,6 +280,137 @@ historical_initiatives:
     artifacts: [product-brief.md, prd.md, ...]
 ```
 
+---
+
+### `scan-relationship-conflicts` *(v3.3)*
+
+When `features_registry.enabled`, read relationship data from `feature-index.yaml` on
+main to detect dependency ordering violations and circular dependencies. This is a
+third enrichment pass — additive to Pass 1 and Pass 2.
+
+**Input:**
+```yaml
+current_initiative: payments-gateway-oauth
+current_domain: payments
+current_service: gateway
+```
+
+**Algorithm:**
+
+1. Read feature-index.yaml from main:
+   ```bash
+   feature_index = git show origin/main:${features_registry.file} 2>/dev/null
+   if not feature_index:
+     return { status: "unavailable", reason: "feature_index_not_found" }
+   index = parse_yaml(feature_index)
+   ```
+
+2. Resolve current initiative's declared relationships:
+   ```yaml
+   current_entry = index.features[current_initiative]
+   if not current_entry or not current_entry.relationships:
+     return { status: "available", violations: [], circular: [] }
+
+   depends_on = current_entry.relationships.depends_on || []
+   blocks = current_entry.relationships.blocks || []
+   ```
+
+3. Check dependency ordering violations — a dependency that is behind the
+   current initiative in lifecycle progression:
+   ```yaml
+   phase_order = [draft, planning, developing, testing, done]
+   violations = []
+
+   for dep_name in depends_on:
+     dep_entry = index.features[dep_name]
+     if dep_entry:
+       current_phase_idx = phase_order.index(current_entry.status)
+       dep_phase_idx = phase_order.index(dep_entry.status)
+       if current_phase_idx > dep_phase_idx:
+         violations.append({
+           type: "dependency_behind",
+           feature: dep_name,
+           current_status: current_entry.status,
+           dependency_status: dep_entry.status,
+           message: "${current_initiative} is '${current_entry.status}' but depends on ${dep_name} which is still '${dep_entry.status}'"
+         })
+   ```
+
+4. Detect circular dependencies — walk depends_on chains:
+   ```yaml
+   circular = []
+   visited = set()
+   stack = [current_initiative]
+
+   while stack:
+     node = stack.pop()
+     if node in visited:
+       circular.append(node)
+       continue
+     visited.add(node)
+     node_entry = index.features[node]
+     if node_entry and node_entry.relationships and node_entry.relationships.depends_on:
+       for dep in node_entry.relationships.depends_on:
+         stack.append(dep)
+   ```
+
+5. Check blocked features progressing past the blocker:
+   ```yaml
+   for blocked_name in blocks:
+     blocked_entry = index.features[blocked_name]
+     if blocked_entry:
+       blocked_phase_idx = phase_order.index(blocked_entry.status)
+       current_phase_idx = phase_order.index(current_entry.status)
+       if blocked_phase_idx > current_phase_idx:
+         violations.append({
+           type: "blocked_feature_ahead",
+           feature: blocked_name,
+           current_status: current_entry.status,
+           blocked_status: blocked_entry.status,
+           message: "${current_initiative} blocks ${blocked_name}, but ${blocked_name} is '${blocked_entry.status}' while blocker is still '${current_entry.status}'"
+         })
+   ```
+
+**Output:**
+```yaml
+status: available
+violations:
+  - type: dependency_behind
+    feature: identity-auth-mfa
+    current_status: developing
+    dependency_status: planning
+    message: "payments-gateway-oauth is 'developing' but depends on identity-auth-mfa which is still 'planning'"
+circular:
+  - feature-a → feature-b → feature-a
+```
+
+**Integration into format-report:**
+
+When `scan-relationship-conflicts` returns violations or circular dependencies, append
+a new section after Historical Context:
+
+```
+── Relationship Conflicts (Pass 3) ──
+
+${if violations.length > 0 or circular.length > 0}
+⚠️ Dependency issues detected:
+${for v in violations:}
+  ${v.type == "dependency_behind" ? "🔴" : "🟡"} ${v.message}
+${endfor}
+${if circular.length > 0}
+  🔴 Circular dependency detected: ${circular.join(" → ")}
+${endif}
+${else}
+No relationship conflicts detected ✅
+${endif}
+```
+
+Update the Summary section to include:
+```
+Relationship violations: ${violations.length}
+Circular dependencies: ${circular.length}
+```
+
 ## Verification Scenarios
 
 The following scenarios define the expected sensing behavior across governance configurations. All three must produce valid reports without errors.

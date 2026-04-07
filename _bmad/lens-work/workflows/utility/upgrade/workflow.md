@@ -31,7 +31,7 @@ This workflow uses **step-file architecture**:
 - Step 3 presents the full plan, handles `--dry-run` display or confirms with the user, and applies all changes.
 - Step 4 writes `LENS_VERSION`, commits with `[LENS:UPGRADE]` marker, and reports completion.
 
-State persists through `detected_version`, `target_version`, `migration`, `branch_scan`, `rename_plan`, `phase_branch_notes`, `yaml_changes`, `init_state_plan`, `renames_applied`, and `dry_run`.
+State persists through `detected_version`, `target_version`, `detected_numeric`, `target_numeric`, `migration`, `branch_scan`, `rename_plan`, `phase_branch_notes`, `yaml_changes`, `informational_changes`, `optional_migrations`, `init_state_plan`, `renames_applied`, and `dry_run`.
 
 ---
 

@@ -197,6 +197,10 @@ last_updated: '2026-03-26T10:00:00Z'
 artifacts:
   preplan:
     product-brief: 'product-brief-foo-bar-auth-2026-03-26.md'
+# v3.3: Cross-feature context tracking
+context:
+  last_pulled: ~                    # ISO-8601 ? when cross-feature context was last fetched
+  stale: false                      # set true by preflight when related features have updated
 ```
 
 **Algorithm:**
@@ -343,6 +347,47 @@ set schema_version = ${NEW_SCHEMA_VERSION}
 set lens_version = ${NEW_LENS_VERSION}
 set last_updated = now_iso8601()
 write file and stage with the upgrade commit
+```
+
+---
+
+### `update-context-pulled` *(v3.3)*
+
+Update the cross-feature context tracking fields in `initiative-state.yaml` after
+preflight successfully loads cross-feature context.
+
+**Input:**
+```yaml
+initiative_root: foo-bar-auth
+last_pulled: "2026-04-05T23:42:00Z"
+```
+
+**Updates:**
+- `context.last_pulled` ? set to the provided timestamp
+- `context.stale` ? set to `false` (context is now fresh)
+- `last_updated`
+
+**Algorithm:**
+```yaml
+read initiative-state.yaml
+
+# Initialize context block if missing (backward compatibility with v3.2 state files)
+if state_yaml.context is null:
+  state_yaml.context = { last_pulled: null, stale: false }
+
+state_yaml.context.last_pulled = ${last_pulled}
+state_yaml.context.stale = false
+state_yaml.last_updated = now_iso8601()
+
+write file and stage (no separate commit ? will be included in next workflow commit)
+```
+
+**Output:**
+```yaml
+status: updated
+context:
+  last_pulled: "2026-04-05T23:42:00Z"
+  stale: false
 ```
 
 ---
@@ -791,6 +836,196 @@ session.active_workflow = null
 
 ---
 
+## Cross-Feature Visibility Operations *(v3.3)*
+
+### `commit-and-publish`
+
+Atomic two-phase write that commits a planning artifact to the current branch AND updates
+the visibility surface on main. Both phases succeed or neither does. This is the core
+mechanism that makes summary staleness structurally impossible.
+
+**Design invariant:** There is no code path where a planning doc is committed without
+the summary being updated. Every artifact commit is atomic with its visibility update.
+
+**Input:**
+```yaml
+file_paths:                           # files to commit on current branch
+  - "${planning_docs_root}/tech-plan.md"
+phase: TECHPLAN
+initiative: foo-bar-auth
+description: "architecture document complete"
+feature: foo-bar-auth                 # feature-index.yaml key
+domain: payments
+service: auth
+```
+
+**Algorithm:**
+```yaml
+# Phase 1: Commit artifact to current branch (plan branch)
+
+# 1a. Validate frontmatter on each planning doc
+enforcement = load("lifecycle.yaml").required_frontmatter.enforcement
+for file in file_paths:
+  if file.endswith(".md"):
+    frontmatter = extract_yaml_frontmatter(file)
+    validation = invoke: checklist.validate-frontmatter
+    params:
+      frontmatter: frontmatter
+      enforcement: enforcement
+    if validation.status == "FAIL" and enforcement == "hard":
+      FAIL("Frontmatter missing or invalid in ${file}: ${validation.missing}")
+    if validation.status == "FAIL" and enforcement == "warn":
+      warning: "Frontmatter incomplete in ${file}: ${validation.missing}. Continuing in advisory mode."
+
+# 1b. Stage and commit on current branch
+git add ${file_paths}
+git commit -m "[${phase}] ${initiative} — ${description}"
+
+# 1c. Extract summary from frontmatter (mechanical, no LLM)
+primary_doc = file_paths[0]
+frontmatter = extract_yaml_frontmatter(primary_doc)
+summary_line = frontmatter.goal || "${description}"
+key_decisions = frontmatter.key_decisions || []
+open_questions = frontmatter.open_questions || []
+depends_on = frontmatter.depends_on || []
+blocks = frontmatter.blocks || []
+
+# Phase 2: Update visibility surface on main
+
+CURRENT_BRANCH = git symbolic-ref --short HEAD
+STASH_NEEDED = false
+
+# 2a. Stash any uncommitted changes (defensive)
+if $(git status --porcelain) is not empty:
+  git stash push -m "commit-and-publish: temp stash for main update"
+  STASH_NEEDED = true
+
+# 2b. Switch to main and pull
+git checkout main
+git pull origin main
+
+# 2c. Update feature-index.yaml
+invoke: update-feature-index
+params:
+  feature: ${feature}
+  domain: ${domain}
+  service: ${service}
+  status: planning
+  summary: ${summary_line}
+  relationships:
+    depends_on: ${depends_on}
+    blocks: ${blocks}
+  updated_at: now_iso8601()
+
+# 2d. Write summary.md (mechanical extraction from frontmatter)
+summary_path = resolve_summary_path(domain, service, feature)
+mkdir -p $(dirname ${summary_path})
+write summary.md with:
+  - feature name, status, goal from frontmatter
+  - key_decisions list
+  - open_questions list
+  - depends_on and blocks relationships
+
+# 2e. Commit visibility update on main
+git add "${feature_index_path}" "${summary_path}"
+git commit -m "[VISIBILITY] ${initiative} — summary + index update"
+git push origin main
+
+# 2f. Return to original branch
+git checkout ${CURRENT_BRANCH}
+if STASH_NEEDED:
+  git stash pop
+
+# 2g. Push the artifact commit on the plan branch
+git push origin ${CURRENT_BRANCH}
+```
+
+**Output:**
+```yaml
+status: published
+phase_1:
+  branch: foo-bar-auth-plan
+  commit_message: "[TECHPLAN] foo-bar-auth — architecture document complete"
+phase_2:
+  branch: main
+  feature_index_updated: true
+  summary_updated: true
+  summary_path: "_bmad-output/lens-work/initiatives/payments/auth/foo-bar-auth/summary.md"
+```
+
+**Error handling:**
+- Phase 1 fails (commit fails): abort entirely, no Phase 2
+- Phase 2 fails (main push conflict): log error, warn user, Phase 1 commit remains on branch.
+  User runs `/lens fix-visibility` to retry Phase 2 manually.
+- Frontmatter extraction fails: use fallback summary from commit description, log advisory
+
+---
+
+### `update-feature-index`
+
+Update or create an entry in `feature-index.yaml` on the current branch (called during
+Phase 2 of `commit-and-publish` when on main, or during `init-initiative` for initial entry).
+
+**Input:**
+```yaml
+feature: foo-bar-auth
+domain: payments
+service: auth
+status: planning
+owner: cweber
+plan_branch: foo-bar-auth-plan
+summary: "Refresh token rotation — JWT expiry and silent refresh"
+relationships:
+  depends_on: [token-rotation]
+  blocks: [session-mgmt]
+  related: []
+updated_at: "2026-04-05T23:42:00Z"
+```
+
+**Algorithm:**
+```yaml
+feature_index_path = load("lifecycle.yaml").features_registry.file
+# Default: "_bmad-output/lens-work/feature-index.yaml"
+
+# Read existing or initialize
+if file_exists(feature_index_path):
+  index = load_yaml(feature_index_path)
+else:
+  index = { features: {} }
+
+# Upsert entry — merge with existing, don't overwrite unset fields
+existing = index.features[feature] || {}
+index.features[feature] = {
+  domain: domain,
+  service: service,
+  status: status,
+  owner: owner || existing.owner || null,
+  branch: feature,
+  plan_branch: plan_branch || "${feature}-plan",
+  track: track || existing.track || null,
+  created: existing.created || now_iso8601(),
+  updated_at: updated_at,
+  summary: summary,
+  relationships: {
+    depends_on: relationships.depends_on || existing.relationships.depends_on || [],
+    blocks: relationships.blocks || existing.relationships.blocks || [],
+    related: relationships.related || existing.relationships.related || []
+  }
+}
+
+write_yaml(feature_index_path, index)
+git add "${feature_index_path}"
+```
+
+**Output:**
+```yaml
+status: updated    # updated | created
+feature: foo-bar-auth
+path: "_bmad-output/lens-work/feature-index.yaml"
+```
+
+---
+
 ## Git Discipline Rules
 
 1. Clean working directory before any branch operation
@@ -799,6 +1034,7 @@ session.active_workflow = null
 4. Never force-push without explicit user confirmation
 5. Structured commit messages: `[PHASE] {initiative} — {description}`
 6. Branch names derived from lifecycle.yaml, never hardcoded
+7. *(v3.3)* Every planning artifact commit MUST use `commit-and-publish` to maintain visibility invariant
 
 ---
 

@@ -221,7 +221,70 @@ output: |
   └── Detailed rows: ${detail_rows.length}
 ```
 
-### 2. Pending Action Rules
+### 2. Load Portfolio Data From Feature Index *(v3.3)*
+
+When `features_registry.enabled`, load cross-feature data from `feature-index.yaml` on main
+and enrich status rows with relationship and staleness information. This pre-loads data
+for step-04 rendering and avoids duplicate git queries.
+
+```yaml
+features_registry_config = load("{lifecycleContract}").features_registry
+if features_registry_config.enabled:
+
+  # 2a. Read feature-index.yaml from main without switching branches
+  raw_index = invoke_command("git show origin/main:${features_registry_config.file} 2>/dev/null")
+
+  if raw_index != null and raw_index != "":
+    feature_index = parse_yaml(raw_index)
+
+    # 2b. Build relationship lookup: feature → {depends_on, blocks, related}
+    relationship_map = {}
+    for entry in feature_index.features:
+      relationship_map[entry.key] = entry.relationships || { depends_on: [], blocks: [], related: [] }
+
+    # 2c. Check staleness per initiative from initiative-state.yaml on each feature branch
+    staleness_map = {}
+    for root in initiative_roots:
+      raw_state = invoke_command("git show origin/${root}:initiative-state.yaml 2>/dev/null")
+      if raw_state != null and raw_state != "":
+        state = parse_yaml(raw_state)
+        if state.context and state.context.stale == true:
+          staleness_map[root] = {
+            stale: true,
+            last_pulled: state.context.last_pulled || null
+          }
+
+    # 2d. Enrich status_rows with cross-feature data
+    for row in status_rows:
+      rels = relationship_map[row.initiative] || null
+      if rels != null:
+        row.depends_on = rels.depends_on || []
+        row.blocks = rels.blocks || []
+        row.related = rels.related || []
+      row.context_stale = staleness_map[row.initiative] != null
+
+    # 2e. Store for step-04 rendering
+    portfolio_data = {
+      feature_index: feature_index,
+      relationship_map: relationship_map,
+      staleness_map: staleness_map
+    }
+
+    output: |
+      📦 Portfolio data loaded
+      ├── Features indexed: ${feature_index.features.length}
+      ├── Stale contexts: ${Object.keys(staleness_map).length}
+      └── Relationships mapped: ${Object.keys(relationship_map).length}
+
+  else:
+    portfolio_data = null
+    output: "ℹ️  Feature index not found on main — portfolio view unavailable"
+
+else:
+  portfolio_data = null
+```
+
+### 3. Pending Action Rules
 
 Apply the lifecycle rules consistently using `lifecycle.yaml`, branch existence, and PR state:
 

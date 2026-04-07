@@ -14,6 +14,34 @@ createPrScript: '../../../../scripts/create-pr.ps1'
 
 ## EXECUTION SEQUENCE
 
+### 0. Publish Visibility Update *(v3.3)*
+
+Before creating the phase PR, use `commit-and-publish` to ensure the visibility surface
+on main is up-to-date. This makes the phase completion visible to all other features
+immediately, not just after the PR is merged.
+
+```yaml
+features_registry_config = load("lifecycle.yaml").features_registry
+if features_registry_config.enabled:
+  # Collect all planning artifacts for this phase
+  planning_artifacts = []
+  for artifact in required_artifacts:
+    artifact_path = resolve_artifact_path(artifact, planning_docs_root)
+    if file_exists(artifact_path):
+      planning_artifacts.append(artifact_path)
+
+  if planning_artifacts.length > 0:
+    invoke: git-orchestration.commit-and-publish
+    params:
+      file_paths: ${planning_artifacts}
+      phase: ${phase_name.upper()}
+      initiative: ${initiative_root}
+      description: "${display_name} phase complete"
+      feature: ${initiative_root}
+      domain: ${domain}
+      service: ${service}
+```
+
 ### 1. Build The PR Payload
 
 ```yaml

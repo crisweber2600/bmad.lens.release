@@ -57,7 +57,67 @@ if detail_rows.length > 0:
       🔄 Pending: ${row.action}
 ```
 
-### 3. Close With The Execution Hint
+### 3. Render Portfolio View From Feature Index *(v3.3)*
+
+When `features_registry.enabled`, render additional portfolio sections sourced entirely
+from `feature-index.yaml` on main. No branch switching required.
+
+```yaml
+features_registry_config = load("lifecycle.yaml").features_registry
+if features_registry_config.enabled:
+  feature_index = git show origin/main:${features_registry_config.file} 2>/dev/null
+  if feature_index is not null:
+    index = parse_yaml(feature_index)
+
+    # 3a. Portfolio Overview — all features by domain
+    domain_groups = group_by(index.features, f -> f.domain)
+    output: |
+
+      📦 Portfolio Overview (from feature-index.yaml on main)
+
+      ${for domain, features in domain_groups:}
+      **${domain}:**
+      | Feature | Service | Status | Owner | Updated | Summary |
+      |---------|---------|--------|-------|---------|---------|
+      ${for f in features:}
+      | ${f.key} | ${f.service} | ${f.status} | ${f.owner || '-'} | ${f.updated_at || '-'} | ${f.summary || '-'} |
+      ${endfor}
+      ${endfor}
+
+    # 3b. Staleness Alerts — features where context is known stale
+    stale_features = []
+    for feature_name, feature in index.features:
+      # Read initiative-state.yaml context.stale if accessible
+      state = git show origin/${feature_name}:initiative-state.yaml 2>/dev/null
+      if state and state.context and state.context.stale == true:
+        stale_features.append(feature_name)
+
+    if stale_features.length > 0:
+      output: |
+
+        ⚠️ Stale Context Alerts
+        The following features have not refreshed cross-feature context since related features updated:
+        ${for f in stale_features: echo "  - ${f}"}
+        Run `/refresh-context` on these features to update.
+
+    # 3c. Dependency Summary — blocking relationships
+    blocking_pairs = []
+    for feature_name, feature in index.features:
+      if feature.relationships and feature.relationships.blocks:
+        for blocked in feature.relationships.blocks:
+          blocking_pairs.append("${feature_name} blocks ${blocked}")
+      if feature.relationships and feature.relationships.depends_on:
+        for dep in feature.relationships.depends_on:
+          blocking_pairs.append("${feature_name} depends on ${dep}")
+
+    if blocking_pairs.length > 0:
+      output: |
+
+        🔗 Dependency Chains
+        ${for pair in blocking_pairs: echo "  - ${pair}"}
+```
+
+### 4. Close With The Execution Hint
 
 ```yaml
 output: "Use `/next` for the active initiative when you want the recommended next command."

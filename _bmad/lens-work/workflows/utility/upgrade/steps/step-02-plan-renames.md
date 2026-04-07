@@ -80,23 +80,42 @@ for branch in branch_scan:
 
 ### 4. Compute YAML Field Changes
 
-Extract the lifecycle.yaml field transformations from the migration descriptor:
+Extract the lifecycle.yaml field transformations from the migration descriptor.
+Auto-applicable types: `rename_key`, `rename_field`, `add_field`, `evolve_schema`, `change_default`.
+Informational types: `add_capability`, `add_section`, `add_track`, `add_operation`, `add_query`.
 
 ```yaml
 yaml_changes = []
+informational_changes = []
+auto_apply_types = ["rename_key", "rename_field", "add_field", "evolve_schema", "change_default"]
 
 if migration != null:
   for change in migration.changes:
-    yaml_changes.push({
-      type: change.type,        # rename_key | rename_field | add_field
-      path: change.path,
-      new_path: change.new_path || null,
-      value: change.value || null
-    })
+    if auto_apply_types.includes(change.type):
+      yaml_changes.push({
+        type: change.type,
+        path: change.path,
+        new_path: change.new_path || null,
+        value: change.value || null,
+        description: change.description || null,
+        old_value: change.old_value || null
+      })
+    else:
+      informational_changes.push({
+        type: change.type,
+        path: change.path,
+        value: change.value || null,
+        description: change.description || null
+      })
+
+  # Extract optional migrations for user display
+  optional_migrations = migration.optional_migrations || []
 
 output: |
-  📋 YAML field changes from migration descriptor: ${yaml_changes.length}
+  📋 YAML field changes from migration descriptor: ${yaml_changes.length} auto-apply, ${informational_changes.length} informational
   ${yaml_changes.map(c => `  ${c.type}: ${c.path}${c.new_path ? ' → ' + c.new_path : ''}`).join('\n')}
+  ${informational_changes.length > 0 ? '\n  Informational (new capabilities available):\n' + informational_changes.map(c => `  ${c.type}: ${c.path} — ${c.description || c.value}`).join('\n') : ''}
+  ${optional_migrations.length > 0 ? '\n  Optional migrations available: ' + optional_migrations.map(m => m.name).join(', ') : ''}
 ```
 
 ### 5. Plan Initiative-State YAML Creation

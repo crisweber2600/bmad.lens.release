@@ -71,6 +71,60 @@ Scanned {count} active initiative(s) across all domains.
 {if content_overlap_enabled}Content-aware analysis: no significant artifact overlap found.{end if}
 ```
 
+### Template: Relationship Conflicts *(v3.3)*
+
+When `features_registry.enabled` and `sensing.scan-relationship-conflicts` (Pass 3)
+is active, append a relationship conflict section. This surfaces dependency ordering
+violations, circular dependencies, and blocked feature issues.
+
+```markdown
+## Relationship Conflicts (Cross-Feature Visibility)
+
+{if relationship_violations.length > 0}
+⚠️ Relationship conflicts detected across ${scanned_features} features:
+
+### Dependency Ordering Violations
+
+Features that have progressed ahead of their declared dependencies:
+
+| Feature | Depends On | Feature Status | Dependency Status | Severity |
+|---------|-----------|----------------|-------------------|----------|
+| `{feature}` | `{dependency}` | {feature_status} | {dep_status} | 🔴 High |
+
+{end if}
+
+{if circular_deps.length > 0}
+### Circular Dependencies
+
+Dependency cycles that may cause coordination deadlocks:
+
+${for cycle in circular_deps:}
+- 🔄 ${cycle.join(" → ")} → ${cycle[0]}
+${endfor}
+
+**Recommended action:** Break the cycle by removing one dependency or merging the features.
+{end if}
+
+{if blocked_features.length > 0}
+### Blocked Features
+
+Features that cannot progress because their dependencies are incomplete:
+
+| Blocked Feature | Blocked By | Dependency Status | Action |
+|----------------|-----------|-------------------|--------|
+| `{blocked}` | `{blocker}` | {blocker_status} | Prioritize {blocker} |
+
+{end if}
+
+{if relationship_violations.length == 0 and circular_deps.length == 0 and blocked_features.length == 0}
+### Relationship Conflicts
+
+No relationship conflicts detected ✅
+
+Scanned ${scanned_features} feature(s) with ${total_relationships} declared relationships.
+{end if}
+```
+
 ## Integration Notes
 
 - This section is ALWAYS present in promotion PRs, even when no overlaps are found
@@ -80,3 +134,6 @@ Scanned {count} active initiative(s) across all domains.
 - When informational: show as advisory section
 - Content-aware sensing compares by section headers (diff_strategy: section-headers)
 - Similarity threshold is configurable in lifecycle.yaml (default: 0.7)
+- Relationship conflict section (v3.3) only renders when `features_registry.enabled`
+- Relationship data sourced from `feature-index.yaml` on main via `sensing.scan-relationship-conflicts` (Pass 3)
+- Pass 3 violation counts are included in the Summary section when present

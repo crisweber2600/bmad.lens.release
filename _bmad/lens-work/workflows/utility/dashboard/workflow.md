@@ -86,6 +86,55 @@ Based on dashboard state, recommend:
 - Initiatives ready for `/promote`
 - Initiatives idle for > 7 days
 
+### Step 6: Cross-Feature Visibility Layer *(v3.3)*
+
+When `features_registry.enabled` in lifecycle.yaml, augment the dashboard with
+relationship and staleness data sourced from `feature-index.yaml` on main.
+
+#### 6a. Dependency Graph
+
+Read all `relationships` from feature-index.yaml. Render a Mermaid dependency graph
+showing `depends_on` (solid arrows) and `blocks` (dashed arrows):
+
+```mermaid
+flowchart LR
+    A["payments-gateway-oauth"] -->|depends_on| B["identity-auth-mfa"]
+    A -.->|blocks| C["payments-ledger-v2"]
+    D["payments-gateway-retry"] -->|related| A
+```
+
+Rules:
+- `depends_on` → solid arrow from dependent to dependency
+- `blocks` → dashed arrow from blocker to blocked feature
+- `related` → dotted arrow, informational only
+- Color nodes by status: draft=gray, planning=blue, developing=green, blocked=red, done=dimgray
+
+#### 6b. Staleness Alerts
+
+For each initiative with `context.stale == true` in its initiative-state.yaml,
+append a warning row in the recommendations section:
+
+```
+⚠️ Stale cross-feature context:
+  - payments-gateway-oauth: context pulled 3d ago, identity-auth-mfa updated since
+  - payments-ledger-v2: context pulled 5d ago, gateway-oauth updated since
+```
+
+#### 6c. Portfolio Summary From Feature Index
+
+Add a compact portfolio table sourced entirely from feature-index.yaml (no branch
+switching needed):
+
+```markdown
+| Feature | Domain | Service | Status | Owner | Dependencies | Last Updated |
+|---------|--------|---------|--------|-------|-------------|-------------|
+| gateway-oauth | payments | gateway | developing | @alice | identity-auth-mfa | 2h ago |
+| auth-mfa | identity | auth | planning | @bob | — | 1d ago |
+```
+
+This table complements Step 4 by providing the "main branch truth" view that does
+not require initiative branches to exist.
+
 ## Outputs
 
 | Output | Format | Location |

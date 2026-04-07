@@ -127,7 +127,84 @@ Checklists support progressive validation — items can be checked incrementally
 1. **During phase work:** User can check progress with `/status` (shows partial checklist)
 2. **At phase end:** Full checklist evaluated before PR creation
 3. **At promotion:** Cumulative checklist across all phases for the current audience
+### Frontmatter Validation *(v3.3)*
 
+When `planning_doc_frontmatter.enabled` in lifecycle.yaml, `evaluate-phase-gate`
+includes frontmatter validation as an additional checklist item for each planning
+artifact.
+
+**Algorithm:**
+
+1. Load frontmatter schema from `lifecycle.yaml ? planning_doc_frontmatter`:
+   ```yaml
+   schema = lifecycle.yaml.planning_doc_frontmatter
+   required_fields = schema.required_fields
+   enforcement = schema.enforcement  # "warn" or "hard"
+   validation_at = schema.validation_at  # list of gate names like ["phase-gate", "promotion-gate"]
+   ```
+
+2. For each artifact that is a markdown file at the artifacts path:
+   ```yaml
+   for artifact_file in glob("${artifacts_path}/*.md"):
+     content = read_file(artifact_file)
+     frontmatter = extract_yaml_frontmatter(content)  # parse text between first --- and second ---
+
+     if frontmatter is null:
+       result = { artifact: artifact_file, status: "MISSING", details: "No YAML frontmatter found" }
+     else:
+       missing = []
+       for field in required_fields:
+         if field not in frontmatter or frontmatter[field] is empty:
+           missing.append(field)
+
+       if missing.length > 0:
+         result = {
+           artifact: artifact_file,
+           status: "INCOMPLETE",
+           details: "Missing required frontmatter: ${missing.join(', ')}",
+           missing_fields: missing
+         }
+       else:
+         result = { artifact: artifact_file, status: "PASS", details: "All required frontmatter present" }
+
+     frontmatter_results.append(result)
+   ```
+
+3. Determine gate impact based on enforcement mode:
+   ```yaml
+   if enforcement == "hard" and current_gate in validation_at:
+     # Missing or incomplete frontmatter BLOCKS the gate
+     if any(r.status != "PASS" for r in frontmatter_results):
+       gate_status = "FAIL"
+   elif enforcement == "warn":
+     # Missing frontmatter produces warnings but does not block
+     gate_status = "WARN"
+   ```
+
+4. Append frontmatter results to `checklist_result.items`:
+   ```yaml
+   - artifact: "frontmatter-validation"
+     status: PASS | FAIL | WARN
+     details: "${pass_count}/${total_count} artifacts have valid frontmatter"
+     sub_items:
+       - file: product-brief.md
+         status: PASS
+         details: "All required frontmatter present"
+       - file: prd.md
+         status: INCOMPLETE
+         missing: [depends_on, key_decisions]
+   ```
+
+**Format output (appended to format-checklist):**
+```
+Frontmatter Validation:
+????????????????????????
+? product-brief.md ? all fields present
+?? prd.md ? missing: depends_on, key_decisions
+? architecture.md ? no frontmatter found
+
+Result: 1/3 valid ? ${enforcement == "hard" ? "BLOCKED" : "WARNING"}
+```
 ## Error Handling
 
 | Error | Response |

@@ -171,6 +171,57 @@ All downstream workflow decisions MUST follow `session.constitutional_context`.
 
 After a successful full preflight, write the current UTC timestamp (ISO 8601 datetime) to `_bmad-output/lens-work/personal/.preflight-timestamp`.
 
+### 7. Load Cross-Feature Context *(v3.3)*
+
+> **Conditional:** Only runs when `features_registry.enabled == true` in lifecycle.yaml
+> AND the current branch resolves to a known initiative (not main, develop, or non-initiative branches).
+
+After constitution resolution and timestamp update, load cross-feature context so all
+downstream workflow steps have awareness of related features, dependencies, and blockers.
+
+```yaml
+features_registry_config = load("lifecycle.yaml").features_registry
+if not features_registry_config.enabled:
+  # Feature registry not enabled — skip cross-feature context
+  session.cross_feature_context = { status: "disabled" }
+  goto: end
+
+# Resolve current initiative
+current_initiative = invoke: git-state.current-initiative
+if current_initiative is null:
+  # Not on an initiative branch — skip
+  session.cross_feature_context = { status: "not_applicable", reason: "not on initiative branch" }
+  goto: end
+
+# 7a. Fetch cross-feature context
+cross_context = invoke: git-state.cross-feature-context
+params:
+  initiative_root: ${current_initiative.initiative_root}
+
+session.cross_feature_context = cross_context
+
+# 7b. Surface staleness warnings
+if cross_context.staleness.is_stale == true:
+  stale_list = cross_context.staleness.stale_features.join(', ')
+  warning: |
+    ⚠️ Cross-feature context is stale.
+    Features updated since last context pull: ${stale_list}
+    Related features may have made decisions that affect this initiative.
+    Run /refresh-context to update.
+
+# 7c. Surface dependency warnings
+if cross_context.relationships.depends_on.length > 0:
+  for dep in cross_context.relationships.depends_on:
+    if dep.status == "unknown":
+      warning: "⚠️ Dependency '${dep.feature}' not found in feature-index.yaml"
+
+# 7d. Update context.last_pulled in initiative-state.yaml
+invoke: git-orchestration.update-context-pulled
+params:
+  initiative_root: ${current_initiative.initiative_root}
+  last_pulled: now_iso8601()
+```
+
 ---
 
 ## Authority Repos
@@ -198,6 +249,18 @@ session.constitutional_context:
   status: "ok" | "parse_error" | "unavailable"
   gate_mode: "hard" | "advisory" | "informational"
   preflight_status: "PASS" | "WARN" | "FAIL"
+
+# v3.3: Cross-feature context (when features_registry.enabled)
+session.cross_feature_context:
+  status: "ok" | "disabled" | "not_applicable" | "unavailable"
+  feature: "{current_feature}"
+  relationships:
+    depends_on: [...]               # full planning docs for hard dependencies
+    blocks: [...]                   # full planning docs for blocked features
+    related: [...]                  # summaries only for loosely related
+  staleness:
+    is_stale: true | false
+    stale_features: [...]           # features updated since last context pull
   resolved_constitution: { ... }  # Full constitution hierarchy
   context_available: true | false
 
