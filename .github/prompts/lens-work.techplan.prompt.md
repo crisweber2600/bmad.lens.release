@@ -1,14 +1,18 @@
 ---
-model: Claude Sonnet 4.6 (copilot)
-description: 'Start TechPlan phase — architecture document, technical decisions (Winston/Architect)'
+model: "{default_model}"
+communication_language: "{communication_language}"
+document_output_language: "{document_output_language}"
+description: "Start TechPlan phase — architecture and technical decisions"
 ---
 
-# lens-work.techplan (Stub)
+# /techplan Prompt
 
-> **This is a stub.** Load and execute the full prompt from the release module.
-> All `_bmad/` paths in the full prompt are relative to `lens.core/` — do NOT resolve paths against the user's main project repo.
+Route to the techplan phase workflow via the @lens phase router.
 
-```
-Read and follow all instructions in: lens.core/_bmad/lens-work/prompts/lens-work.techplan.prompt.md
-```
-
+1. **Preflight**: Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+2. Load `lifecycle.yaml` from the lens-work module
+3. Invoke phase routing for `techplan`:
+   - Validate predecessor `businessplan` phase is complete
+   - Check current track includes `techplan` in its phases
+   - Work proceeds on the initiative root branch (within techplan milestone); auto_advance_promote creates devproposal milestone branch at closeout
+4. Execute `workflows/router/techplan/workflow.md`

@@ -1,14 +1,53 @@
 ---
-model: Claude Sonnet 4.6 (copilot)
-description: 'Bootstrap control repo — detect provider, validate auth, create profile, auto-clone TargetProjects'
+model: "{default_model}"
+communication_language: "{communication_language}"
+document_output_language: "{document_output_language}"
+description: "Bootstrap a new control repo and onboard the user to lens-work v2"
 ---
 
-# lens-work.onboard (Stub)
+# setupRepo — LENS Workbench Onboarding
 
-> **This is a stub.** Load and execute the full prompt from the release module.
-> All `_bmad/` paths in the full prompt are relative to `lens.core/` — do NOT resolve paths against the user's main project repo.
+You are the `@lens` agent performing first-time setup of a control repo for lens-work v2.
+
+## What This Prompt Does
+
+1. **Hydrates the control repo structure** — creates `_bmad-output/lens-work/` workspace directories
+2. **Chains to /onboard** — runs the full onboarding workflow
+
+## Steps
+
+### Step 0: Run Preflight
+
+Execute shared preflight from `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`.
+
+**Exception for /onboard:** If missing repos are reported, continue onboarding so the workflow can bootstrap/repair those repos.
+
+### Step 1: Hydrate Control Repo Structure
+
+Create the workspace directories if they don't exist:
 
 ```
-Read and follow all instructions in: lens.core/_bmad/lens-work/prompts/lens-work.onboard.prompt.md
+_bmad-output/
+└── lens-work/
+    ├── personal/
+    └── initiatives/
 ```
 
+### Step 2: Run /onboard
+
+Execute the onboard workflow at `{project-root}/lens.core/_bmad/lens-work/workflows/utility/onboard/`.
+
+The onboard workflow handles:
+- Provider detection from git remote URL
+- Authentication validation
+- Governance repo verification/clone
+- Profile creation (`_bmad-output/lens-work/personal/profile.yaml`)
+- TargetProjects bootstrap from governance `repo-inventory.yaml` (auto-clone missing repos)
+- Health check
+- Next command recommendation
+
+## Prerequisites
+
+- Control repo must be a git repository with a remote configured
+- `{release_repo_root}/lens.core/_bmad/lens-work/` must be accessible (release module)
+- `git` available in PATH

@@ -1,14 +1,17 @@
 ---
-model: Claude Sonnet 4.6 (copilot)
-description: 'Start SprintPlan phase — sprint-status, story files (Bob/Scrum Master, large audience)'
+model: "{default_model}"
+communication_language: "{communication_language}"
+document_output_language: "{document_output_language}"
+description: "Start SprintPlan phase — sprint status and story file generation"
 ---
 
-# lens-work.sprintplan (Stub)
+# /sprintplan Prompt
 
-> **This is a stub.** Load and execute the full prompt from the release module.
-> All `_bmad/` paths in the full prompt are relative to `lens.core/` — do NOT resolve paths against the user's main project repo.
+Route to the sprintplan phase workflow via the @lens phase router.
 
-```
-Read and follow all instructions in: lens.core/_bmad/lens-work/prompts/lens-work.sprintplan.prompt.md
-```
-
+1. **Preflight**: Execute `{project-root}/lens.core/_bmad/lens-work/workflows/includes/preflight.md`. Halt if authority repos missing — direct user to `/onboard`.
+2. Load `lifecycle.yaml` from the lens-work module
+3. Invoke phase routing for `sprintplan`:
+   - Validate devproposal milestone promotion is complete
+   - Work proceeds on the `{initiative-root}-sprintplan` milestone branch (created by prior promotion)
+4. Execute `workflows/router/sprintplan/workflow.md`
