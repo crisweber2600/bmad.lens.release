@@ -8,5 +8,5 @@ description: "LENS Workbench skill 'constitution' wrapper. Use when lifecycle an
 Read and follow all instructions in:
 
 ```
-bmad.lens.release/_bmad/lens-work/skills/constitution/SKILL.md
+lens.core/_bmad/lens-work/skills/constitution/SKILL.md
 ```

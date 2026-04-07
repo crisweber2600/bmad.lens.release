@@ -8,5 +8,5 @@ description: "LENS Workbench skill 'checklist' wrapper. Use when lifecycle and o
 Read and follow all instructions in:
 
 ```
-bmad.lens.release/_bmad/lens-work/skills/checklist/SKILL.md
+lens.core/_bmad/lens-work/skills/checklist/SKILL.md
 ```

@@ -8,5 +8,5 @@ description: "LENS Workbench skill 'git-state' wrapper. Use when lifecycle and o
 Read and follow all instructions in:
 
 ```
-bmad.lens.release/_bmad/lens-work/skills/git-state/SKILL.md
+lens.core/_bmad/lens-work/skills/git-state/SKILL.md
 ```

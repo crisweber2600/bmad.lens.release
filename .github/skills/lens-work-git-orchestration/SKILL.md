@@ -8,5 +8,5 @@ description: "LENS Workbench skill 'git-orchestration' wrapper. Use when lifecyc
 Read and follow all instructions in:
 
 ```
-bmad.lens.release/_bmad/lens-work/skills/git-orchestration/SKILL.md
+lens.core/_bmad/lens-work/skills/git-orchestration/SKILL.md
 ```

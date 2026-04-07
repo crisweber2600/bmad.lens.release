@@ -8,5 +8,5 @@ description: "LENS Workbench skill 'sensing' wrapper. Use when lifecycle and orc
 Read and follow all instructions in:
 
 ```
-bmad.lens.release/_bmad/lens-work/skills/sensing/SKILL.md
+lens.core/_bmad/lens-work/skills/sensing/SKILL.md
 ```
