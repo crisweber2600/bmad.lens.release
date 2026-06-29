@@ -50,7 +50,7 @@
     "chalk": "^4.1.2",
     "commander": "^14.0.0",
     "fs-extra": "^11.3.0",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.2.0"
   },
   "peerDependencies": {
     "bmad-method": "^6.0.0-Beta.7"
